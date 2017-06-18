@@ -1,0 +1,13 @@
+[package]
+name = "dnssd"
+build = "build.rs"
+version = "0.1.0"
+authors = ["Stefan Bühler <stbuehler@web.de>"]
+
+[build-dependencies]
+pkg-config = "~0.3.6"
+
+[dependencies]
+futures = "0.1.14"
+mio = "0.6"
+tokio-core = "0.1.8"
