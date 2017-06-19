@@ -5,7 +5,7 @@ version = "0.1.0"
 authors = ["Stefan Bühler <stbuehler@web.de>"]
 
 [build-dependencies]
-pkg-config = "~0.3.6"
+pkg-config = "0.3.9"
 
 [dependencies]
 futures = "0.1.14"
