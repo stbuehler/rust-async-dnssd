@@ -4,12 +4,18 @@ use std::io;
 
 use ffi;
 
+/// API Error
 #[derive(Clone,Copy,Eq,PartialEq,Hash)]
 pub enum Error {
+	/// If error code used some recognized name
 	KnownError(ffi::DNSServiceError),
+	/// Unrecognized error codes
 	UnknownError(i32),
 }
 impl Error {
+	/// Check if a raw error code represents an error, and convert it
+	/// accordingly.  (Not all codes are treated as an error, including
+	/// `0`).
 	pub fn from(value: ffi::DNSServiceErrorType) -> Result<(), Error> {
 		if let Some(_) = ffi::DNSServiceNoError::try_from(value) {
 			Ok(())

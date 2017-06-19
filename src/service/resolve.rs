@@ -8,15 +8,16 @@ use cstr;
 use error::Error;
 use evented::EventedDNSService;
 use ffi;
-use interface_index::InterfaceIndex;
+use interface::Interface;
 use raw;
 use remote::GetRemote;
 use stream::ServiceStream;
 
-pub struct Resolve(ServiceStream<ResolveData>);
+/// Pending resolve request
+pub struct Resolve(ServiceStream<ResolveResult>);
 
 impl futures::Stream for Resolve {
-	type Item = ResolveData;
+	type Item = ResolveResult;
 	type Error = io::Error;
 
 	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
@@ -30,12 +31,20 @@ impl GetRemote for Resolve {
 	}
 }
 
+/// Resolve result
+///
+/// See [`DNSServiceResolveReply`](https://developer.apple.com/documentation/dnssd/dnsserviceresolvereply).
 #[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
-pub struct ResolveData{
-	pub interface_index: InterfaceIndex,
+pub struct ResolveResult{
+	///
+	pub interface: Interface,
+	///
 	pub fullname: String,
+	///
 	pub host_target: String,
+	///
 	pub port: u16,
+	///
 	pub txt: Vec<u8>,
 }
 
@@ -51,16 +60,16 @@ extern "C" fn resolve_callback(
 	txt_record: *const u8,
 	context: *mut c_void
 ) {
-	let sender = context as *mut mpsc::UnboundedSender<io::Result<ResolveData>>;
-	let sender : &mpsc::UnboundedSender<io::Result<ResolveData>> = unsafe { &*sender };
+	let sender = context as *mut mpsc::UnboundedSender<io::Result<ResolveResult>>;
+	let sender : &mpsc::UnboundedSender<io::Result<ResolveResult>> = unsafe { &*sender };
 
 	let data = Error::from(error_code).map_err(io::Error::from).and_then(|_| {
 		let fullname = unsafe { cstr::from_cstr(fullname) }?;
 		let host_target = unsafe { cstr::from_cstr(host_target) }?;
 		let txt = unsafe { ::std::slice::from_raw_parts(txt_record, txt_len as usize) };
 
-		Ok(ResolveData{
-			interface_index: InterfaceIndex::from_raw(interface_index),
+		Ok(ResolveResult{
+			interface: Interface::from_raw(interface_index),
 			fullname: fullname.to_string(),
 			host_target: host_target.to_string(),
 			port: port,
@@ -71,8 +80,11 @@ extern "C" fn resolve_callback(
 	sender.send(data).unwrap();
 }
 
+/// Find hostname and port (and more) for a service
+///
+/// See [`DNSServiceResolve`](https://developer.apple.com/documentation/dnssd/1804744-dnsserviceresolve).
 pub fn resolve(
-	interface_index: InterfaceIndex,
+	interface: Interface,
 	name: &str,
 	reg_type: &str,
 	domain: &str,
@@ -86,7 +98,7 @@ pub fn resolve(
 		EventedDNSService::new(
 			raw::DNSService::resolve(
 				0, /* no flags */
-				interface_index.as_raw(),
+				interface.into_raw(),
 				&name,
 				&reg_type,
 				&domain,

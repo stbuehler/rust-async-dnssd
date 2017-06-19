@@ -5,7 +5,10 @@ use tokio_core::reactor::{Timeout,Remote};
 
 use remote::GetRemote;
 
+/// `futures::Stream` extension to simplify building
+/// [`TimeoutStream`](struct.TimeoutStream.html)
 pub trait TimeoutTrait: futures::Stream+Sized {
+	/// Create new [`TimeoutStream`](struct.TimeoutStream.html)
 	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>>;
 }
 
@@ -15,6 +18,10 @@ impl<S: futures::Stream+GetRemote> TimeoutTrait for S {
 	}
 }
 
+/// Add a timeout to a stream; each time an item is received the timer
+/// is reset
+///
+/// If the timeout triggers the stream ends (without an error).
 pub struct TimeoutStream<S> {
 	stream: S,
 	duration: Duration,
@@ -22,6 +29,9 @@ pub struct TimeoutStream<S> {
 }
 
 impl<S: futures::Stream+GetRemote> TimeoutStream<S> {
+	/// Create new `TimeoutStream`.
+	///
+	/// Also see [`TimeoutTrait::timeout`](trait.TimeoutTrait.html#method.timeout).
 	pub fn new(stream: S, duration: Duration) -> io::Result<Self> {
 		Ok(TimeoutStream{
 			stream: stream,
@@ -33,12 +43,19 @@ impl<S: futures::Stream+GetRemote> TimeoutStream<S> {
 	}
 }
 
+/// Error produces by [`TimeoutStream`](struct.TimeoutStream.html)
+///
+/// A timeout itself doesn't produce an error, it will just end the
+/// stream.
 #[derive(Debug)]
 pub enum TimeoutStreamError<E> {
+	/// An error occured in the underlying stream
 	StreamError(E),
+	/// Setting / checking the timeout failed
 	TimeoutError(io::Error),
 }
 impl<E: Into<io::Error>> TimeoutStreamError<E> {
+	/// Combine to an `std::io::Error`.
 	pub fn into_io_error(self) -> io::Error {
 		match self {
 			TimeoutStreamError::StreamError(e) => e.into(),

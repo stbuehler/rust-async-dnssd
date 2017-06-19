@@ -8,12 +8,29 @@ use cstr;
 use error::Error;
 use evented::EventedDNSService;
 use ffi;
-use interface_index::InterfaceIndex;
+use interface::Interface;
 use raw;
 use remote::GetRemote;
 use stream::ServiceStream;
 
-flags!{QueryRecordFlags: u8: QueryRecordFlag:
+/// Set of [`QueryRecordFlag`](enum.QueryRecordFlag.html)s
+///
+/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
+/// can be used to test whether a flag is part of a set.
+#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+pub struct QueryRecordFlags(u8);
+
+/// Flags used to query for a record
+#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[repr(u8)]
+pub enum QueryRecordFlag {
+	/// long-lived unicast query
+	///
+	/// See [`kDNSServiceFlagsLongLivedQuery`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagslonglivedquery).
+	LongLivedQuery = 0,
+}
+
+flags_ops!{QueryRecordFlags: u8: QueryRecordFlag:
 	LongLivedQuery,
 }
 
@@ -21,7 +38,31 @@ flag_mapping!{QueryRecordFlags: QueryRecordFlag => ffi::DNSServiceFlags:
 	LongLivedQuery => ffi::FLAGS_LONG_LIVED_QUERY,
 }
 
-flags!{QueriedRecordFlags: u8: QueriedRecordFlag:
+/// Set of [`QueriedRecordFlag`](enum.QueriedRecordFlag.html)s
+///
+/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
+/// can be used to test whether a flag is part of a set.
+#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+pub struct QueriedRecordFlags(u8);
+
+/// Flags for [`QueryRecordResult`](struct.QueryRecordResult.html)
+#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[repr(u8)]
+pub enum QueriedRecordFlag {
+	/// Indicates at least one more result is pending in the queue.  If
+	/// not set there still might be more results coming in the future.
+	///
+	/// See [`kDNSServiceFlagsMoreComing`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsmorecoming).
+	MoreComing = 0,
+
+	/// Indicates the result is new.  If not set indicates the result
+	/// was removed.
+	///
+	/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
+	Add,
+}
+
+flags_ops!{QueriedRecordFlags: u8: QueriedRecordFlag:
 	MoreComing,
 	Add,
 }
@@ -31,10 +72,11 @@ flag_mapping!{QueriedRecordFlags: QueriedRecordFlag => ffi::DNSServiceFlags:
 	Add => ffi::FLAGS_ADD,
 }
 
-pub struct QueryRecord(ServiceStream<QueryRecordData>);
+/// Pending query
+pub struct QueryRecord(ServiceStream<QueryRecordResult>);
 
 impl futures::Stream for QueryRecord {
-	type Item = QueryRecordData;
+	type Item = QueryRecordResult;
 	type Error = io::Error;
 
 	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
@@ -48,14 +90,24 @@ impl GetRemote for QueryRecord {
 	}
 }
 
+/// Query result
+///
+/// See [`DNSServiceQueryRecordReply`](https://developer.apple.com/documentation/dnssd/dnsservicequeryrecordreply).
 #[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
-pub struct QueryRecordData{
+pub struct QueryRecordResult{
+	///
 	pub flags: QueriedRecordFlags,
-	pub interface_index: InterfaceIndex,
+	///
+	pub interface: Interface,
+	///
 	pub fullname: String,
+	///
 	pub rr_type: u16,
+	///
 	pub rr_class: u16,
+	///
 	pub rdata: Vec<u8>,
+	///
 	pub ttl: u32,
 }
 
@@ -72,16 +124,16 @@ extern "C" fn query_record_callback(
 	ttl: u32,
 	context: *mut c_void
 ) {
-	let sender = context as *mut mpsc::UnboundedSender<io::Result<QueryRecordData>>;
-	let sender : &mpsc::UnboundedSender<io::Result<QueryRecordData>> = unsafe { &*sender };
+	let sender = context as *mut mpsc::UnboundedSender<io::Result<QueryRecordResult>>;
+	let sender : &mpsc::UnboundedSender<io::Result<QueryRecordResult>> = unsafe { &*sender };
 
 	let data = Error::from(error_code).map_err(io::Error::from).and_then(|_| {
 		let fullname = unsafe { cstr::from_cstr(fullname) }?;
 		let rdata = unsafe { ::std::slice::from_raw_parts(rdata, rd_len as usize) };
 
-		Ok(QueryRecordData{
+		Ok(QueryRecordResult{
 			flags: QueriedRecordFlags::from(flags),
-			interface_index: InterfaceIndex::from_raw(interface_index),
+			interface: Interface::from_raw(interface_index),
 			fullname: fullname.to_string(),
 			rr_type: rr_type,
 			rr_class: rr_class,
@@ -93,9 +145,12 @@ extern "C" fn query_record_callback(
 	sender.send(data).unwrap();
 }
 
+/// Query for an arbitrary DNS record
+///
+/// See [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecordc).
 pub fn query_record(
 	flags: QueryRecordFlags,
-	interface_index: InterfaceIndex,
+	interface: Interface,
 	fullname: &str,
 	rr_type: u16,
 	rr_class: u16,
@@ -107,7 +162,7 @@ pub fn query_record(
 		EventedDNSService::new(
 			raw::DNSService::query_record(
 				flags.into(),
-				interface_index.as_raw(),
+				interface.into_raw(),
 				&fullname,
 				rr_type,
 				rr_class,

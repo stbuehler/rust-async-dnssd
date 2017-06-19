@@ -8,14 +8,18 @@ use cstr;
 use error::Error;
 use evented::EventedDNSService;
 use ffi;
-use interface_index::InterfaceIndex;
+use interface::Interface;
 use raw;
 use remote::GetRemote;
 use stream::ServiceStream;
 
+/// Whether to enumerate domains which are browsed or domains for which
+/// registrations can be made.
 #[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
 pub enum Enumerate {
+	/// enumerate domains which can be browsed
 	BrowseDomains,
+	/// enumerate domains to register services/records on
 	RegistrationDomains,
 }
 
@@ -28,7 +32,36 @@ impl Into<ffi::DNSServiceFlags> for Enumerate {
 	}
 }
 
-flags!{EnumeratedFlags: u8: EnumeratedFlag:
+/// Set of [`EnumeratedFlag`](enum.EnumeratedFlag.html)s
+///
+/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
+/// can be used to test whether a flag is part of a set.
+#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+pub struct EnumeratedFlags(u8);
+
+/// Flags for [`EnumerateDomains`](struct.EnumerateDomains.html)
+#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[repr(u8)]
+pub enum EnumeratedFlag {
+	/// Indicates at least one more result is pending in the queue.  If
+	/// not set there still might be more results coming in the future.
+	///
+	/// See [`kDNSServiceFlagsMoreComing`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsmorecoming).
+	MoreComing = 0,
+
+	/// Indicates the result is new.  If not set indicates the result
+	/// was removed.
+	///
+	/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
+	Add,
+
+	/// Indicates this is the default domain to search (always combined with `Add`).
+	///
+	/// See [`kDNSServiceFlagsDefault`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsdefault).
+	Default,
+}
+
+flags_ops!{EnumeratedFlags: u8: EnumeratedFlag:
 	MoreComing,
 	Add,
 	Default,
@@ -40,11 +73,11 @@ flag_mapping!{EnumeratedFlags: EnumeratedFlag => ffi::DNSServiceFlags:
 	Default => ffi::FLAGS_DEFAULT,
 }
 
-
-pub struct EnumerateDomains(ServiceStream<EnumerateData>);
+/// Pending domain enumeration
+pub struct EnumerateDomains(ServiceStream<EnumerateResult>);
 
 impl futures::Stream for EnumerateDomains {
-	type Item = EnumerateData;
+	type Item = EnumerateResult;
 	type Error = io::Error;
 
 	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
@@ -58,11 +91,17 @@ impl GetRemote for EnumerateDomains {
 	}
 }
 
+/// Domain enumeration result
+///
+/// See [DNSServiceDomainEnumReply](https://developer.apple.com/documentation/dnssd/dnsservicedomainenumreply).
 #[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
-pub struct EnumerateData{
+pub struct EnumerateResult{
+	///
 	pub flags: EnumeratedFlags,
-	pub interface_index: InterfaceIndex,
-	pub reply_domain: String,
+	///
+	pub interface: Interface,
+	///
+	pub domain: String,
 }
 
 extern "C" fn enumerate_callback(
@@ -73,28 +112,31 @@ extern "C" fn enumerate_callback(
 	reply_domain: *const c_char,
 	context: *mut c_void
 ) {
-	let sender = context as *mut mpsc::UnboundedSender<io::Result<EnumerateData>>;
-	let sender : &mpsc::UnboundedSender<io::Result<EnumerateData>> = unsafe { &*sender };
+	let sender = context as *mut mpsc::UnboundedSender<io::Result<EnumerateResult>>;
+	let sender : &mpsc::UnboundedSender<io::Result<EnumerateResult>> = unsafe { &*sender };
 
 	let data = Error::from(error_code).map_err(io::Error::from).and_then(|_| {
 		let reply_domain = unsafe { cstr::from_cstr(reply_domain) }?;
 
-		Ok(EnumerateData{
+		Ok(EnumerateResult{
 			flags: EnumeratedFlags::from(flags),
-			interface_index: InterfaceIndex::from_raw(interface_index),
-			reply_domain: reply_domain.to_string(),
+			interface: Interface::from_raw(interface_index),
+			domain: reply_domain.to_string(),
 		})
 	});
 
 	sender.send(data).unwrap();
 }
 
-pub fn enumerate_domains(enumerate: Enumerate, interface_index: InterfaceIndex, handle: &Handle) -> io::Result<EnumerateDomains> {
+/// Enumerates domains that are recommended for registration or browsing
+///
+/// See [`DNSServiceEnumerateDomains`](https://developer.apple.com/documentation/dnssd/1804754-dnsserviceenumeratedomains).
+pub fn enumerate_domains(enumerate: Enumerate, interface: Interface, handle: &Handle) -> io::Result<EnumerateDomains> {
 	Ok(EnumerateDomains(ServiceStream::new(move |sender|
 		EventedDNSService::new(
 			raw::DNSService::enumerate_domains(
 				enumerate.into(),
-				interface_index.as_raw(),
+				interface.into_raw(),
 				Some(enumerate_callback),
 				sender as *mut c_void,
 			)?,

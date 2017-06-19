@@ -1,17 +1,7 @@
 #![macro_use]
 
-macro_rules! flags {
-	($flagset:ident: $ty:ty: $flags:ident:
-		$firstcase:ident,
-		$($case:ident,)*
-	) => (
-		#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
-		#[repr(u8)]
-		pub enum $flags {
-			$firstcase = 0,
-			$($case,)*
-		}
-
+macro_rules! flags_ops {
+	($flagset:ident: $ty:ty: $flags:ident: $($case:ident,)*) => (
 		impl ::std::ops::BitOr<$flags> for $flags {
 			type Output = $flagset;
 			fn bitor(self, rhs: $flags) -> Self::Output {
@@ -19,10 +9,8 @@ macro_rules! flags {
 			}
 		}
 
-		#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
-		pub struct $flagset(pub $ty);
-
 		impl $flagset {
+			/// Construct empty set of flags.
 			pub fn none() -> Self {
 				$flagset(0)
 			}
@@ -31,9 +19,6 @@ macro_rules! flags {
 		impl ::std::fmt::Debug for $flagset {
 			fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
 				write!(f, "[")?;
-				if *self & $flags::$firstcase {
-					write!(f, "{:?},", $flags::$firstcase)?;
-				}
 				$(
 					if *self & $flags::$case {
 						write!(f, "{:?},", $flags::$case)?;
@@ -52,6 +37,12 @@ macro_rules! flags {
 		impl ::std::convert::From<$flags> for $flagset {
 			fn from(flag: $flags) -> Self {
 				$flagset(1 << (flag as u8))
+			}
+		}
+
+		impl ::std::convert::Into<$ty> for $flagset {
+			fn into(self) -> $ty {
+				self.0
 			}
 		}
 
@@ -80,6 +71,13 @@ macro_rules! flags {
 			type Output = bool;
 			fn bitand(self, rhs: $flags) -> Self::Output {
 				0 != (self.0 & $flagset::from(rhs).0)
+			}
+		}
+
+		impl ::std::ops::BitAnd<$flagset> for $flags {
+			type Output = bool;
+			fn bitand(self, rhs: $flagset) -> Self::Output {
+				0 != ($flagset::from(self).0 & rhs.0)
 			}
 		}
 	);

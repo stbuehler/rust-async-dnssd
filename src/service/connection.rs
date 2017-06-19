@@ -9,11 +9,12 @@ use cstr;
 use error::Error;
 use evented::EventedDNSService;
 use ffi;
-use interface_index::InterfaceIndex;
+use interface::Interface;
 use raw;
 use remote::GetRemote;
 use future::ServiceFutureSingle;
 
+/// Connection to register records with
 pub struct Connection(Rc<EventedDNSService>);
 
 impl GetRemote for Connection {
@@ -22,6 +23,10 @@ impl GetRemote for Connection {
 	}
 }
 
+/// Create [`Connection`](struct.Connection.html) to register records
+/// with
+///
+/// See [`DNSServiceCreateConnection`](https://developer.apple.com/documentation/dnssd/1804724-dnsservicecreateconnection).
 pub fn connect(handle: &Handle) -> io::Result<Connection> {
 	let con = raw::DNSService::create_connection()?;
 	Ok(Connection(Rc::new(
@@ -29,7 +34,29 @@ pub fn connect(handle: &Handle) -> io::Result<Connection> {
 	)))
 }
 
-flags!{RegisterRecordFlags: u8: RegisterRecordFlag:
+/// Set of [`RegisterRecordFlag`](enum.RegisterRecordFlag.html)s
+///
+/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
+/// can be used to test whether a flag is part of a set.
+#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+pub struct RegisterRecordFlags(u8);
+
+/// Flags used to register a record
+#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[repr(u8)]
+pub enum RegisterRecordFlag {
+	/// Indicates there might me multiple records with the given name, type and class.
+	///
+	/// See [`kDNSServiceFlagsShared`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsshared).
+	Shared = 0,
+
+	/// Indicates the records with the given name, type and class is unique.
+	///
+	/// See [`kDNSServiceFlagsUnique`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsunique).
+	Unique,
+}
+
+flags_ops!{RegisterRecordFlags: u8: RegisterRecordFlag:
 	Shared,
 	Unique,
 }
@@ -39,9 +66,13 @@ flag_mapping!{RegisterRecordFlags: RegisterRecordFlag => ffi::DNSServiceFlags:
 	Unique => ffi::FLAGS_UNIQUE,
 }
 
+/// Pending record registration
+///
+/// Becomes invalid when the future completes; use the returned
+/// [`Record`](struct.Record.html) instead.
 // the future gets canceled by dropping the record; must
 // not drop the future without dropping the record.
-pub struct RegisterRecord(ServiceFutureSingle<RegisterRecordData>, Option<raw::DNSRecord>);
+pub struct RegisterRecord(ServiceFutureSingle<RegisterRecordResult>, Option<raw::DNSRecord>);
 
 impl futures::Future for RegisterRecord {
 	type Item = ::Record;
@@ -49,7 +80,7 @@ impl futures::Future for RegisterRecord {
 
 	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
 		match self.0.poll() {
-			Ok(Async::Ready(RegisterRecordData)) => Ok(Async::Ready(
+			Ok(Async::Ready(RegisterRecordResult)) => Ok(Async::Ready(
 				super::new_record(self.1.take().unwrap())
 			)),
 			Ok(Async::NotReady) => Ok(Async::NotReady),
@@ -65,7 +96,7 @@ impl GetRemote for RegisterRecord {
 }
 
 #[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
-struct RegisterRecordData;
+struct RegisterRecordResult;
 
 extern "C" fn register_record_callback(
 	_sd_ref: ffi::DNSServiceRef,
@@ -74,21 +105,25 @@ extern "C" fn register_record_callback(
 	error_code: ffi::DNSServiceErrorType,
 	context: *mut c_void
 ) {
-	let sender = context as *mut mpsc::UnboundedSender<io::Result<RegisterRecordData>>;
-	let sender : &mpsc::UnboundedSender<io::Result<RegisterRecordData>> = unsafe { &*sender };
+	let sender = context as *mut mpsc::UnboundedSender<io::Result<RegisterRecordResult>>;
+	let sender : &mpsc::UnboundedSender<io::Result<RegisterRecordResult>> = unsafe { &*sender };
 
 	let data = Error::from(error_code).map_err(io::Error::from).and_then(|_| {
-		Ok(RegisterRecordData)
+		Ok(RegisterRecordResult)
 	});
 
 	sender.send(data).unwrap();
 }
 
 impl Connection {
+	/// Register record on interface with given name, type, class, rdata
+	/// and ttl
+	///
+	// See [`DNSServiceRegisterRecord`](https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord).
 	pub fn register_raw_record(
 		&self,
 		flags: RegisterRecordFlags,
-		interface_index: InterfaceIndex,
+		interface: Interface,
 		fullname: &str,
 		rr_type: u16,
 		rr_class: u16,
@@ -100,7 +135,7 @@ impl Connection {
 		let (serv, record) = ServiceFutureSingle::new(self.0.clone(), move |sender|
 			Ok(self.0.service().register_record(
 				flags.into(),
-				interface_index.as_raw(),
+				interface.into_raw(),
 				&fullname,
 				rr_type,
 				rr_class,
@@ -120,10 +155,26 @@ impl RegisterRecord {
 		self.1.as_ref().expect("RegisterRecord future is done")
 	}
 
+	/// Type of the record
+	///
+	/// # Panics
+	///
+	/// Panics after the future completed.  Use the returned
+	/// [`Record`](struct.Record.html) instead.
 	pub fn rr_type(&self) -> u16 {
 		self.record().rr_type()
 	}
 
+	/// Update record
+	///
+	/// Cannot change type or class of record.
+	///
+	/// # Panics
+	///
+	/// Panics after the future completed.  Use the returned
+	/// [`Record`](struct.Record.html) instead.
+	///
+	/// See [`DNSServiceUpdateRecord`](https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord).
 	pub fn update_raw_record(
 		&self,
 		rdata: &[u8],
@@ -137,8 +188,24 @@ impl RegisterRecord {
 		Ok(())
 	}
 
-	// keep "forever" (until service is dropped; but service is not
-	// dropped before the record future is completed)
+	/// Keep record for as long as the underlying connection lives.
+	///
+	/// Keep the a handle to the underlying connection (either the
+	/// [`Connection`](struct.Connection.html) or some other record from
+	/// the same `Connection`) alive.
+	///
+	/// Due to some implementation detail the underlying connection
+	/// might live until this future successfully completes.
+	///
+	/// # Panics
+	///
+	/// Panics after the future completed.  Use the returned
+	/// [`Record`](struct.Record.html) instead.
+	// - implementation detail: this drives the future to continuation,
+	//   it is not possible to drop the (shared) underlying service
+	//   before. instead we could store the callback context with the
+	//   underyling service, and drop it either when dropping the
+	//   service or the callback was called.
 	pub fn keep(self, handle: &Handle) {
 		let (fut, rec) = (self.0, self.1.expect("RegisterRecord future is done"));
 		// drive future to continuation, ignore errors

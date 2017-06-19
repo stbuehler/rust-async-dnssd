@@ -15,8 +15,11 @@ mod records;
 mod register;
 mod resolve;
 
+/// Purge record from cache
+///
+/// See [`DNSServiceReconfirmRecord`](https://developer.apple.com/documentation/dnssd/1804726-dnsservicereconfirmrecord).
 pub fn reconfirm_record(
-	interface_index: ::interface_index::InterfaceIndex,
+	interface: ::interface::Interface,
 	fullname: &str,
 	rr_type: u16,
 	rr_class: u16,
@@ -25,7 +28,7 @@ pub fn reconfirm_record(
 	let fullname = ::cstr::CStr::from(&fullname)?;
 	::raw::reconfirm_record(
 		0, /* no flags */
-		interface_index.as_raw(),
+		interface.into_raw(),
 		&fullname,
 		rr_type,
 		rr_class,
@@ -34,13 +37,20 @@ pub fn reconfirm_record(
 	Ok(())
 }
 
+/// Full name consiting of (up to) three parts
 pub struct FullName<'a> {
+	/// (unescaped) service name (becomes single label in full name)
 	pub service: Option<&'a str>,
+	/// registration type (valid names don't need escaping)
 	pub reg_type: &'a str,
+	/// (escaped) domain name (most names don't need escaping)
 	pub domain: &'a str,
 }
 
 impl<'a> FullName<'a> {
+	/// Escape and concatenate all three parts to a full name
+	///
+	/// See [`DNSServiceConstructFullName`](https://developer.apple.com/documentation/dnssd/1804753-dnsserviceconstructfullname)
 	pub fn construct(&self) -> ::std::io::Result<String> {
 		use std::io;
 

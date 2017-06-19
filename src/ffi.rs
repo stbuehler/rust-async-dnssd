@@ -28,11 +28,15 @@ pub const FLAGS_LONG_LIVED_QUERY     : DNSServiceFlags = 0x100;
 //pub const FLAGS_FORCE_MULTICAS       : DNSServiceFlags = 0x400;
 //pub const FLAGS_RETURN_CNAME         : DNSServiceFlags = 0x800;
 
-// includes final trailing dot and terminating NULL
-pub const MAX_DOMAIN_NAME : usize = 1005;
+/// Maximum length of full name including trailing dot and terminating NULL
+///
+/// See [`kDNSServiceMaxDomainName`](https://developer.apple.com/documentation/dnssd/kdnsservicemaxdomainname)
+pub const MAX_DOMAIN_NAME : usize = 1009;
 
 pub const INTERFACE_INDEX_ANY : u32 = 0;
 pub const INTERFACE_INDEX_LOCAL_ONLY : u32 = !0;
+pub const INTERFACE_INDEX_UNICAST : u32 = !1;
+pub const INTERFACE_INDEX_P2P : u32 = !2;
 
 macro_rules! c_api_enum {
 	($name:ident : $ty:tt => $($case:ident = $val:expr,)* ) => (
@@ -65,6 +69,10 @@ c_api_enum!{DNSServiceNoError: i32 =>
 	ConfigChanged         = -65791,
 	MemFree               = -65792,
 }
+/// Known error codes
+///
+/// See [`DNSServiceErrorType`](https://developer.apple.com/documentation/dnssd/1823426-anonymous)
+#[allow(missing_docs)]
 c_api_enum!{DNSServiceError: i32 =>
 	Unknown               = -65537,
 	NoSuchName            = -65538,

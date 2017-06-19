@@ -9,4 +9,4 @@ This library wraps C libraries implementing the [`dnssd`](https://developer.appl
 It integrates into the asynchronous [`tokio`](https://tokio.rs/)
 framework.
 
-The documentation is located at [https://stbuehler.github.io/rustdocs/async-dnssd/async-dnssd/](https://stbuehler.github.io/rustdocs/async-dnssd/async-dnssd/).
+The documentation is located at [https://stbuehler.github.io/rustdocs/async-dnssd/async_dnssd/](https://stbuehler.github.io/rustdocs/async-dnssd/async_dnssd/).
