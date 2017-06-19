@@ -1,8 +1,15 @@
 [package]
-name = "dnssd"
+name = "async-dnssd"
 build = "build.rs"
 version = "0.1.0"
 authors = ["Stefan Bühler <stbuehler@web.de>"]
+description = "Asynchronous wrapper for DNS-SD C libraries"
+documentation = "https://stbuehler.github.io/rustdocs/async-dnssd/async-dnssd/"
+homepage = "https://github.com/stbuehler/rust-async-dnssd"
+repository = "https://github.com/stbuehler/rust-async-dnssd"
+readme = "README.md"
+keywords = ["dnssd", "dns-sd", "mdns", "network", "async"]
+license = "MIT"
 
 [build-dependencies]
 pkg-config = "0.3.9"
