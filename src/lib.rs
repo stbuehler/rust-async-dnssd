@@ -10,6 +10,7 @@
 //! * [Find hostname and port (and more) for a service](method.resolve.html)
 //!
 //! Also the following things might be interesting:
+//!
 //! * [Purge record from cache](method.reconfirm_record.html)
 //! * [Construct full name](struct.FullName#method.construct)
 //! * [Stream timeouts](struct.TimeoutStream)
