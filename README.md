@@ -10,3 +10,5 @@ It integrates into the asynchronous [`tokio`](https://tokio.rs/)
 framework.
 
 The documentation is located at [https://stbuehler.github.io/rustdocs/async-dnssd/async_dnssd/](https://stbuehler.github.io/rustdocs/async-dnssd/async_dnssd/).
+
+Documentation for released versions available at [https://docs.rs/crate/async-dnssd/](https://docs.rs/crate/async-dnssd/).

@@ -18,8 +18,14 @@
 #![warn(missing_docs)]
 
 extern crate futures;
-extern crate tokio_core;
+#[cfg(windows)] // only the windows event loop has debug logging for now
+#[macro_use]
+extern crate log;
 extern crate mio;
+extern crate tokio_core;
+
+#[cfg(windows)]
+extern crate libc;
 
 pub use self::error::*;
 pub use self::ffi::MAX_DOMAIN_NAME;

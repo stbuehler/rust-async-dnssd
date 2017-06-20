@@ -1,18 +1,23 @@
 #[cfg(unix)]
-use self::unix::EventedFd;
+use self::unix::*;
 #[cfg(unix)]
 mod unix;
 
+#[cfg(windows)]
+use self::windows::*;
+#[cfg(windows)]
+mod windows;
+
 use futures;
 use std::io;
-use tokio_core::reactor::{Handle,PollEvented,Remote};
+use tokio_core::reactor::{Handle,Remote};
 
 use raw::DNSService;
 use remote::GetRemote;
 
 pub struct EventedDNSService {
 	service: DNSService,
-	poll: PollEvented<EventedFd>,
+	poll: PollReadFd,
 }
 
 impl EventedDNSService {
@@ -21,7 +26,7 @@ impl EventedDNSService {
 
 		Ok(EventedDNSService{
 			service: service,
-			poll: PollEvented::new(EventedFd::new(fd)?, handle)?,
+			poll: PollReadFd::new(fd, handle)?,
 		})
 	}
 
