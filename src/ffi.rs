@@ -23,6 +23,8 @@ pub const FLAGS_REGISTRATION_DOMAINS : DNSServiceFlags = 0x80;
 // unix only?
 #[cfg(unix)]
 pub const FLAGS_LONG_LIVED_QUERY     : DNSServiceFlags = 0x100;
+#[cfg(not(unix))]
+pub const FLAGS_LONG_LIVED_QUERY     : DNSServiceFlags = 0;
 // avahi only?
 //pub const FLAGS_ALLOW_REMOTE_QUERY   : DNSServiceFlags = 0x200;
 //pub const FLAGS_FORCE_MULTICAS       : DNSServiceFlags = 0x400;
