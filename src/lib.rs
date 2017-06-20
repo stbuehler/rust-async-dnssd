@@ -26,6 +26,10 @@ extern crate tokio_core;
 
 #[cfg(windows)]
 extern crate libc;
+#[cfg(windows)]
+extern crate ws2_32;
+#[cfg(windows)]
+extern crate winapi;
 
 pub use self::error::*;
 pub use self::ffi::MAX_DOMAIN_NAME;

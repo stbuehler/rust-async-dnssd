@@ -17,7 +17,6 @@
 use futures::sync::mpsc as futures_mpsc;
 use futures::{Async,Sink,Stream};
 use futures::sink::Wait;
-use libc;
 use std::io;
 use std::os::raw::{c_int};
 use std::sync::mpsc as std_mpsc;
@@ -53,8 +52,8 @@ impl SelectFdRead {
 		use std::ptr::null_mut;
 		let mut timeout = timeout.map(|timeout|
 			libc::timeval{
-				tv_sec: timeout.as_secs() as i64,
-				tv_usec: (timeout.subsec_nanos() / 1000) as i64,
+				tv_sec: timeout.as_secs() as libc::c_long,
+				tv_usec: (timeout.subsec_nanos() / 1000) as libc::c_long,
 			}
 		);
 		unsafe {
@@ -222,3 +221,34 @@ impl Drop for PollReadFd {
 		let _ = self.inner().send_request.send(PollRequest::Close);
 	}
 }
+
+#[cfg(windows)]
+mod libc {
+	pub use libc::{c_int,c_uint,c_long};
+	pub use winapi::{timeval,fd_set,FD_SETSIZE,SOCKET};
+	pub use ws2_32::select;
+
+	pub unsafe fn FD_ZERO(set: *mut fd_set) {
+		let set = &mut *set;
+		set.fd_count = 0;
+	}
+
+	pub unsafe fn FD_SET(fd: c_int, set: *mut fd_set) {
+		if FD_ISSET(fd, set) { return; }
+		let set = &mut *set;
+		let fd = fd as c_uint as SOCKET;
+		if (set.fd_count as usize) < FD_SETSIZE {
+			set.fd_array[set.fd_count as usize] = fd;
+			set.fd_count += 1;
+		}
+	}
+
+	pub unsafe fn FD_ISSET(fd: c_int, set: *mut fd_set) -> bool {
+		let set = &mut *set;
+		let fd = fd as c_uint as SOCKET;
+		set.fd_array[..set.fd_count as usize].iter().any(|i| *i == fd)
+	}
+}
+
+#[cfg(unix)]
+use libc;
