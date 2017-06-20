@@ -1,69 +1,28 @@
-use futures;
 use std::os::raw::{c_int};
-use mio::unix::EventedFd;
+use mio;
 use std::io;
-use tokio_core::reactor::{Handle,PollEvented,Remote};
 
-use raw::DNSService;
-use remote::GetRemote;
-
-struct Inner {
-	service: DNSService,
-	fd: Box<c_int>,
-	poll: PollEvented<EventedFd<'static>>,
-}
-
-pub struct EventedDNSService(Option<Inner>);
-
-impl EventedDNSService {
-	fn inner(&self) -> &Inner {
-		self.0.as_ref().expect("EventedDNSService already dropped")
-	}
-
-	pub fn new(service: DNSService, handle: &Handle) -> io::Result<Self> {
-		let fd = Box::new(service.fd());
-		let fd_ref = unsafe {
-			// implement Drop manually to ensure fd is dropped
-			// after poll
-			::std::mem::transmute::<&c_int, &'static c_int>(&*fd)
-		};
-
-		Ok(EventedDNSService(Some(Inner{
-			service: service,
-			fd: fd,
-			poll: PollEvented::new(EventedFd(fd_ref), handle)?,
-		})))
-	}
-
-	pub fn poll(&self) -> io::Result<()> {
-		let inner = self.inner();
-		match inner.poll.poll_read() {
-			futures::Async::Ready(()) => {
-				inner.service.process_result()?;
-				inner.poll.need_read();
-			},
-			futures::Async::NotReady => (),
-		}
-		Ok(())
-	}
-
-	pub fn service(&self) -> &DNSService {
-		&self.inner().service
+pub struct EventedFd(c_int);
+impl EventedFd {
+	/// does not take overship of fd
+	pub fn new(fd: c_int) -> io::Result<Self> {
+		Ok(EventedFd(fd))
 	}
 }
 
-impl GetRemote for EventedDNSService {
-	fn remote(&self) -> &Remote {
-		self.inner().poll.remote()
+impl mio::Evented for EventedFd {
+	fn register(&self, poll: &mio::Poll, token: mio::Token, interest: mio::Ready, opts: mio::PollOpt) -> io::Result<()> {
+		let efd = mio::unix::EventedFd(&self.0);
+		mio::Evented::register(&efd, poll, token, interest, opts)
 	}
-}
 
-impl Drop for EventedDNSService {
-	fn drop(&mut self) {
-		let i = self.0.take().expect("EventedDNSService already dropped");
-		//// make sure to drop poll before (boxed) fd
-		drop(i.poll);
-		drop(i.fd);
-		drop(i.service);
+	fn reregister(&self, poll: &mio::Poll, token: mio::Token, interest: mio::Ready, opts: mio::PollOpt) -> io::Result<()> {
+		let efd = mio::unix::EventedFd(&self.0);
+		mio::Evented::reregister(&efd, poll, token, interest, opts)
+	}
+
+	fn deregister(&self, poll: &mio::Poll) -> io::Result<()> {
+		let efd = mio::unix::EventedFd(&self.0);
+		mio::Evented::deregister(&efd, poll)
 	}
 }
