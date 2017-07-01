@@ -158,7 +158,7 @@ pub fn register(
 				&reg_type,
 				&domain,
 				&host,
-				port,
+				port.to_be(),
 				txt,
 				Some(register_callback),
 				sender as *mut c_void,
