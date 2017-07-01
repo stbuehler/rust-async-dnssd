@@ -72,7 +72,7 @@ extern "C" fn resolve_callback(
 			interface: Interface::from_raw(interface_index),
 			fullname: fullname.to_string(),
 			host_target: host_target.to_string(),
-			port: port.from_be(),
+			port: u16::from_be(port),
 			txt: txt.into(),
 		})
 	});
