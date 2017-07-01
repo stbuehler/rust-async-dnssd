@@ -1,0 +1,11 @@
+[package]
+name = "mdns_ipc_derive"
+version = "0.1.0"
+authors = ["Stefan Bühler <stbuehler@web.de>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "0.11"
+quote = "0.3"

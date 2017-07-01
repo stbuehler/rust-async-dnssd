@@ -1,0 +1,12 @@
+[package]
+name = "mdns_ipc"
+version = "0.1.0"
+authors = ["Stefan Bühler <stbuehler@web.de>"]
+
+[dependencies]
+mdns_ipc_core = { path = "../mdns_ipc_core" }
+mdns_ipc_derive = { path = "../mdns_ipc_derive" }
+log = "0.3.8"
+futures = "0.1.14"
+tokio-core = "0.1.8"
+tokio-io = "0.1.2"
