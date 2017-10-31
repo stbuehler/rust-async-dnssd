@@ -128,7 +128,7 @@ extern "C" fn browse_callback(
 		})
 	});
 
-	sender.send(data).unwrap();
+	sender.unbounded_send(data).unwrap();
 }
 
 /// Browses for available services

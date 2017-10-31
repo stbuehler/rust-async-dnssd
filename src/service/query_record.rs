@@ -142,7 +142,7 @@ extern "C" fn query_record_callback(
 		})
 	});
 
-	sender.send(data).unwrap();
+	sender.unbounded_send(data).unwrap();
 }
 
 /// Query for an arbitrary DNS record

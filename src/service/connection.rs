@@ -112,7 +112,7 @@ extern "C" fn register_record_callback(
 		Ok(RegisterRecordResult)
 	});
 
-	sender.send(data).unwrap();
+	sender.unbounded_send(data).unwrap();
 }
 
 impl Connection {

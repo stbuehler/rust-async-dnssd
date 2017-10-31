@@ -119,7 +119,7 @@ extern "C" fn register_callback(
 		})
 	});
 
-	sender.send(data).unwrap();
+	sender.unbounded_send(data).unwrap();
 }
 
 /// Successful registration

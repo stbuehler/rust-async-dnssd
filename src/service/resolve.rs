@@ -77,7 +77,7 @@ extern "C" fn resolve_callback(
 		})
 	});
 
-	sender.send(data).unwrap();
+	sender.unbounded_send(data).unwrap();
 }
 
 /// Find hostname and port (and more) for a service

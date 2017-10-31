@@ -125,7 +125,7 @@ extern "C" fn enumerate_callback(
 		})
 	});
 
-	sender.send(data).unwrap();
+	sender.unbounded_send(data).unwrap();
 }
 
 /// Enumerates domains that are recommended for registration or browsing

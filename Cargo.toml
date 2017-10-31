@@ -15,7 +15,7 @@ license = "MIT"
 pkg-config = "0.3.9"
 
 [dependencies]
-futures = "0.1.14"
+futures = "0.1.15"
 mio = "0.6"
 tokio-core = "0.1.8"
 log = "0.3.8"
