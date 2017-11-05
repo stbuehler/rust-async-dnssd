@@ -2,16 +2,16 @@
 //!
 //! Interesting entry points:
 //!
-//! * [Browses for available services](method.browse.html)
-//! * [Create Connection to register records with](method.connect.html)
-//! * [Enumerates domains that are recommended for registration or browsing](method.enumerate_domains.html)
-//! * [Query for an arbitrary DNS record](method.query_record.html)
-//! * [Registers a service](method.register.html)
-//! * [Find hostname and port (and more) for a service](method.resolve.html)
+//! * [Browses for available services](fn.browse.html)
+//! * [Create Connection to register records with](fn.connect.html)
+//! * [Enumerates domains that are recommended for registration or browsing](fn.enumerate_domains.html)
+//! * [Query for an arbitrary DNS record](fn.query_record.html)
+//! * [Registers a service](fn.register.html)
+//! * [Find hostname and port (and more) for a service](fn.resolve.html)
 //!
 //! Also the following things might be interesting:
 //!
-//! * [Purge record from cache](method.reconfirm_record.html)
+//! * [Purge record from cache](fn.reconfirm_record.html)
 //! * [Construct full name](struct.FullName#method.construct)
 //! * [Stream timeouts](struct.TimeoutStream)
 
