@@ -27,7 +27,7 @@ impl Record {
 	/// Cannot change type or class of record.
 	///
 	/// See [`DNSServiceUpdateRecord`](https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord).
-	pub fn update_raw_record(
+	pub fn update_record(
 		&self,
 		rdata: &[u8],
 		ttl: u32

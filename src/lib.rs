@@ -7,8 +7,8 @@
 //! * [Enumerate domains that are recommended for registration or browsing][`enumerate_domains`]
 //! * [Query for an arbitrary DNS record][`query_record`]
 //! * [Register a service][`register`]
-//! * [Add a record to a registered service][`Registration::add_raw_record`]
-//! * [Register record][`Connection::register_raw_record`]
+//! * [Add a record to a registered service][`Registration::add_record`]
+//! * [Register record][`Connection::register_record`]
 //! * [Find hostname and port (and more) for a service][`resolve`]
 //!
 //! Also the following things might be interesting:
@@ -19,19 +19,19 @@
 //!
 //! ## Porting from dnssd C API
 //!
-//! | C API                           | functionality in this crate                                          |
-//! |---------------------------------|----------------------------------------------------------------------|
-//! | [`DNSServiceAddRecord`]         | [`Registration::add_raw_record`], [`Register::add_raw_record`]       |
-//! | [`DNSServiceBrowse`]            | [`browse`]                                                           |
-//! | [`DNSServiceConstructFullName`] | [`FullName::construct`]                                              |
-//! | [`DNSServiceCreateConnection`]  | [`connect`]                                                          |
-//! | [`DNSServiceEnumerateDomains`]  | [`enumerate_domains`]                                                |
-//! | [`DNSServiceQueryRecord`]       | [`query_record`]                                                     |
-//! | [`DNSServiceReconfirmRecord`]   | [`reconfirm_record`]                                                 |
-//! | [`DNSServiceRegister`]          | [`register`]                                                         |
-//! | [`DNSServiceRegisterRecord`]    | [`Connection::register_raw_record`]                                  |
-//! | [`DNSServiceResolve`]           | [`resolve`]                                                          |
-//! | [`DNSServiceUpdateRecord`]      | [`Record::update_raw_record`], [`RegisterRecord::update_raw_record`] |
+//! | C API                           | functionality in this crate                                  |
+//! |---------------------------------|--------------------------------------------------------------|
+//! | [`DNSServiceAddRecord`]         | [`Registration::add_record`], [`Register::add_record`]       |
+//! | [`DNSServiceBrowse`]            | [`browse`]                                                   |
+//! | [`DNSServiceConstructFullName`] | [`FullName::construct`]                                      |
+//! | [`DNSServiceCreateConnection`]  | [`connect`]                                                  |
+//! | [`DNSServiceEnumerateDomains`]  | [`enumerate_domains`]                                        |
+//! | [`DNSServiceQueryRecord`]       | [`query_record`]                                             |
+//! | [`DNSServiceReconfirmRecord`]   | [`reconfirm_record`]                                         |
+//! | [`DNSServiceRegister`]          | [`register`]                                                 |
+//! | [`DNSServiceRegisterRecord`]    | [`Connection::register_record`]                              |
+//! | [`DNSServiceResolve`]           | [`resolve`]                                                  |
+//! | [`DNSServiceUpdateRecord`]      | [`Record::update_record`], [`RegisterRecord::update_record`] |
 //!
 //! The following functions are called automatically when needed:
 //! * [`DNSServiceProcessResult`] driving callbacks (event loop)
@@ -54,8 +54,8 @@
 //! [`DNSServiceRefDeallocate`]: https://developer.apple.com/documentation/dnssd/1804697-dnsservicerefdeallocate
 //! [`DNSServiceRefSockFD`]: https://developer.apple.com/documentation/dnssd/1804698-dnsservicerefsockfd
 //! [`DNSServiceRemoveRecord`]: https://developer.apple.com/documentation/dnssd/1804736-dnsserviceremoverecord
-//! [`Registration::add_raw_record`]: struct.Registration.html#method.add_raw_record
-//! [`Register::add_raw_record`]: struct.Register.html#method.add_raw_record
+//! [`Registration::add_record`]: struct.Registration.html#method.add_record
+//! [`Register::add_record`]: struct.Register.html#method.add_record
 //! [`browse`]: fn.browse.html
 //! [`FullName::construct`]: struct.FullName.html#method.construct
 //! [`connect`]: fn.connect.html
@@ -63,10 +63,10 @@
 //! [`query_record`]: fn.query_record.html
 //! [`reconfirm_record`]: fn.reconfirm_record.html
 //! [`register`]: fn.register.html
-//! [`Connection::register_raw_record`]: struct.Connection.html#method.register_raw_record
+//! [`Connection::register_record`]: struct.Connection.html#method.register_record
 //! [`resolve`]: fn.resolve.html
-//! [`Record::update_raw_record`]: struct.Record.html#method.update_raw_record
-//! [`RegisterRecord::update_raw_record`]: struct.RegisterRecord.html#method.update_raw_record
+//! [`Record::update_record`]: struct.Record.html#method.update_record
+//! [`RegisterRecord::update_record`]: struct.RegisterRecord.html#method.update_record
 //! [`TimeoutStream`]: struct.TimeoutStream.html
 
 #![warn(missing_docs)]

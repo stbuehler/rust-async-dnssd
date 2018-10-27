@@ -172,7 +172,7 @@ impl Register {
 	/// Add a record to a registered service
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
-	pub fn add_raw_record(
+	pub fn add_record(
 		&self,
 		rr_type: u16,
 		rdata: &[u8],
@@ -200,7 +200,7 @@ impl Registration {
 	/// Add a record to a registered service
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
-	pub fn add_raw_record(
+	pub fn add_record(
 		&self,
 		rr_type: u16,
 		rdata: &[u8],

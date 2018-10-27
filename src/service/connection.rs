@@ -120,7 +120,7 @@ impl Connection {
 	/// and ttl
 	///
 	/// See [`DNSServiceRegisterRecord`](https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord).
-	pub fn register_raw_record(
+	pub fn register_record(
 		&self,
 		flags: RegisterRecordFlags,
 		interface: Interface,
@@ -175,7 +175,7 @@ impl RegisterRecord {
 	/// [`Record`](struct.Record.html) instead.
 	///
 	/// See [`DNSServiceUpdateRecord`](https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord).
-	pub fn update_raw_record(
+	pub fn update_record(
 		&self,
 		rdata: &[u8],
 		ttl: u32
