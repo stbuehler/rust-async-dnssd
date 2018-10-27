@@ -22,6 +22,7 @@ impl<S: futures::Stream+GetRemote> TimeoutTrait for S {
 /// is reset
 ///
 /// If the timeout triggers the stream ends (without an error).
+#[must_use = "streams do nothing unless polled"]
 pub struct TimeoutStream<S> {
 	stream: S,
 	duration: Duration,

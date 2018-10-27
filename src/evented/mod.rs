@@ -15,6 +15,7 @@ use tokio_core::reactor::{Handle,Remote};
 use raw::DNSService;
 use remote::GetRemote;
 
+#[must_use = "EventedDNSService does nothing unless polled"]
 pub struct EventedDNSService {
 	service: DNSService,
 	poll: PollReadFd,

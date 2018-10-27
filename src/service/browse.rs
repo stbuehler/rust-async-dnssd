@@ -48,6 +48,7 @@ flag_mapping!{BrowsedFlags: BrowsedFlag => ffi::DNSServiceFlags:
 /// Pending browse request
 ///
 /// Results are delivered through `futures::Stream`.
+#[must_use = "streams do nothing unless polled"]
 pub struct Browse(CallbackStream);
 
 impl futures::Stream for Browse {

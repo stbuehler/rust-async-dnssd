@@ -13,6 +13,7 @@ use remote::GetRemote;
 
 type CallbackContext<T> = mpsc::UnboundedSender<io::Result<T>>;
 
+#[must_use = "streams do nothing unless polled"]
 pub struct ServiceStream<T> {
 	service: EventedDNSService,
 	_sender: RawBox<CallbackContext<T>>,

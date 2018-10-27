@@ -71,6 +71,7 @@ flag_mapping!{QueriedRecordFlags: QueriedRecordFlag => ffi::DNSServiceFlags:
 }
 
 /// Pending query
+#[must_use = "streams do nothing unless polled"]
 pub struct QueryRecord(CallbackStream);
 
 impl futures::Stream for QueryRecord {

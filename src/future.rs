@@ -20,6 +20,7 @@ struct Inner<T> {
 	receiver: oneshot::Receiver<io::Result<T>>,
 }
 
+#[must_use = "futures do nothing unless polled"]
 pub(crate) struct ServiceFuture<T>(Option<Inner<T>>);
 
 impl<T> ServiceFuture<T> {
@@ -93,6 +94,7 @@ impl<T> GetRemote for ServiceFuture<T> {
 	}
 }
 
+#[must_use = "futures do nothing unless polled"]
 pub struct ServiceFutureSingle<T> {
 	service: Rc<EventedDNSService>,
 	_sender: RawBox<CallbackContext<T>>,

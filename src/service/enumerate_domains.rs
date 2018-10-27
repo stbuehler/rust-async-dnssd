@@ -72,6 +72,7 @@ flag_mapping!{EnumeratedFlags: EnumeratedFlag => ffi::DNSServiceFlags:
 }
 
 /// Pending domain enumeration
+#[must_use = "streams do nothing unless polled"]
 pub struct EnumerateDomains(CallbackStream);
 
 impl futures::Stream for EnumerateDomains {

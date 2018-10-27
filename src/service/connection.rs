@@ -73,6 +73,7 @@ flag_mapping!{RegisterRecordFlags: RegisterRecordFlag => ffi::DNSServiceFlags:
 /// [`Record`](struct.Record.html) instead.
 // the future gets canceled by dropping the record; must
 // not drop the future without dropping the record.
+#[must_use = "futures do nothing unless polled"]
 pub struct RegisterRecord(CallbackFuture, Option<raw::DNSRecord>);
 
 impl futures::Future for RegisterRecord {

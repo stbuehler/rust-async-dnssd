@@ -12,6 +12,7 @@ use remote::GetRemote;
 type CallbackStream = ::stream::ServiceStream<ResolveResult>;
 
 /// Pending resolve request
+#[must_use = "streams do nothing unless polled"]
 pub struct Resolve(CallbackStream);
 
 impl futures::Stream for Resolve {

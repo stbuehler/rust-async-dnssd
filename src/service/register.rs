@@ -55,6 +55,7 @@ flag_mapping!{RegisterFlags: RegisterFlag => ffi::DNSServiceFlags:
 ///
 /// Becomes invalid when the future completes; use the returned
 /// [`Registration`](struct.Registration.html) instead.
+#[must_use = "futures do nothing unless polled"]
 pub struct Register(CallbackFuture);
 
 impl futures::Future for Register {
