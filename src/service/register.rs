@@ -129,14 +129,14 @@ pub struct Registration(EventedDNSService);
 /// value or customize it like:
 ///
 /// ```
-/// # use async_dnssd::ServiceData;
-/// ServiceData {
+/// # use async_dnssd::RegisterData;
+/// RegisterData {
 ///     txt: b"some text data",
 ///     .. Default::default()
 /// };
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct ServiceData<'a> {
+pub struct RegisterData<'a> {
 	/// flags for registration
 	pub flags: RegisterFlags,
 	/// interface to register service on
@@ -153,9 +153,9 @@ pub struct ServiceData<'a> {
 	pub txt: &'a [u8],
 }
 
-impl<'a> Default for ServiceData<'a> {
+impl<'a> Default for RegisterData<'a> {
 	fn default() -> Self {
-		ServiceData {
+		RegisterData {
 			flags: RegisterFlags::default(),
 			interface: Interface::default(),
 			name: None,
@@ -198,7 +198,7 @@ impl<'a> Default for ServiceData<'a> {
 pub fn register(
 	reg_type: &str,
 	port: u16,
-	data: ServiceData,
+	data: RegisterData,
 	handle: &Handle,
 ) -> io::Result<Register> {
 	::init();
