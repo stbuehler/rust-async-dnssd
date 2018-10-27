@@ -124,37 +124,99 @@ extern "C" fn register_callback(
 /// keep the `Registration` alive.
 pub struct Registration(EventedDNSService);
 
+/// Optional data when registering a service; either use its default
+/// value or customize it like:
+///
+/// ```
+/// # use async_dnssd::ServiceData;
+/// ServiceData {
+///     txt: b"some text data",
+///     .. Default::default()
+/// };
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct ServiceData<'a> {
+	/// flags for registration
+	pub flags: RegisterFlags,
+	/// interface to register service on
+	pub interface: Interface,
+	/// service name, defaults to hostname
+	pub name: Option<&'a str>,
+	/// domain on which to advertise the service
+	pub domain: Option<&'a str>,
+	/// the SRV target host name, defaults to local hostname(s).
+	/// Address records are NOT automatically generated for other names.
+	pub host: Option<&'a str>,
+	/// The TXT record rdata. Empty RDATA is treated like `b"\0"`, i.e.
+	/// a TXT record with a single empty string.
+	pub txt: &'a [u8],
+}
+
+impl<'a> Default for ServiceData<'a> {
+	fn default() -> Self {
+		ServiceData {
+			flags: RegisterFlags::default(),
+			interface: Interface::default(),
+			name: None,
+			domain: None,
+			host: None,
+			txt: b"",
+		}
+	}
+}
+
 /// Register a service
 ///
-/// See [`DNSServiceRegister`](https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister).
+/// * `reg_type`: the service type followed by the protocol, separated
+///   by a dot (for example, "_ssh._tcp").  For details see
+///   [`DNSServiceRegister`]
+/// * `port`: The port (in native byte order) on which the service
+///   accepts connections.  Pass 0 for a "placeholder" service.
+/// * `data`: additional service data; `Default::default()` should be
+///   fine usually.
+/// * `handle`: the tokio event loop handle
+///
+/// See
+/// [`DNSServiceRegister`](https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister).
+///
+/// # Example
+///
+/// ```no_run
+/// # extern crate async_dnssd;
+/// # extern crate tokio_core;
+/// # use async_dnssd::register;
+/// # #[deny(unused_must_use)]
+/// # fn main() -> std::io::Result<()> {
+/// let mut core = tokio_core::reactor::Core::new()?;
+/// let handle = core.handle();
+/// let registration = core.run(register("_ssh._tcp", 22, Default::default(), &handle)?)?;
+/// # Ok(())
+/// # }
+/// ```
+#[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
 pub fn register(
-	flags: RegisterFlags,
-	interface: Interface,
-	name: Option<&str>,
 	reg_type: &str,
-	domain: Option<&str>,
-	host: Option<&str>,
 	port: u16,
-	txt: &[u8],
-	handle: &Handle
+	data: ServiceData,
+	handle: &Handle,
 ) -> io::Result<Register> {
 	::init();
 
-	let name = cstr::NullableCStr::from(&name)?;
+	let name = cstr::NullableCStr::from(&data.name)?;
 	let reg_type = cstr::CStr::from(&reg_type)?;
-	let domain = cstr::NullableCStr::from(&domain)?;
-	let host = cstr::NullableCStr::from(&host)?;
+	let domain = cstr::NullableCStr::from(&data.domain)?;
+	let host = cstr::NullableCStr::from(&data.host)?;
 
 	Ok(Register(CallbackFuture::new(handle, move |sender|
 		raw::DNSService::register(
-			flags.into(),
-			interface.into_raw(),
+			data.flags.into(),
+			data.interface.into_raw(),
 			&name,
 			&reg_type,
 			&domain,
 			&host,
 			port.to_be(),
-			txt,
+			data.txt,
 			Some(register_callback),
 			sender,
 		)

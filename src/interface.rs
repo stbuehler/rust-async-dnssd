@@ -58,6 +58,12 @@ pub enum Interface {
 	PeerToPeer,
 }
 
+impl Default for Interface {
+	fn default() -> Self {
+		Interface::Any
+	}
+}
+
 impl Interface {
 	/// Construct from raw value
 	pub fn from_raw(raw: u32) -> Self {
