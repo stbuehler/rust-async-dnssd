@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
+
 use std::os::raw::{c_int,c_void};
 use std::cell::UnsafeCell;
 use std::ptr::null_mut;
@@ -20,11 +22,11 @@ impl Drop for InnerDNSService {
 }
 
 impl InnerDNSService {
-	fn fd(&mut self) -> c_int {
+	fn fd(&self) -> c_int {
 		unsafe { ffi::DNSServiceRefSockFD(self.0) }
 	}
 
-	fn process_result(&mut self) -> FFIResult<()> {
+	fn process_result(&self) -> FFIResult<()> {
 		Error::from(unsafe {
 			ffi::DNSServiceProcessResult(self.0)
 		})
@@ -166,12 +168,9 @@ impl InnerDNSService {
 pub struct DNSService(Rc<UnsafeCell<InnerDNSService>>);
 
 impl DNSService {
-	fn get(&self) -> &mut InnerDNSService {
-		// Rc means it cannot be shared across threads.
-		// we need to make sure our callbacks don't ever come back
-		// here, otherwise there is no way for "re-entrance".
+	fn get(&self) -> &InnerDNSService {
 		let r = self.0.get();
-		unsafe { &mut *r }
+		unsafe { &*r }
 	}
 
 	fn new(s: FFIResult<InnerDNSService>) -> FFIResult<DNSService> {
@@ -325,7 +324,7 @@ impl Drop for InnerDNSRecord {
 }
 
 impl InnerDNSRecord {
-	fn get_service(&self) -> &mut InnerDNSService {
+	fn get_service(&self) -> &InnerDNSService {
 		self.0.get()
 	}
 
