@@ -1,20 +1,18 @@
-use futures::sync::mpsc;
 use futures::{self,Async};
 use std::os::raw::{c_void,c_char};
 use std::io;
 use tokio_core::reactor::{Handle,Remote};
 
 use cstr;
-use error::Error;
-use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
 use raw;
 use remote::GetRemote;
-use stream::ServiceStream;
+
+type CallbackStream = ::stream::ServiceStream<ResolveResult>;
 
 /// Pending resolve request
-pub struct Resolve(ServiceStream<ResolveResult>);
+pub struct Resolve(CallbackStream);
 
 impl futures::Stream for Resolve {
 	type Item = ResolveResult;
@@ -60,10 +58,7 @@ extern "C" fn resolve_callback(
 	txt_record: *const u8,
 	context: *mut c_void
 ) {
-	let sender = context as *mut mpsc::UnboundedSender<io::Result<ResolveResult>>;
-	let sender : &mpsc::UnboundedSender<io::Result<ResolveResult>> = unsafe { &*sender };
-
-	let data = Error::from(error_code).map_err(io::Error::from).and_then(|_| {
+	CallbackStream::run_callback(context, error_code, || {
 		let fullname = unsafe { cstr::from_cstr(fullname) }?;
 		let host_target = unsafe { cstr::from_cstr(host_target) }?;
 		let txt = unsafe { ::std::slice::from_raw_parts(txt_record, txt_len as usize) };
@@ -76,8 +71,6 @@ extern "C" fn resolve_callback(
 			txt: txt.into(),
 		})
 	});
-
-	sender.unbounded_send(data).unwrap();
 }
 
 /// Find hostname and port (and more) for a service
@@ -94,18 +87,15 @@ pub fn resolve(
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::CStr::from(&domain)?;
 
-	Ok(Resolve(ServiceStream::new(move |sender|
-		EventedDNSService::new(
-			raw::DNSService::resolve(
-				0, /* no flags */
-				interface.into_raw(),
-				&name,
-				&reg_type,
-				&domain,
-				Some(resolve_callback),
-				sender as *mut c_void,
-			)?,
-			handle
+	Ok(Resolve(CallbackStream::new(handle, move |sender|
+		raw::DNSService::resolve(
+			0, /* no flags */
+			interface.into_raw(),
+			&name,
+			&reg_type,
+			&domain,
+			Some(resolve_callback),
+			sender,
 		)
 	)?))
 }

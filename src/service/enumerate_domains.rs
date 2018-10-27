@@ -1,17 +1,15 @@
-use futures::sync::mpsc;
 use futures::{self,Async};
 use std::os::raw::{c_void,c_char};
 use std::io;
 use tokio_core::reactor::{Handle,Remote};
 
 use cstr;
-use error::Error;
-use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
 use raw;
 use remote::GetRemote;
-use stream::ServiceStream;
+
+type CallbackStream = ::stream::ServiceStream<EnumerateResult>;
 
 /// Whether to enumerate domains which are browsed or domains for which
 /// registrations can be made.
@@ -74,7 +72,7 @@ flag_mapping!{EnumeratedFlags: EnumeratedFlag => ffi::DNSServiceFlags:
 }
 
 /// Pending domain enumeration
-pub struct EnumerateDomains(ServiceStream<EnumerateResult>);
+pub struct EnumerateDomains(CallbackStream);
 
 impl futures::Stream for EnumerateDomains {
 	type Item = EnumerateResult;
@@ -112,10 +110,7 @@ extern "C" fn enumerate_callback(
 	reply_domain: *const c_char,
 	context: *mut c_void
 ) {
-	let sender = context as *mut mpsc::UnboundedSender<io::Result<EnumerateResult>>;
-	let sender : &mpsc::UnboundedSender<io::Result<EnumerateResult>> = unsafe { &*sender };
-
-	let data = Error::from(error_code).map_err(io::Error::from).and_then(|_| {
+	CallbackStream::run_callback(context, error_code, || {
 		let reply_domain = unsafe { cstr::from_cstr(reply_domain) }?;
 
 		Ok(EnumerateResult{
@@ -124,23 +119,18 @@ extern "C" fn enumerate_callback(
 			domain: reply_domain.to_string(),
 		})
 	});
-
-	sender.unbounded_send(data).unwrap();
 }
 
 /// Enumerate domains that are recommended for registration or browsing
 ///
 /// See [`DNSServiceEnumerateDomains`](https://developer.apple.com/documentation/dnssd/1804754-dnsserviceenumeratedomains).
 pub fn enumerate_domains(enumerate: Enumerate, interface: Interface, handle: &Handle) -> io::Result<EnumerateDomains> {
-	Ok(EnumerateDomains(ServiceStream::new(move |sender|
-		EventedDNSService::new(
-			raw::DNSService::enumerate_domains(
-				enumerate.into(),
-				interface.into_raw(),
-				Some(enumerate_callback),
-				sender as *mut c_void,
-			)?,
-			handle
+	Ok(EnumerateDomains(CallbackStream::new(handle, move |sender|
+		raw::DNSService::enumerate_domains(
+			enumerate.into(),
+			interface.into_raw(),
+			Some(enumerate_callback),
+			sender,
 		)
 	)?))
 }

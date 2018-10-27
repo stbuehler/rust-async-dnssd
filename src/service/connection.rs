@@ -1,4 +1,3 @@
-use futures::sync::mpsc;
 use futures::{self,Async,Future};
 use std::os::raw::{c_void};
 use std::io;
@@ -6,13 +5,13 @@ use std::rc::Rc;
 use tokio_core::reactor::{Handle,Remote};
 
 use cstr;
-use error::Error;
 use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
 use raw;
 use remote::GetRemote;
-use future::ServiceFutureSingle;
+
+type CallbackFuture = ::future::ServiceFutureSingle<RegisterRecordResult>;
 
 /// Connection to register records with
 pub struct Connection(Rc<EventedDNSService>);
@@ -72,7 +71,7 @@ flag_mapping!{RegisterRecordFlags: RegisterRecordFlag => ffi::DNSServiceFlags:
 /// [`Record`](struct.Record.html) instead.
 // the future gets canceled by dropping the record; must
 // not drop the future without dropping the record.
-pub struct RegisterRecord(ServiceFutureSingle<RegisterRecordResult>, Option<raw::DNSRecord>);
+pub struct RegisterRecord(CallbackFuture, Option<raw::DNSRecord>);
 
 impl futures::Future for RegisterRecord {
 	type Item = ::Record;
@@ -105,14 +104,9 @@ extern "C" fn register_record_callback(
 	error_code: ffi::DNSServiceErrorType,
 	context: *mut c_void
 ) {
-	let sender = context as *mut mpsc::UnboundedSender<io::Result<RegisterRecordResult>>;
-	let sender : &mpsc::UnboundedSender<io::Result<RegisterRecordResult>> = unsafe { &*sender };
-
-	let data = Error::from(error_code).map_err(io::Error::from).and_then(|_| {
+	CallbackFuture::run_callback(context, error_code, || {
 		Ok(RegisterRecordResult)
 	});
-
-	sender.unbounded_send(data).unwrap();
 }
 
 impl Connection {
@@ -132,8 +126,8 @@ impl Connection {
 	) -> io::Result<RegisterRecord> {
 		let fullname = cstr::CStr::from(&fullname)?;
 
-		let (serv, record) = ServiceFutureSingle::new(self.0.clone(), move |sender|
-			Ok(self.0.service().register_record(
+		let (serv, record) = CallbackFuture::new(self.0.clone(), move |sender|
+			self.0.service().register_record(
 				flags.into(),
 				interface.into_raw(),
 				&fullname,
@@ -142,8 +136,8 @@ impl Connection {
 				rdata,
 				ttl,
 				Some(register_record_callback),
-				sender as *mut c_void,
-			)?)
+				sender,
+			)
 		)?;
 
 		Ok(RegisterRecord(serv, Some(record)))

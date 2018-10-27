@@ -1,17 +1,16 @@
-use futures::sync::mpsc;
 use futures::{self,Async};
 use std::os::raw::{c_void,c_char};
 use std::io;
 use tokio_core::reactor::{Handle,Remote};
 
 use cstr;
-use error::Error;
 use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
 use raw;
 use remote::GetRemote;
-use future::ServiceFuture;
+
+type CallbackFuture = ::future::ServiceFuture<RegisterResult>;
 
 /// Set of [`RegisterFlag`](enum.RegisterFlag.html)s
 ///
@@ -56,7 +55,7 @@ flag_mapping!{RegisterFlags: RegisterFlag => ffi::DNSServiceFlags:
 ///
 /// Becomes invalid when the future completes; use the returned
 /// [`Registration`](struct.Registration.html) instead.
-pub struct Register(ServiceFuture<RegisterResult>);
+pub struct Register(CallbackFuture);
 
 impl futures::Future for Register {
 	type Item = (Registration, RegisterResult);
@@ -104,10 +103,7 @@ extern "C" fn register_callback(
 	domain: *const c_char,
 	context: *mut c_void
 ) {
-	let sender = context as *mut mpsc::UnboundedSender<io::Result<RegisterResult>>;
-	let sender : &mpsc::UnboundedSender<io::Result<RegisterResult>> = unsafe { &*sender };
-
-	let data = Error::from(error_code).map_err(io::Error::from).and_then(|_| {
+	CallbackFuture::run_callback(context, error_code, || {
 		let name = unsafe { cstr::from_cstr(name) }?;
 		let reg_type = unsafe { cstr::from_cstr(reg_type) }?;
 		let domain = unsafe { cstr::from_cstr(domain) }?;
@@ -118,8 +114,6 @@ extern "C" fn register_callback(
 			domain: domain.to_string(),
 		})
 	});
-
-	sender.unbounded_send(data).unwrap();
 }
 
 /// Successful registration
@@ -149,21 +143,18 @@ pub fn register(
 	let domain = cstr::NullableCStr::from(&domain)?;
 	let host = cstr::NullableCStr::from(&host)?;
 
-	Ok(Register(ServiceFuture::new(move |sender|
-		EventedDNSService::new(
-			raw::DNSService::register(
-				flags.into(),
-				interface.into_raw(),
-				&name,
-				&reg_type,
-				&domain,
-				&host,
-				port.to_be(),
-				txt,
-				Some(register_callback),
-				sender as *mut c_void,
-			)?,
-			handle
+	Ok(Register(CallbackFuture::new(handle, move |sender|
+		raw::DNSService::register(
+			flags.into(),
+			interface.into_raw(),
+			&name,
+			&reg_type,
+			&domain,
+			&host,
+			port.to_be(),
+			txt,
+			Some(register_callback),
+			sender,
 		)
 	)?))
 }

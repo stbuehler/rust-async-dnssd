@@ -1,17 +1,15 @@
-use futures::sync::mpsc;
 use futures::{self,Async};
 use std::os::raw::{c_void,c_char};
 use std::io;
 use tokio_core::reactor::{Handle,Remote};
 
 use cstr;
-use error::Error;
-use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
 use raw;
 use remote::GetRemote;
-use stream::ServiceStream;
+
+type CallbackStream = ::stream::ServiceStream<BrowseResult>;
 
 /// Set of [`BrowsedFlag`](enum.BrowsedFlag.html)s
 ///
@@ -50,7 +48,7 @@ flag_mapping!{BrowsedFlags: BrowsedFlag => ffi::DNSServiceFlags:
 /// Pending browse request
 ///
 /// Results are delivered through `futures::Stream`.
-pub struct Browse(ServiceStream<BrowseResult>);
+pub struct Browse(CallbackStream);
 
 impl futures::Stream for Browse {
 	type Item = BrowseResult;
@@ -111,10 +109,7 @@ extern "C" fn browse_callback(
 	reply_domain: *const c_char,
 	context: *mut c_void
 ) {
-	let sender = context as *mut mpsc::UnboundedSender<io::Result<BrowseResult>>;
-	let sender : &mpsc::UnboundedSender<io::Result<BrowseResult>> = unsafe { &*sender };
-
-	let data = Error::from(error_code).map_err(io::Error::from).and_then(|_| {
+	CallbackStream::run_callback(context, error_code, || {
 		let service_name = unsafe { cstr::from_cstr(service_name) }?;
 		let reg_type = unsafe { cstr::from_cstr(reg_type) }?;
 		let reply_domain = unsafe { cstr::from_cstr(reply_domain) }?;
@@ -127,8 +122,6 @@ extern "C" fn browse_callback(
 			domain: reply_domain.to_string(),
 		})
 	});
-
-	sender.unbounded_send(data).unwrap();
 }
 
 /// Browse for available services
@@ -145,17 +138,14 @@ pub fn browse(
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::NullableCStr::from(&domain)?;
 
-	Ok(Browse(ServiceStream::new(move |sender|
-		EventedDNSService::new(
-			raw::DNSService::browse(
-				0, /* no flags */
-				interface.into_raw(),
-				&reg_type,
-				&domain,
-				Some(browse_callback),
-				sender as *mut c_void,
-			)?,
-			handle
+	Ok(Browse(CallbackStream::new(handle, move |sender|
+		raw::DNSService::browse(
+			0, /* no flags */
+			interface.into_raw(),
+			&reg_type,
+			&domain,
+			Some(browse_callback),
+			sender,
 		)
 	)?))
 }

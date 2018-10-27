@@ -1,26 +1,46 @@
 use futures::sync::mpsc;
 use futures::{self,Async};
 use std::io;
-use tokio_core::reactor::{Remote};
+use std::os::raw::c_void;
+use tokio_core::reactor::{Handle,Remote};
 
+use error::Error;
 use evented::EventedDNSService;
+use ffi;
+use raw::DNSService;
 use raw_box::RawBox;
 use remote::GetRemote;
 
+type CallbackContext<T> = mpsc::UnboundedSender<io::Result<T>>;
+
 pub struct ServiceStream<T> {
 	service: EventedDNSService,
-	_sender: RawBox<mpsc::UnboundedSender<io::Result<T>>>,
+	_sender: RawBox<CallbackContext<T>>,
 	receiver: mpsc::UnboundedReceiver<io::Result<T>>,
 }
 
 impl<T> ServiceStream<T> {
-	pub fn new<F>(f: F) -> io::Result<Self>
-	where F: FnOnce(*mut mpsc::UnboundedSender<io::Result<T>>) -> io::Result<EventedDNSService>
+	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
+	where
+		F: FnOnce() -> io::Result<T>,
+		T: ::std::fmt::Debug,
+	{
+		let sender = context as *mut CallbackContext<T>;
+		let sender: &mut CallbackContext<T> = unsafe { &mut *sender };
+
+		let data = Error::from(error_code).map_err(io::Error::from).and_then(|()| f());
+
+		sender.unbounded_send(data).expect("receiver must still be alive");
+	}
+
+	pub fn new<F>(handle: &Handle, f: F) -> io::Result<Self>
+	where F: FnOnce(*mut c_void) -> Result<DNSService, Error>
 	{
 		let (sender, receiver) = mpsc::unbounded::<io::Result<T>>();
 		let sender = RawBox::new(sender);
 
-		let service = f(sender.get_ptr())?;
+		let service = f(sender.get_ptr() as *mut c_void)?;
+		let service = EventedDNSService::new(service, handle)?;
 
 		Ok(ServiceStream{
 			service,

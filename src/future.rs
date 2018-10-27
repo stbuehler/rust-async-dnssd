@@ -2,29 +2,49 @@ use futures::sync::oneshot;
 use futures::{self,Async};
 use std::io;
 use std::rc::Rc;
-use tokio_core::reactor::{Remote};
+use std::os::raw::c_void;
+use tokio_core::reactor::{Handle, Remote};
 
+use error::Error;
 use evented::EventedDNSService;
+use ffi;
 use raw::DNSService;
 use raw_box::RawBox;
 use remote::GetRemote;
 
+type CallbackContext<T> = Option<oneshot::Sender<io::Result<T>>>;
+
 struct Inner<T> {
 	service: EventedDNSService,
-	_sender: RawBox<oneshot::Sender<io::Result<T>>>,
+	_sender: RawBox<CallbackContext<T>>,
 	receiver: oneshot::Receiver<io::Result<T>>,
 }
 
-pub struct ServiceFuture<T>(Option<Inner<T>>);
+pub(crate) struct ServiceFuture<T>(Option<Inner<T>>);
 
 impl<T> ServiceFuture<T> {
-	pub fn new<F>(f: F) -> io::Result<Self>
-	where F: FnOnce(*mut oneshot::Sender<io::Result<T>>) -> io::Result<EventedDNSService>
+	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
+	where
+		F: FnOnce() -> io::Result<T>,
+		T: ::std::fmt::Debug,
+	{
+		let sender = context as *mut CallbackContext<T>;
+		let sender: &mut CallbackContext<T> = unsafe { &mut *sender };
+		let sender = sender.take().expect("callback must be run only once");
+
+		let data = Error::from(error_code).map_err(io::Error::from).and_then(|()| f());
+
+		sender.send(data).expect("receiver must still be alive");
+	}
+
+	pub fn new<F>(handle: &Handle, f: F) -> io::Result<Self>
+	where F: FnOnce(*mut c_void) -> Result<DNSService, Error>
 	{
 		let (sender, receiver) = oneshot::channel::<io::Result<T>>();
-		let sender = RawBox::new(sender);
+		let sender = RawBox::new(Some(sender));
 
-		let service = f(sender.get_ptr())?;
+		let service = f(sender.get_ptr() as *mut c_void)?;
+		let service = EventedDNSService::new(service, handle)?;
 
 		Ok(ServiceFuture(Some(Inner{
 			service,
@@ -75,18 +95,32 @@ impl<T> GetRemote for ServiceFuture<T> {
 
 pub struct ServiceFutureSingle<T> {
 	service: Rc<EventedDNSService>,
-	_sender: RawBox<oneshot::Sender<io::Result<T>>>,
+	_sender: RawBox<CallbackContext<T>>,
 	receiver: oneshot::Receiver<io::Result<T>>,
 }
 
 impl<T> ServiceFutureSingle<T> {
+	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
+	where
+		F: FnOnce() -> io::Result<T>,
+		T: ::std::fmt::Debug,
+	{
+		let sender = context as *mut CallbackContext<T>;
+		let sender: &mut CallbackContext<T> = unsafe { &mut *sender };
+		let sender = sender.take().expect("callback must be run only once");
+
+		let data = Error::from(error_code).map_err(io::Error::from).and_then(|()| f());
+
+		sender.send(data).expect("receiver must still be alive");
+	}
+
 	pub fn new<R, F>(service: Rc<EventedDNSService>, f: F) -> io::Result<(Self, R)>
-	where F: FnOnce(*mut oneshot::Sender<io::Result<T>>) -> io::Result<R>
+	where F: FnOnce(*mut c_void) -> Result<R, Error>
 	{
 		let (sender, receiver) = oneshot::channel::<io::Result<T>>();
-		let sender = RawBox::new(sender);
+		let sender = RawBox::new(Some(sender));
 
-		let res = f(sender.get_ptr())?;
+		let res = f(sender.get_ptr() as *mut c_void)?;
 
 		Ok((ServiceFutureSingle{
 			service,
