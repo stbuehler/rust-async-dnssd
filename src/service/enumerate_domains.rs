@@ -128,7 +128,7 @@ extern "C" fn enumerate_callback(
 	sender.unbounded_send(data).unwrap();
 }
 
-/// Enumerates domains that are recommended for registration or browsing
+/// Enumerate domains that are recommended for registration or browsing
 ///
 /// See [`DNSServiceEnumerateDomains`](https://developer.apple.com/documentation/dnssd/1804754-dnsserviceenumeratedomains).
 pub fn enumerate_domains(enumerate: Enumerate, interface: Interface, handle: &Handle) -> io::Result<EnumerateDomains> {

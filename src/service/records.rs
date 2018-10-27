@@ -20,7 +20,7 @@ impl Record {
 		self.0.rr_type()
 	}
 
-	/// Update recor
+	/// Update record
 	///
 	/// Cannot change type or class of record.
 	///

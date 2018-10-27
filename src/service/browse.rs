@@ -131,7 +131,7 @@ extern "C" fn browse_callback(
 	sender.unbounded_send(data).unwrap();
 }
 
-/// Browses for available services
+/// Browse for available services
 ///
 /// `reg_type` specifies the service type to search, e.g. `"_ssh._tcp"`.
 ///

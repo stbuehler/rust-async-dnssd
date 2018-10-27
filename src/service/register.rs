@@ -130,7 +130,7 @@ extern "C" fn register_callback(
 /// keep the `Registration` alive.
 pub struct Registration(EventedDNSService);
 
-/// Registers a service
+/// Register a service
 ///
 /// See [`DNSServiceRegister`](https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister).
 pub fn register(
@@ -169,6 +169,8 @@ pub fn register(
 }
 
 impl Register {
+	/// Add a record to a registered service
+	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
 	pub fn add_raw_record(
 		&self,
@@ -195,6 +197,8 @@ impl Register {
 }
 
 impl Registration {
+	/// Add a record to a registered service
+	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
 	pub fn add_raw_record(
 		&self,

@@ -2,18 +2,72 @@
 //!
 //! Interesting entry points:
 //!
-//! * [Browses for available services](fn.browse.html)
-//! * [Create Connection to register records with](fn.connect.html)
-//! * [Enumerates domains that are recommended for registration or browsing](fn.enumerate_domains.html)
-//! * [Query for an arbitrary DNS record](fn.query_record.html)
-//! * [Registers a service](fn.register.html)
-//! * [Find hostname and port (and more) for a service](fn.resolve.html)
+//! * [Browse for available services][`browse`]
+//! * [Create Connection to register records with][`connect`]
+//! * [Enumerate domains that are recommended for registration or browsing][`enumerate_domains`]
+//! * [Query for an arbitrary DNS record][`query_record`]
+//! * [Register a service][`register`]
+//! * [Add a record to a registered service][`Registration::add_raw_record`]
+//! * [Register record][`Connection::register_raw_record`]
+//! * [Find hostname and port (and more) for a service][`resolve`]
 //!
 //! Also the following things might be interesting:
 //!
-//! * [Purge record from cache](fn.reconfirm_record.html)
-//! * [Construct full name](struct.FullName#method.construct)
-//! * [Stream timeouts](struct.TimeoutStream)
+//! * [Purge record from cache][`reconfirm_record`]
+//! * [Construct full name][`FullName::construct`]
+//! * [Stream timeouts][`TimeoutStream`]
+//!
+//! ## Porting from dnssd C API
+//!
+//! | C API                           | functionality in this crate                                          |
+//! |---------------------------------|----------------------------------------------------------------------|
+//! | [`DNSServiceAddRecord`]         | [`Registration::add_raw_record`], [`Register::add_raw_record`]       |
+//! | [`DNSServiceBrowse`]            | [`browse`]                                                           |
+//! | [`DNSServiceConstructFullName`] | [`FullName::construct`]                                              |
+//! | [`DNSServiceCreateConnection`]  | [`connect`]                                                          |
+//! | [`DNSServiceEnumerateDomains`]  | [`enumerate_domains`]                                                |
+//! | [`DNSServiceQueryRecord`]       | [`query_record`]                                                     |
+//! | [`DNSServiceReconfirmRecord`]   | [`reconfirm_record`]                                                 |
+//! | [`DNSServiceRegister`]          | [`register`]                                                         |
+//! | [`DNSServiceRegisterRecord`]    | [`Connection::register_raw_record`]                                  |
+//! | [`DNSServiceResolve`]           | [`resolve`]                                                          |
+//! | [`DNSServiceUpdateRecord`]      | [`Record::update_raw_record`], [`RegisterRecord::update_raw_record`] |
+//!
+//! The following functions are called automatically when needed:
+//! * [`DNSServiceProcessResult`] driving callbacks (event loop)
+//! * [`DNSServiceRefDeallocate`] called when dropping various resource handles
+//! * [`DNSServiceRefSockFD`] used for integration with tokio (event loop)
+//! * [`DNSServiceRemoveRecord`] called when dropping [`Record`](struct.Record.html)
+//!
+//! [`DNSServiceAddRecord`]: https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord
+//! [`DNSServiceBrowse`]: https://developer.apple.com/documentation/dnssd/1804742-dnsservicebrowse
+//! [`DNSServiceConstructFullName`]: https://developer.apple.com/documentation/dnssd/1804753-dnsserviceconstructfullname
+//! [`DNSServiceCreateConnection`]: https://developer.apple.com/documentation/dnssd/1804724-dnsservicecreateconnection
+//! [`DNSServiceEnumerateDomains`]: https://developer.apple.com/documentation/dnssd/1804754-dnsserviceenumeratedomains
+//! [`DNSServiceQueryRecord`]: https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecordc
+//! [`DNSServiceReconfirmRecord`]: https://developer.apple.com/documentation/dnssd/1804726-dnsservicereconfirmrecord
+//! [`DNSServiceRegister`]: https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister
+//! [`DNSServiceRegisterRecord`]: https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord
+//! [`DNSServiceResolve`]: https://developer.apple.com/documentation/dnssd/1804744-dnsserviceresolve
+//! [`DNSServiceUpdateRecord`]: https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord
+//! [`DNSServiceProcessResult`]: https://developer.apple.com/documentation/dnssd/1804696-dnsserviceprocessresult
+//! [`DNSServiceRefDeallocate`]: https://developer.apple.com/documentation/dnssd/1804697-dnsservicerefdeallocate
+//! [`DNSServiceRefSockFD`]: https://developer.apple.com/documentation/dnssd/1804698-dnsservicerefsockfd
+//! [`DNSServiceRemoveRecord`]: https://developer.apple.com/documentation/dnssd/1804736-dnsserviceremoverecord
+//! [`Registration::add_raw_record`]: struct.Registration.html#method.add_raw_record
+//! [`Register::add_raw_record`]: struct.Register.html#method.add_raw_record
+//! [`browse`]: fn.browse.html
+//! [`FullName::construct`]: struct.FullName.html#method.construct
+//! [`connect`]: fn.connect.html
+//! [`enumerate_domains`]: fn.enumerate_domains.html
+//! [`query_record`]: fn.query_record.html
+//! [`reconfirm_record`]: fn.reconfirm_record.html
+//! [`register`]: fn.register.html
+//! [`Connection::register_raw_record`]: struct.Connection.html#method.register_raw_record
+//! [`resolve`]: fn.resolve.html
+//! [`Record::update_raw_record`]: struct.Record.html#method.update_raw_record
+//! [`RegisterRecord::update_raw_record`]: struct.RegisterRecord.html#method.update_raw_record
+//! [`TimeoutStream`]: struct.TimeoutStream.html
 
 #![warn(missing_docs)]
 

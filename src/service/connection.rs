@@ -119,7 +119,7 @@ impl Connection {
 	/// Register record on interface with given name, type, class, rdata
 	/// and ttl
 	///
-	// See [`DNSServiceRegisterRecord`](https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord).
+	/// See [`DNSServiceRegisterRecord`](https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord).
 	pub fn register_raw_record(
 		&self,
 		flags: RegisterRecordFlags,
