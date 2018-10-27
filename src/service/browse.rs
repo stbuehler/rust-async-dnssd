@@ -135,6 +135,8 @@ pub fn browse(
 	domain: Option<&str>,
 	handle: &Handle
 ) -> io::Result<Browse> {
+	::init();
+
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::NullableCStr::from(&domain)?;
 

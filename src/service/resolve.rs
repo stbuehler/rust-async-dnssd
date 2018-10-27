@@ -83,6 +83,8 @@ pub fn resolve(
 	domain: &str,
 	handle: &Handle
 ) -> io::Result<Resolve> {
+	::init();
+
 	let name = cstr::CStr::from(&name)?;
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::CStr::from(&domain)?;

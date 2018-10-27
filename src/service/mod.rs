@@ -25,6 +25,8 @@ pub fn reconfirm_record(
 	rr_class: u16,
 	rdata: &[u8]
 ) -> ::std::io::Result<()> {
+	::init();
+
 	let fullname = ::cstr::CStr::from(&fullname)?;
 	::raw::reconfirm_record(
 		0, /* no flags */

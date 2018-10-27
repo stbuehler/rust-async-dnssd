@@ -138,6 +138,8 @@ pub fn register(
 	txt: &[u8],
 	handle: &Handle
 ) -> io::Result<Register> {
+	::init();
+
 	let name = cstr::NullableCStr::from(&name)?;
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::NullableCStr::from(&domain)?;

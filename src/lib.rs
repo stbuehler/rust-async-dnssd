@@ -106,3 +106,18 @@ mod remote;
 mod service;
 mod stream;
 mod timeout_stream;
+
+fn init() {
+	#[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+	{
+		use std::sync::Once;
+
+		static INIT: Once = Once::new();
+		INIT.call_once(|| {
+			const AVAHI_COMPAT_NOWARN: &str = "AVAHI_COMPAT_NOWARN";
+			if std::env::var_os(AVAHI_COMPAT_NOWARN).is_none() {
+				std::env::set_var(AVAHI_COMPAT_NOWARN, "1");
+			}
+		});
+	}
+}

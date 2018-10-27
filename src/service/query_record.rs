@@ -149,6 +149,8 @@ pub fn query_record(
 	rr_class: u16,
 	handle: &Handle
 ) -> io::Result<QueryRecord> {
+	::init();
+
 	let fullname = cstr::CStr::from(&fullname)?;
 
 	Ok(QueryRecord(CallbackStream::new(handle, move |sender|

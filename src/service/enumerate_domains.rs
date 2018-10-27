@@ -125,6 +125,8 @@ extern "C" fn enumerate_callback(
 ///
 /// See [`DNSServiceEnumerateDomains`](https://developer.apple.com/documentation/dnssd/1804754-dnsserviceenumeratedomains).
 pub fn enumerate_domains(enumerate: Enumerate, interface: Interface, handle: &Handle) -> io::Result<EnumerateDomains> {
+	::init();
+
 	Ok(EnumerateDomains(CallbackStream::new(handle, move |sender|
 		raw::DNSService::enumerate_domains(
 			enumerate.into(),

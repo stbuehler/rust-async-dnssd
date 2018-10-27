@@ -27,6 +27,8 @@ impl GetRemote for Connection {
 ///
 /// See [`DNSServiceCreateConnection`](https://developer.apple.com/documentation/dnssd/1804724-dnsservicecreateconnection).
 pub fn connect(handle: &Handle) -> io::Result<Connection> {
+	::init();
+
 	let con = raw::DNSService::create_connection()?;
 	Ok(Connection(Rc::new(
 		EventedDNSService::new(con, handle)?
