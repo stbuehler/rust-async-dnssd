@@ -25,7 +25,7 @@ impl EventedDNSService {
 		let fd = service.fd();
 
 		Ok(EventedDNSService{
-			service: service,
+			service,
 			poll: PollReadFd::new(fd, handle)?,
 		})
 	}

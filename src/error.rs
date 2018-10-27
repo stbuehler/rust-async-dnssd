@@ -17,7 +17,7 @@ impl Error {
 	/// accordingly.  (Not all codes are treated as an error, including
 	/// `0`).
 	pub fn from(value: ffi::DNSServiceErrorType) -> Result<(), Error> {
-		if let Some(_) = ffi::DNSServiceNoError::try_from(value) {
+		if ffi::DNSServiceNoError::try_from(value).is_some() {
 			Ok(())
 		} else {
 			match ffi::DNSServiceError::try_from(value) {

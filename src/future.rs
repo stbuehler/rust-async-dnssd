@@ -27,9 +27,9 @@ impl<T> ServiceFuture<T> {
 		let service = f(sender.get_ptr())?;
 
 		Ok(ServiceFuture(Some(Inner{
-			service: service,
+			service,
 			_sender: sender,
-			receiver: receiver,
+			receiver,
 		})))
 	}
 
@@ -89,9 +89,9 @@ impl<T> ServiceFutureSingle<T> {
 		let res = f(sender.get_ptr())?;
 
 		Ok((ServiceFutureSingle{
-			service: service,
+			service,
 			_sender: sender,
-			receiver: receiver,
+			receiver,
 		}, res))
 	}
 }

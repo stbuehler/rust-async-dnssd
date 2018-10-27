@@ -34,8 +34,8 @@ impl<S: futures::Stream+GetRemote> TimeoutStream<S> {
 	/// Also see [`TimeoutTrait::timeout`](trait.TimeoutTrait.html#method.timeout).
 	pub fn new(stream: S, duration: Duration) -> io::Result<Self> {
 		Ok(TimeoutStream{
-			stream: stream,
-			duration: duration,
+			stream,
+			duration,
 			// delay initialization of timeout, as we cannot get handle
 			// from remote outside poll reliably
 			timeout: None,

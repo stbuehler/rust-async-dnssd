@@ -135,10 +135,10 @@ extern "C" fn query_record_callback(
 			flags: QueriedRecordFlags::from(flags),
 			interface: Interface::from_raw(interface_index),
 			fullname: fullname.to_string(),
-			rr_type: rr_type,
-			rr_class: rr_class,
+			rr_type,
+			rr_class,
 			rdata: rdata.into(),
-			ttl: ttl,
+			ttl,
 		})
 	});
 

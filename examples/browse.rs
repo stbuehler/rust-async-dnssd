@@ -40,7 +40,7 @@ fn main() {
 
 	// Use `cargo run --example browse` to list all services broadcasting
 	// or `cargo run --example browse -- _http._tcp` to resolve a service.
-	let query = env::args().nth(1).unwrap_or(list_all_services.to_string());
+	let query = env::args().nth(1).unwrap_or_else(|| list_all_services.to_string());
 	println!("Browse: {}", query);
 
 	let listing = async_dnssd::browse(
@@ -53,12 +53,12 @@ fn main() {
 	.map_err(|e| e.into_io_error())
 	.for_each(|service| {
 		let added = service.flags & async_dnssd::BrowsedFlag::Add;
-		if &query == list_all_services {
+		if query == list_all_services {
 			// resolving MetaQuery responses isn't useful (and fails
 			// with "bad param")... we'd need to browse them
 
 			let mut reg_type = service.reg_type.as_str();
-			if reg_type.ends_with(".") {
+			if reg_type.ends_with('.') {
 				reg_type = &reg_type[..reg_type.len()-1];
 			}
 			let reg_type = service.service_name.clone() + "." + reg_type;

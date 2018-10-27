@@ -23,9 +23,9 @@ impl<T> ServiceStream<T> {
 		let service = f(sender.get_ptr())?;
 
 		Ok(ServiceStream{
-			service: service,
+			service,
 			_sender: sender,
-			receiver: receiver,
+			receiver,
 		})
 	}
 }

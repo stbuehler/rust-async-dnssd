@@ -167,12 +167,11 @@ pub struct DNSService(Rc<UnsafeCell<InnerDNSService>>);
 
 impl DNSService {
 	fn get(&self) -> &mut InnerDNSService {
-		use std::mem::transmute;
 		// Rc means it cannot be shared across threads.
 		// we need to make sure our callbacks don't ever come back
 		// here, otherwise there is no way for "re-entrance".
 		let r = self.0.get();
-		unsafe { transmute::<*mut InnerDNSService, &mut InnerDNSService>(r) }
+		unsafe { &mut *r }
 	}
 
 	fn new(s: FFIResult<InnerDNSService>) -> FFIResult<DNSService> {
@@ -313,7 +312,7 @@ struct InnerDNSRecord(DNSService, ffi::DNSRecordRef, u16);
 
 impl Drop for InnerDNSRecord {
 	fn drop(&mut self) {
-		if null_mut() != self.1 {
+		if !self.1.is_null() {
 			unsafe {
 				ffi::DNSServiceRemoveRecord(
 					self.get_service().0,
