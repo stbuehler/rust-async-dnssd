@@ -112,6 +112,39 @@ extern "C" fn register_record_callback(
 	});
 }
 
+/// Optional data when registering a record; either use its default
+/// value or customize it like:
+///
+/// ```
+/// # use async_dnssd::RegisterRecordData;
+/// RegisterRecordData {
+///     ttl: 60,
+///     .. Default::default()
+/// };
+/// ```
+pub struct RegisterRecordData {
+	/// flags for registration
+	pub flags: RegisterRecordFlags,
+	/// interface to register record on
+	pub interface: Interface,
+	/// class of the resource record (default: `1` = `IN`)
+	pub rr_class: u16,
+	/// time to live of the resource record in seconds (passing 0 will
+	/// select a sensible default)
+	pub ttl: u32,
+}
+
+impl Default for RegisterRecordData {
+	fn default() -> Self {
+		RegisterRecordData {
+			flags: RegisterRecordFlags::default(),
+			interface: Interface::default(),
+			rr_class: 1, // "IN"
+			ttl: 0,
+		}
+	}
+}
+
 impl Connection {
 	/// Register record on interface with given name, type, class, rdata
 	/// and ttl
@@ -119,25 +152,22 @@ impl Connection {
 	/// See [`DNSServiceRegisterRecord`](https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord).
 	pub fn register_record(
 		&self,
-		flags: RegisterRecordFlags,
-		interface: Interface,
 		fullname: &str,
 		rr_type: u16,
-		rr_class: u16,
 		rdata: &[u8],
-		ttl: u32
+		data: RegisterRecordData,
 	) -> io::Result<RegisterRecord> {
 		let fullname = cstr::CStr::from(&fullname)?;
 
 		let (serv, record) = CallbackFuture::new(self.0.clone(), move |sender|
 			self.0.service().register_record(
-				flags.into(),
-				interface.into_raw(),
+				data.flags.into(),
+				data.interface.into_raw(),
 				&fullname,
 				rr_type,
-				rr_class,
+				data.rr_class,
 				rdata,
-				ttl,
+				data.ttl,
 				Some(register_record_callback),
 				sender,
 			)
