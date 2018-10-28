@@ -24,3 +24,6 @@ log = "0.3.8"
 libc = "0.2.24"
 ws2_32-sys = "0.2.1"
 winapi = "0.2.5"
+
+[dev-dependencies]
+version-sync = "0.5"
