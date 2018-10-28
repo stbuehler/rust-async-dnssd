@@ -41,45 +41,27 @@ impl Into<ffi::DNSServiceFlags> for Enumerate {
 	}
 }
 
-/// Set of [`EnumeratedFlag`](enum.EnumeratedFlag.html)s
-///
-/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
-/// can be used to test whether a flag is part of a set.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EnumeratedFlags(u8);
+bitflags! {
+	/// Flags for [`EnumerateDomains`](struct.EnumerateDomains.html)
+	#[derive(Default)]
+	pub struct EnumeratedFlags: ffi::DNSServiceFlags {
+		/// Indicates at least one more result is pending in the queue.  If
+		/// not set there still might be more results coming in the future.
+		///
+		/// See [`kDNSServiceFlagsMoreComing`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsmorecoming).
+		const MORE_COMING = ffi::FLAGS_MORE_COMING;
 
-/// Flags for [`EnumerateDomains`](struct.EnumerateDomains.html)
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[repr(u8)]
-pub enum EnumeratedFlag {
-	/// Indicates at least one more result is pending in the queue.  If
-	/// not set there still might be more results coming in the future.
-	///
-	/// See [`kDNSServiceFlagsMoreComing`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsmorecoming).
-	MoreComing = 0,
+		/// Indicates the result is new.  If not set indicates the result
+		/// was removed.
+		///
+		/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
+		const ADD = ffi::FLAGS_ADD;
 
-	/// Indicates the result is new.  If not set indicates the result
-	/// was removed.
-	///
-	/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
-	Add,
-
-	/// Indicates this is the default domain to search (always combined with `Add`).
-	///
-	/// See [`kDNSServiceFlagsDefault`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsdefault).
-	Default,
-}
-
-flags_ops!{EnumeratedFlags: u8: EnumeratedFlag:
-	MoreComing,
-	Add,
-	Default,
-}
-
-flag_mapping!{EnumeratedFlags: EnumeratedFlag => ffi::DNSServiceFlags:
-	MoreComing => ffi::FLAGS_MORE_COMING,
-	Add => ffi::FLAGS_ADD,
-	Default => ffi::FLAGS_DEFAULT,
+		/// Indicates this is the default domain to search (always combined with `Add`).
+		///
+		/// See [`kDNSServiceFlagsDefault`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsdefault).
+		const DEFAULT = ffi::FLAGS_DEFAULT;
+	}
 }
 
 /// Pending domain enumeration
@@ -126,7 +108,7 @@ extern "C" fn enumerate_callback(
 		let reply_domain = unsafe { cstr::from_cstr(reply_domain) }?;
 
 		Ok(EnumerateResult {
-			flags: EnumeratedFlags::from(flags),
+			flags: EnumeratedFlags::from_bits_truncate(flags),
 			interface: Interface::from_raw(interface_index),
 			domain: reply_domain.to_string(),
 		})

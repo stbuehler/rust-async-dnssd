@@ -15,6 +15,7 @@ use tokio_core::reactor::{
 };
 
 use cstr;
+use dns_consts::{Class, Type};
 use ffi;
 use interface::Interface;
 use raw;
@@ -22,63 +23,33 @@ use remote::GetRemote;
 
 type CallbackStream = ::stream::ServiceStream<QueryRecordResult>;
 
-/// Set of [`QueryRecordFlag`](enum.QueryRecordFlag.html)s
-///
-/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
-/// can be used to test whether a flag is part of a set.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct QueryRecordFlags(u8);
-
-/// Flags used to query for a record
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[repr(u8)]
-pub enum QueryRecordFlag {
-	/// long-lived unicast query
-	///
-	/// See [`kDNSServiceFlagsLongLivedQuery`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagslonglivedquery).
-	LongLivedQuery = 0,
+bitflags! {
+	/// Flags used to query for a record
+	#[derive(Default)]
+	pub struct QueryRecordFlags: ffi::DNSServiceFlags {
+		/// long-lived unicast query
+		///
+		/// See [`kDNSServiceFlagsLongLivedQuery`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagslonglivedquery).
+		const LONG_LIVED_QUERY = ffi::FLAGS_LONG_LIVED_QUERY;
+	}
 }
 
-flags_ops!{QueryRecordFlags: u8: QueryRecordFlag:
-	LongLivedQuery,
-}
+bitflags! {
+	/// Flags for [`QueryRecordResult`](struct.QueryRecordResult.html)
+	#[derive(Default)]
+	pub struct QueriedRecordFlags: ffi::DNSServiceFlags {
+		/// Indicates at least one more result is pending in the queue.  If
+		/// not set there still might be more results coming in the future.
+		///
+		/// See [`kDNSServiceFlagsMoreComing`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsmorecoming).
+		const MORE_COMING = ffi::FLAGS_MORE_COMING;
 
-flag_mapping!{QueryRecordFlags: QueryRecordFlag => ffi::DNSServiceFlags:
-	LongLivedQuery => ffi::FLAGS_LONG_LIVED_QUERY,
-}
-
-/// Set of [`QueriedRecordFlag`](enum.QueriedRecordFlag.html)s
-///
-/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
-/// can be used to test whether a flag is part of a set.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct QueriedRecordFlags(u8);
-
-/// Flags for [`QueryRecordResult`](struct.QueryRecordResult.html)
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[repr(u8)]
-pub enum QueriedRecordFlag {
-	/// Indicates at least one more result is pending in the queue.  If
-	/// not set there still might be more results coming in the future.
-	///
-	/// See [`kDNSServiceFlagsMoreComing`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsmorecoming).
-	MoreComing = 0,
-
-	/// Indicates the result is new.  If not set indicates the result
-	/// was removed.
-	///
-	/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
-	Add,
-}
-
-flags_ops!{QueriedRecordFlags: u8: QueriedRecordFlag:
-	MoreComing,
-	Add,
-}
-
-flag_mapping!{QueriedRecordFlags: QueriedRecordFlag => ffi::DNSServiceFlags:
-	MoreComing => ffi::FLAGS_MORE_COMING,
-	Add => ffi::FLAGS_ADD,
+		/// Indicates the result is new.  If not set indicates the result
+		/// was removed.
+		///
+		/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
+		const ADD = ffi::FLAGS_ADD;
+	}
 }
 
 /// Pending query
@@ -112,9 +83,9 @@ pub struct QueryRecordResult {
 	///
 	pub fullname: String,
 	///
-	pub rr_type: u16,
+	pub rr_type: Type,
 	///
-	pub rr_class: u16,
+	pub rr_class: Class,
 	///
 	pub rdata: Vec<u8>,
 	///
@@ -140,26 +111,54 @@ extern "C" fn query_record_callback(
 			unsafe { ::std::slice::from_raw_parts(rdata, rd_len as usize) };
 
 		Ok(QueryRecordResult {
-			flags: QueriedRecordFlags::from(flags),
+			flags: QueriedRecordFlags::from_bits_truncate(flags),
 			interface: Interface::from_raw(interface_index),
 			fullname: fullname.to_string(),
-			rr_type,
-			rr_class,
+			rr_type: Type(rr_type),
+			rr_class: Class(rr_class),
 			rdata: rdata.into(),
 			ttl,
 		})
 	});
 }
 
+/// Optional data when querying for a record; either use its default
+/// value or customize it like:
+///
+/// ```
+/// # use async_dnssd::QueryRecordData;
+/// # use async_dnssd::QueryRecordFlags;
+/// QueryRecordData {
+///     flags: QueryRecordFlags::LONG_LIVED_QUERY,
+///     ..Default::default()
+/// };
+/// ```
+pub struct QueryRecordData {
+	/// flags for query
+	pub flags: QueryRecordFlags,
+	/// interface to query records on
+	pub interface: Interface,
+	/// class of the resource record (default: `IN`)
+	pub rr_class: Class,
+}
+
+impl Default for QueryRecordData {
+	fn default() -> Self {
+		QueryRecordData {
+			flags: QueryRecordFlags::default(),
+			interface: Interface::default(),
+			rr_class: Class::IN,
+		}
+	}
+}
+
 /// Query for an arbitrary DNS record
 ///
-/// See [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecordc).
+/// See [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord).
 pub fn query_record(
-	flags: QueryRecordFlags,
-	interface: Interface,
 	fullname: &str,
-	rr_type: u16,
-	rr_class: u16,
+	rr_type: Type,
+	data: QueryRecordData,
 	handle: &Handle,
 ) -> io::Result<QueryRecord> {
 	::init();
@@ -168,11 +167,11 @@ pub fn query_record(
 
 	Ok(QueryRecord(CallbackStream::new(handle, move |sender| {
 		raw::DNSService::query_record(
-			flags.into(),
-			interface.into_raw(),
+			data.flags.bits(),
+			data.interface.into_raw(),
 			&fullname,
 			rr_type,
-			rr_class,
+			data.rr_class,
 			Some(query_record_callback),
 			sender,
 		)

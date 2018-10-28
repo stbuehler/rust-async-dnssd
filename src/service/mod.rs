@@ -17,14 +17,16 @@ mod records;
 mod register;
 mod resolve;
 
+use dns_consts::{Class, Type};
+
 /// Purge record from cache
 ///
 /// See [`DNSServiceReconfirmRecord`](https://developer.apple.com/documentation/dnssd/1804726-dnsservicereconfirmrecord).
 pub fn reconfirm_record(
 	interface: ::interface::Interface,
 	fullname: &str,
-	rr_type: u16,
-	rr_class: u16,
+	rr_type: Type,
+	rr_class: Class,
 	rdata: &[u8],
 ) -> ::std::io::Result<()> {
 	::init();

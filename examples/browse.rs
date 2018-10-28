@@ -2,7 +2,11 @@ extern crate async_dnssd;
 extern crate futures;
 extern crate tokio_core;
 
-use async_dnssd::TimeoutTrait;
+use async_dnssd::{
+	Class,
+	TimeoutTrait,
+	Type,
+};
 use futures::{
 	Future,
 	Stream,
@@ -19,12 +23,12 @@ use std::{
 use tokio_core::reactor::Core;
 
 fn decode_address(a: &async_dnssd::QueryRecordResult) -> Option<IpAddr> {
-	if a.rr_class == 1 {
-		if a.rr_type == 1 && a.rdata.len() == 4 {
+	if a.rr_class == Class::IN {
+		if a.rr_type == Type::A && a.rdata.len() == 4 {
 			let mut octets = [0u8; 4];
 			octets.clone_from_slice(&a.rdata);
 			Some(IpAddr::V4(Ipv4Addr::from(octets)))
-		} else if a.rr_type == 28 && a.rdata.len() == 16 {
+		} else if a.rr_type == Type::AAAA && a.rdata.len() == 16 {
 			let mut octets = [0u8; 16];
 			octets.clone_from_slice(&a.rdata);
 			Some(IpAddr::V6(Ipv6Addr::from(octets)))
@@ -61,7 +65,7 @@ fn main() {
 			.expect("failed timeout")
 			.map_err(|e| e.into_io_error())
 			.for_each(|service| {
-				let added = service.flags & async_dnssd::BrowsedFlag::Add;
+				let added = service.flags.contains(async_dnssd::BrowsedFlags::ADD);
 				if query == list_all_services {
 					// resolving MetaQuery responses isn't useful (and fails
 					// with "bad param")... we'd need to browse them
@@ -125,22 +129,18 @@ fn main() {
 						inner_handle.spawn(
 							// Query IPv4
 							async_dnssd::query_record(
-								async_dnssd::QueryRecordFlags::none(),
-								async_dnssd::Interface::Any,
 								&r.host_target,
-								1, // 1 = A.
-								1,
+								Type::A,
+								Default::default(),
 								&inner_handle,
 							)?
 							.timeout(address_timeout)?
 							.select(
 								// Query IPv6 and merge the results
 								async_dnssd::query_record(
-									async_dnssd::QueryRecordFlags::none(),
-									async_dnssd::Interface::Any,
 									&r.host_target,
-									28, // 28 = AAAA.
-									1,
+									Type::AAAA,
+									Default::default(),
 									&inner_handle,
 								)?
 								.timeout(address_timeout)?,

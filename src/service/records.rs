@@ -1,5 +1,6 @@
 use std::io;
 
+use dns_consts::Type;
 use raw;
 
 /// A successful record registration
@@ -18,7 +19,7 @@ pub struct Record(raw::DNSRecord);
 
 impl Record {
 	/// Type of the record
-	pub fn rr_type(&self) -> u16 {
+	pub fn rr_type(&self) -> Type {
 		self.0.rr_type()
 	}
 

@@ -1,4 +1,5 @@
 #![doc(html_root_url = "https://docs.rs/async-dnssd/0.4.0")]
+#![warn(missing_docs)]
 //! # Asynchronous wrapper for DNS-SD C libraries
 //!
 //! Interesting entry points:
@@ -49,7 +50,7 @@
 //! [`DNSServiceConstructFullName`]: https://developer.apple.com/documentation/dnssd/1804753-dnsserviceconstructfullname
 //! [`DNSServiceCreateConnection`]: https://developer.apple.com/documentation/dnssd/1804724-dnsservicecreateconnection
 //! [`DNSServiceEnumerateDomains`]: https://developer.apple.com/documentation/dnssd/1804754-dnsserviceenumeratedomains
-//! [`DNSServiceQueryRecord`]: https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecordc
+//! [`DNSServiceQueryRecord`]: https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord
 //! [`DNSServiceReconfirmRecord`]: https://developer.apple.com/documentation/dnssd/1804726-dnsservicereconfirmrecord
 //! [`DNSServiceRegister`]: https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister
 //! [`DNSServiceRegisterRecord`]: https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord
@@ -75,8 +76,8 @@
 //! [`TimeoutStream`]: struct.TimeoutStream.html
 //! [`TxtRecord`]: struct.TxtRecord.html
 
-#![warn(missing_docs)]
-
+#[macro_use]
+extern crate bitflags;
 extern crate futures;
 #[cfg(windows)] // only the windows event loop has debug logging for now
 #[macro_use]
@@ -92,6 +93,7 @@ extern crate winapi;
 extern crate ws2_32;
 
 pub use self::{
+	dns_consts::*,
 	error::*,
 	ffi::MAX_DOMAIN_NAME,
 	interface::*,
@@ -101,9 +103,8 @@ pub use self::{
 	txt_record::*,
 };
 
-mod flags_macro;
-
 mod cstr;
+mod dns_consts;
 mod error;
 mod evented;
 mod ffi;

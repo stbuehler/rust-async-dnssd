@@ -22,38 +22,22 @@ use remote::GetRemote;
 
 type CallbackStream = ::stream::ServiceStream<BrowseResult>;
 
-/// Set of [`BrowsedFlag`](enum.BrowsedFlag.html)s
-///
-/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
-/// can be used to test whether a flag is part of a set.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BrowsedFlags(u8);
+bitflags! {
+	/// Flags for [`BrowseResult`](struct.BrowseResult.html)
+	#[derive(Default)]
+	pub struct BrowsedFlags: ffi::DNSServiceFlags {
+		/// Indicates at least one more result is pending in the queue.  If
+		/// not set there still might be more results coming in the future.
+		///
+		/// See [`kDNSServiceFlagsMoreComing`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsmorecoming).
+		const MORE_COMING = ffi::FLAGS_MORE_COMING;
 
-/// Flags for [`BrowseResult`](struct.BrowseResult.html)
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[repr(u8)]
-pub enum BrowsedFlag {
-	/// Indicates at least one more result is pending in the queue.  If
-	/// not set there still might be more results coming in the future.
-	///
-	/// See [`kDNSServiceFlagsMoreComing`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsmorecoming).
-	MoreComing = 0,
-
-	/// Indicates the result is new.  If not set indicates the result
-	/// was removed.
-	///
-	/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
-	Add,
-}
-
-flags_ops!{BrowsedFlags: u8: BrowsedFlag:
-	MoreComing,
-	Add,
-}
-
-flag_mapping!{BrowsedFlags: BrowsedFlag => ffi::DNSServiceFlags:
-	MoreComing => ffi::FLAGS_MORE_COMING,
-	Add => ffi::FLAGS_ADD,
+		/// Indicates the result is new.  If not set indicates the result
+		/// was removed.
+		///
+		/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
+		const ADD = ffi::FLAGS_ADD;
+	}
 }
 
 /// Pending browse request
@@ -127,7 +111,7 @@ extern "C" fn browse_callback(
 		let reply_domain = unsafe { cstr::from_cstr(reply_domain) }?;
 
 		Ok(BrowseResult {
-			flags: BrowsedFlags::from(flags),
+			flags: BrowsedFlags::from_bits_truncate(flags),
 			interface: Interface::from_raw(interface_index),
 			service_name: service_name.to_string(),
 			reg_type: reg_type.to_string(),

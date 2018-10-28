@@ -15,6 +15,7 @@ use tokio_core::reactor::{
 };
 
 use cstr;
+use dns_consts::Type;
 use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
@@ -23,43 +24,25 @@ use remote::GetRemote;
 
 type CallbackFuture = ::future::ServiceFuture<RegisterResult>;
 
-/// Set of [`RegisterFlag`](enum.RegisterFlag.html)s
-///
-/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
-/// can be used to test whether a flag is part of a set.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RegisterFlags(u8);
+bitflags! {
+	/// Flags used to register service
+	#[derive(Default)]
+	pub struct RegisterFlags: ffi::DNSServiceFlags {
+		/// Indicates a name conflict should not get handled automatically.
+		///
+		/// See [`kDNSServiceFlagsNoAutoRename`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsnoautorename).
+		const NO_AUTO_RENAME = ffi::FLAGS_NO_AUTO_RENAME;
 
-/// Flags used to register service
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[repr(u8)]
-pub enum RegisterFlag {
-	/// Indicates a name conflict should not get handled automatically.
-	///
-	/// See [`kDNSServiceFlagsNoAutoRename`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsnoautorename).
-	NoAutoRename = 0,
+		/// Indicates there might me multiple records with the given name, type and class.
+		///
+		/// See [`kDNSServiceFlagsShared`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsshared).
+		const SHARED = ffi::FLAGS_SHARED;
 
-	/// Indicates there might me multiple records with the given name, type and class.
-	///
-	/// See [`kDNSServiceFlagsShared`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsshared).
-	Shared,
-
-	/// Indicates the records with the given name, type and class is unique.
-	///
-	/// See [`kDNSServiceFlagsUnique`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsunique).
-	Unique,
-}
-
-flags_ops!{RegisterFlags: u8: RegisterFlag:
-	NoAutoRename,
-	Shared,
-	Unique,
-}
-
-flag_mapping!{RegisterFlags: RegisterFlag => ffi::DNSServiceFlags:
-	NoAutoRename => ffi::FLAGS_NO_AUTO_RENAME,
-	Shared => ffi::FLAGS_SHARED,
-	Unique => ffi::FLAGS_UNIQUE,
+		/// Indicates the records with the given name, type and class is unique.
+		///
+		/// See [`kDNSServiceFlagsUnique`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsunique).
+		const UNIQUE = ffi::FLAGS_UNIQUE;
+	}
 }
 
 /// Pending registration
@@ -229,7 +212,7 @@ pub fn register(
 
 	Ok(Register(CallbackFuture::new(handle, move |sender| {
 		raw::DNSService::register(
-			data.flags.into(),
+			data.flags.bits(),
 			data.interface.into_raw(),
 			&name,
 			&reg_type,
@@ -249,7 +232,7 @@ impl Register {
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
 	pub fn add_record(
 		&self,
-		rr_type: u16,
+		rr_type: Type,
 		rdata: &[u8],
 		ttl: u32,
 	) -> io::Result<::Record> {
@@ -276,7 +259,7 @@ impl Registration {
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
 	pub fn add_record(
 		&self,
-		rr_type: u16,
+		rr_type: Type,
 		rdata: &[u8],
 		ttl: u32,
 	) -> io::Result<::Record> {

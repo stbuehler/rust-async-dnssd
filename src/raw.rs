@@ -11,6 +11,7 @@ use std::{
 };
 
 use cstr;
+use dns_consts::{Class, Type};
 use error::Error;
 use ffi;
 
@@ -149,8 +150,8 @@ impl InnerDNSService {
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		fullname: &cstr::CStr,
-		rr_type: u16,
-		rr_class: u16,
+		rr_type: Type,
+		rr_class: Class,
 		callback: ffi::DNSServiceQueryRecordReply,
 		context: *mut c_void,
 	) -> FFIResult<InnerDNSService> {
@@ -161,8 +162,8 @@ impl InnerDNSService {
 				flags,
 				interface_index,
 				fullname.as_ptr(),
-				rr_type,
-				rr_class,
+				rr_type.0,
+				rr_class.0,
 				callback,
 				context,
 			)
@@ -235,7 +236,7 @@ impl DNSService {
 	pub fn add_record(
 		&self,
 		flags: ffi::DNSServiceFlags,
-		rr_type: u16,
+		rr_type: Type,
 		rdata: &[u8],
 		ttl: u32,
 	) -> FFIResult<DNSRecord> {
@@ -245,8 +246,7 @@ impl DNSService {
 	}
 
 	pub fn get_default_txt_record(&self) -> DNSRecord {
-		const RR_TYPE_TXT: u16 = 16;
-		DNSRecord(InnerDNSRecord(self.clone(), null_mut(), RR_TYPE_TXT))
+		DNSRecord(InnerDNSRecord(self.clone(), null_mut(), Type::TXT))
 	}
 
 	pub fn browse(
@@ -292,8 +292,8 @@ impl DNSService {
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		fullname: &cstr::CStr,
-		rr_type: u16,
-		rr_class: u16,
+		rr_type: Type,
+		rr_class: Class,
 		rdata: &[u8],
 		ttl: u32,
 		callback: ffi::DNSServiceRegisterRecordReply,
@@ -321,8 +321,8 @@ impl DNSService {
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		fullname: &cstr::CStr,
-		rr_type: u16,
-		rr_class: u16,
+		rr_type: Type,
+		rr_class: Class,
 		callback: ffi::DNSServiceQueryRecordReply,
 		context: *mut c_void,
 	) -> FFIResult<DNSService> {
@@ -338,7 +338,7 @@ impl DNSService {
 	}
 }
 
-struct InnerDNSRecord(DNSService, ffi::DNSRecordRef, u16);
+struct InnerDNSRecord(DNSService, ffi::DNSRecordRef, Type);
 
 impl Drop for InnerDNSRecord {
 	fn drop(&mut self) {
@@ -359,7 +359,7 @@ impl InnerDNSRecord {
 		self.0.get()
 	}
 
-	fn rr_type(&self) -> u16 {
+	fn rr_type(&self) -> Type {
 		self.2
 	}
 
@@ -367,7 +367,7 @@ impl InnerDNSRecord {
 	fn add_record(
 		service: &DNSService,
 		flags: ffi::DNSServiceFlags,
-		rr_type: u16,
+		rr_type: Type,
 		rdata: &[u8],
 		ttl: u32,
 	) -> FFIResult<InnerDNSRecord> {
@@ -382,7 +382,7 @@ impl InnerDNSRecord {
 				service.get().0,
 				&mut record_ref,
 				flags,
-				rr_type,
+				rr_type.0,
 				rd_len,
 				rdata,
 				ttl,
@@ -397,8 +397,8 @@ impl InnerDNSRecord {
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		fullname: &cstr::CStr,
-		rr_type: u16,
-		rr_class: u16,
+		rr_type: Type,
+		rr_class: Class,
 		rdata: &[u8],
 		ttl: u32,
 		callback: ffi::DNSServiceRegisterRecordReply,
@@ -417,8 +417,8 @@ impl InnerDNSRecord {
 				flags,
 				interface_index,
 				fullname.as_ptr(),
-				rr_type,
-				rr_class,
+				rr_type.0,
+				rr_class.0,
 				rd_len,
 				rdata,
 				ttl,
@@ -460,7 +460,7 @@ impl InnerDNSRecord {
 pub struct DNSRecord(InnerDNSRecord);
 
 impl DNSRecord {
-	pub fn rr_type(&self) -> u16 {
+	pub fn rr_type(&self) -> Type {
 		self.0.rr_type()
 	}
 
@@ -483,8 +483,8 @@ pub fn reconfirm_record(
 	flags: ffi::DNSServiceFlags,
 	interface_index: u32,
 	fullname: &cstr::CStr,
-	rr_type: u16,
-	rr_class: u16,
+	rr_type: Type,
+	rr_class: Class,
 	rdata: &[u8],
 ) {
 	let rd_len = rdata.len();
@@ -497,8 +497,8 @@ pub fn reconfirm_record(
 			flags,
 			interface_index,
 			fullname.as_ptr(),
-			rr_type,
-			rr_class,
+			rr_type.0,
+			rr_class.0,
 			rd_len,
 			rdata,
 		);

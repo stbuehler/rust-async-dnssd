@@ -14,6 +14,7 @@ use tokio_core::reactor::{
 };
 
 use cstr;
+use dns_consts::{Class, Type};
 use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
@@ -42,36 +43,20 @@ pub fn connect(handle: &Handle) -> io::Result<Connection> {
 	Ok(Connection(Rc::new(EventedDNSService::new(con, handle)?)))
 }
 
-/// Set of [`RegisterRecordFlag`](enum.RegisterRecordFlag.html)s
-///
-/// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
-/// can be used to test whether a flag is part of a set.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RegisterRecordFlags(u8);
+bitflags! {
+	/// Flags used to register a record
+	#[derive(Default)]
+	pub struct RegisterRecordFlags: ffi::DNSServiceFlags {
+		/// Indicates there might me multiple records with the given name, type and class.
+		///
+		/// See [`kDNSServiceFlagsShared`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsshared).
+		const SHARED = ffi::FLAGS_SHARED;
 
-/// Flags used to register a record
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[repr(u8)]
-pub enum RegisterRecordFlag {
-	/// Indicates there might me multiple records with the given name, type and class.
-	///
-	/// See [`kDNSServiceFlagsShared`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsshared).
-	Shared = 0,
-
-	/// Indicates the records with the given name, type and class is unique.
-	///
-	/// See [`kDNSServiceFlagsUnique`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsunique).
-	Unique,
-}
-
-flags_ops!{RegisterRecordFlags: u8: RegisterRecordFlag:
-	Shared,
-	Unique,
-}
-
-flag_mapping!{RegisterRecordFlags: RegisterRecordFlag => ffi::DNSServiceFlags:
-	Shared => ffi::FLAGS_SHARED,
-	Unique => ffi::FLAGS_UNIQUE,
+		/// Indicates the records with the given name, type and class is unique.
+		///
+		/// See [`kDNSServiceFlagsUnique`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsunique).
+		const UNIQUE = ffi::FLAGS_UNIQUE;
+	}
 }
 
 /// Pending record registration
@@ -134,8 +119,8 @@ pub struct RegisterRecordData {
 	pub flags: RegisterRecordFlags,
 	/// interface to register record on
 	pub interface: Interface,
-	/// class of the resource record (default: `1` = `IN`)
-	pub rr_class: u16,
+	/// class of the resource record (default: `IN`)
+	pub rr_class: Class,
 	/// time to live of the resource record in seconds (passing 0 will
 	/// select a sensible default)
 	pub ttl: u32,
@@ -146,7 +131,7 @@ impl Default for RegisterRecordData {
 		RegisterRecordData {
 			flags: RegisterRecordFlags::default(),
 			interface: Interface::default(),
-			rr_class: 1, // "IN"
+			rr_class: Class::IN,
 			ttl: 0,
 		}
 	}
@@ -160,7 +145,7 @@ impl Connection {
 	pub fn register_record(
 		&self,
 		fullname: &str,
-		rr_type: u16,
+		rr_type: Type,
 		rdata: &[u8],
 		data: RegisterRecordData,
 	) -> io::Result<RegisterRecord> {
@@ -169,7 +154,7 @@ impl Connection {
 		let (serv, record) =
 			CallbackFuture::new(self.0.clone(), move |sender| {
 				self.0.service().register_record(
-					data.flags.into(),
+					data.flags.bits(),
 					data.interface.into_raw(),
 					&fullname,
 					rr_type,
@@ -196,7 +181,7 @@ impl RegisterRecord {
 	///
 	/// Panics after the future completed.  Use the returned
 	/// [`Record`](struct.Record.html) instead.
-	pub fn rr_type(&self) -> u16 {
+	pub fn rr_type(&self) -> Type {
 		self.record().rr_type()
 	}
 
