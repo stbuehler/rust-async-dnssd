@@ -239,19 +239,21 @@ mod libc {
 		c_long,
 		c_uint,
 	};
-	pub use winapi::{
+	pub use winapi::um::winsock2::{
 		fd_set,
+		select,
 		timeval,
 		FD_SETSIZE,
 		SOCKET,
 	};
-	pub use ws2_32::select;
 
+	#[allow(non_snake_case)]
 	pub unsafe fn FD_ZERO(set: *mut fd_set) {
 		let set = &mut *set;
 		set.fd_count = 0;
 	}
 
+	#[allow(non_snake_case)]
 	pub unsafe fn FD_SET(fd: c_int, set: *mut fd_set) {
 		if FD_ISSET(fd, set) {
 			return;
@@ -264,6 +266,7 @@ mod libc {
 		}
 	}
 
+	#[allow(non_snake_case)]
 	pub unsafe fn FD_ISSET(fd: c_int, set: *mut fd_set) -> bool {
 		let set = &mut *set;
 		let fd = fd as c_uint as SOCKET;

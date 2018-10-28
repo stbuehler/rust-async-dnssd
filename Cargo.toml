@@ -23,6 +23,5 @@ mio = "0.6"
 tokio-core = "0.1.8"
 
 [target.'cfg(windows)'.dependencies]
-libc = "0.2.24"
-winapi = "0.2.5"
-ws2_32-sys = "0.2.1"
+libc = "0.2.43"
+winapi = { version = "0.3.6", features = ["winsock2"] }

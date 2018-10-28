@@ -290,6 +290,7 @@ extern "C" {
 // TXTRecordRef utils not wrapped - should be easy enough to implement
 // in pure rust
 
+/* Not used so far:
 #[cfg(windows)]
 mod ffi_windows {
 	use super::DNSServiceErrorType;
@@ -336,4 +337,5 @@ mod ffi_windows {
 	}
 }
 #[cfg(windows)]
-use self::ffi_windows::*;
+pub use self::ffi_windows::*;
+*/
