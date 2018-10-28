@@ -39,6 +39,10 @@
 //! * [`DNSServiceRefSockFD`] used for integration with tokio (event loop)
 //! * [`DNSServiceRemoveRecord`] called when dropping [`Record`](struct.Record.html)
 //!
+//! The `TXTRecord*` "TXT Record Construction Functions" are not
+//! wrapped; [`TxtRecord`] provides a native rust implementation with
+//! similar functionality.
+//!
 //! [`DNSServiceAddRecord`]: https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord
 //! [`DNSServiceBrowse`]: https://developer.apple.com/documentation/dnssd/1804742-dnsservicebrowse
 //! [`DNSServiceConstructFullName`]: https://developer.apple.com/documentation/dnssd/1804753-dnsserviceconstructfullname
@@ -68,6 +72,7 @@
 //! [`Record::update_record`]: struct.Record.html#method.update_record
 //! [`RegisterRecord::update_record`]: struct.RegisterRecord.html#method.update_record
 //! [`TimeoutStream`]: struct.TimeoutStream.html
+//! [`TxtRecord`]: struct.TxtRecord.html
 
 #![warn(missing_docs)]
 
@@ -91,6 +96,7 @@ pub use self::interface::*;
 pub use self::remote::*;
 pub use self::service::*;
 pub use self::timeout_stream::*;
+pub use self::txt_record::*;
 
 mod flags_macro;
 
@@ -106,6 +112,7 @@ mod remote;
 mod service;
 mod stream;
 mod timeout_stream;
+mod txt_record;
 
 fn init() {
 	#[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]

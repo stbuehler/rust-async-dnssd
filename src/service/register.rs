@@ -150,6 +150,14 @@ pub struct RegisterData<'a> {
 	pub host: Option<&'a str>,
 	/// The TXT record rdata. Empty RDATA is treated like `b"\0"`, i.e.
 	/// a TXT record with a single empty string.
+	///
+	/// You can use [`TxtRecord`] to create the value for this field
+	/// (both [`TxtRecord::data`] and [`TxtRecord::rdata`] produce
+	/// appropriate values).
+	///
+	/// [`TxtRecord`]: struct.TxtRecord.html
+	/// [`TxtRecord::data`]: struct.TxtRecord.html#method.data
+	/// [`TxtRecord::rdata`]: struct.TxtRecord.html#method.rdata
 	pub txt: &'a [u8],
 }
 
