@@ -1,9 +1,17 @@
-use futures::sync::oneshot;
-use futures::{self,Async};
-use std::io;
-use std::rc::Rc;
-use std::os::raw::c_void;
-use tokio_core::reactor::{Handle, Remote};
+use futures::{
+	self,
+	sync::oneshot,
+	Async,
+};
+use std::{
+	io,
+	os::raw::c_void,
+	rc::Rc,
+};
+use tokio_core::reactor::{
+	Handle,
+	Remote,
+};
 
 use error::Error;
 use evented::EventedDNSService;
@@ -24,8 +32,11 @@ struct Inner<T> {
 pub(crate) struct ServiceFuture<T>(Option<Inner<T>>);
 
 impl<T> ServiceFuture<T> {
-	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
-	where
+	pub(crate) fn run_callback<F>(
+		context: *mut c_void,
+		error_code: ffi::DNSServiceErrorType,
+		f: F,
+	) where
 		F: FnOnce() -> io::Result<T>,
 		T: ::std::fmt::Debug,
 	{
@@ -33,13 +44,16 @@ impl<T> ServiceFuture<T> {
 		let sender: &mut CallbackContext<T> = unsafe { &mut *sender };
 		let sender = sender.take().expect("callback must be run only once");
 
-		let data = Error::from(error_code).map_err(io::Error::from).and_then(|()| f());
+		let data = Error::from(error_code)
+			.map_err(io::Error::from)
+			.and_then(|()| f());
 
 		sender.send(data).expect("receiver must still be alive");
 	}
 
 	pub fn new<F>(handle: &Handle, f: F) -> io::Result<Self>
-	where F: FnOnce(*mut c_void) -> Result<DNSService, Error>
+	where
+		F: FnOnce(*mut c_void) -> Result<DNSService, Error>,
 	{
 		let (sender, receiver) = oneshot::channel::<io::Result<T>>();
 		let sender = RawBox::new(Some(sender));
@@ -47,7 +61,7 @@ impl<T> ServiceFuture<T> {
 		let service = f(sender.get_ptr() as *mut c_void)?;
 		let service = EventedDNSService::new(service, handle)?;
 
-		Ok(ServiceFuture(Some(Inner{
+		Ok(ServiceFuture(Some(Inner {
 			service,
 			_sender: sender,
 			receiver,
@@ -68,8 +82,8 @@ impl<T> ServiceFuture<T> {
 }
 
 impl<T> futures::Future for ServiceFuture<T> {
-	type Item = (EventedDNSService, T);
 	type Error = io::Error;
+	type Item = (EventedDNSService, T);
 
 	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
 		if self.0.is_none() {
@@ -78,10 +92,9 @@ impl<T> futures::Future for ServiceFuture<T> {
 		}
 		self.inner_mut().service.poll()?;
 		match self.inner_mut().receiver.poll() {
-			Ok(Async::Ready(item)) => Ok(Async::Ready((
-				self.0.take().unwrap().service,
-				item?
-			))),
+			Ok(Async::Ready(item)) => {
+				Ok(Async::Ready((self.0.take().unwrap().service, item?)))
+			},
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(futures::Canceled) => unreachable!(),
 		}
@@ -102,8 +115,11 @@ pub struct ServiceFutureSingle<T> {
 }
 
 impl<T> ServiceFutureSingle<T> {
-	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
-	where
+	pub(crate) fn run_callback<F>(
+		context: *mut c_void,
+		error_code: ffi::DNSServiceErrorType,
+		f: F,
+	) where
 		F: FnOnce() -> io::Result<T>,
 		T: ::std::fmt::Debug,
 	{
@@ -111,30 +127,39 @@ impl<T> ServiceFutureSingle<T> {
 		let sender: &mut CallbackContext<T> = unsafe { &mut *sender };
 		let sender = sender.take().expect("callback must be run only once");
 
-		let data = Error::from(error_code).map_err(io::Error::from).and_then(|()| f());
+		let data = Error::from(error_code)
+			.map_err(io::Error::from)
+			.and_then(|()| f());
 
 		sender.send(data).expect("receiver must still be alive");
 	}
 
-	pub fn new<R, F>(service: Rc<EventedDNSService>, f: F) -> io::Result<(Self, R)>
-	where F: FnOnce(*mut c_void) -> Result<R, Error>
+	pub fn new<R, F>(
+		service: Rc<EventedDNSService>,
+		f: F,
+	) -> io::Result<(Self, R)>
+	where
+		F: FnOnce(*mut c_void) -> Result<R, Error>,
 	{
 		let (sender, receiver) = oneshot::channel::<io::Result<T>>();
 		let sender = RawBox::new(Some(sender));
 
 		let res = f(sender.get_ptr() as *mut c_void)?;
 
-		Ok((ServiceFutureSingle{
-			service,
-			_sender: sender,
-			receiver,
-		}, res))
+		Ok((
+			ServiceFutureSingle {
+				service,
+				_sender: sender,
+				receiver,
+			},
+			res,
+		))
 	}
 }
 
 impl<T> futures::Future for ServiceFutureSingle<T> {
-	type Item = T;
 	type Error = io::Error;
+	type Item = T;
 
 	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
 		self.service.poll()?;

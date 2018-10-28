@@ -108,7 +108,11 @@ impl TxtRecord {
 	}
 
 	/// Insert or update the entry with `key` to have the given value or on value
-	pub fn set(&mut self, key: &[u8], value: Option<&[u8]>) -> Result<(), TxtRecordError> {
+	pub fn set(
+		&mut self,
+		key: &[u8],
+		value: Option<&[u8]>,
+	) -> Result<(), TxtRecordError> {
 		for &k in key {
 			if k == b'=' || k < 0x20 || k > 0x7e {
 				return Err(TxtRecordError::InvalidKey);
@@ -136,7 +140,11 @@ impl TxtRecord {
 	}
 
 	/// Insert or update the entry with `key` to have the given value
-	pub fn set_value(&mut self, key: &[u8], value: &[u8]) -> Result<(), TxtRecordError> {
+	pub fn set_value(
+		&mut self,
+		key: &[u8],
+		value: &[u8],
+	) -> Result<(), TxtRecordError> {
 		self.set(key, Some(value))
 	}
 }
@@ -148,8 +156,8 @@ impl Default for TxtRecord {
 }
 
 impl<'a> IntoIterator for &'a TxtRecord {
-	type Item = (&'a [u8], Option<&'a [u8]>);
 	type IntoIter = TxtRecordIter<'a>;
+	type Item = (&'a [u8], Option<&'a [u8]>);
 
 	fn into_iter(self) -> Self::IntoIter {
 		self.iter()
@@ -181,7 +189,7 @@ impl<'a> Iterator for PositionKeyIter<'a> {
 		let len = self.data[0] as usize;
 		let entry_pos = self.pos;
 		let entry = &self.data[1..][..len];
-		self.data = &self.data[len+1..];
+		self.data = &self.data[len + 1..];
 		self.pos += len + 1;
 
 		Some(match entry.iter().position(|&b| b == b'=') {
@@ -209,11 +217,11 @@ impl<'a> Iterator for TxtRecordIter<'a> {
 		}
 		let len = self.data[0] as usize;
 		let entry = &self.data[1..][..len];
-		self.data = &self.data[len+1..];
+		self.data = &self.data[len + 1..];
 		self.pos += len + 1;
 
 		Some(match entry.iter().position(|&b| b == b'=') {
-			Some(pos) => (&entry[..pos], Some(&entry[pos+1..])),
+			Some(pos) => (&entry[..pos], Some(&entry[pos + 1..])),
 			None => (entry, None),
 		})
 	}
@@ -239,19 +247,22 @@ mod tests {
 		assert!(!r.is_empty());
 		assert_eq!(r.data(), b"\x07foo=bar\x04u=vw");
 		assert_eq!(r.rdata(), b"\x07foo=bar\x04u=vw");
-		assert_eq!(r.iter().collect::<Vec<_>>(), vec![
-			(b"foo" as &[u8], Some(b"bar" as &[u8])),
-			(b"u", Some(b"vw")),
-		]);
+		assert_eq!(
+			r.iter().collect::<Vec<_>>(),
+			vec![
+				(b"foo" as &[u8], Some(b"bar" as &[u8])),
+				(b"u", Some(b"vw")),
+			]
+		);
 
 		r.set(b"foo", None).unwrap();
 		assert!(!r.is_empty());
 		assert_eq!(r.data(), b"\x04u=vw\x03foo");
 		assert_eq!(r.rdata(), b"\x04u=vw\x03foo");
-		assert_eq!(r.iter().collect::<Vec<_>>(), vec![
-			(b"u" as &[u8], Some(b"vw" as &[u8])),
-			(b"foo", None),
-		]);
+		assert_eq!(
+			r.iter().collect::<Vec<_>>(),
+			vec![(b"u" as &[u8], Some(b"vw" as &[u8])), (b"foo", None),]
+		);
 
 		r.set(b"foo", Some(b"bar")).unwrap();
 		assert!(!r.is_empty());

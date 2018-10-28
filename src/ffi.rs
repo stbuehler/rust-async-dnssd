@@ -1,44 +1,48 @@
 // #![allow(dead_code)]
 
-use std::os::raw::{c_int,c_void,c_char};
+use std::os::raw::{
+	c_char,
+	c_int,
+	c_void,
+};
 
 // type without an instance
-pub enum DNSServiceT{}
+pub enum DNSServiceT {}
 pub type DNSServiceRef = *mut DNSServiceT;
 
 // type without an instance
-pub enum DNSRecordT{}
+pub enum DNSRecordT {}
 pub type DNSRecordRef = *mut DNSRecordT;
 
 pub type DNSServiceFlags = u32;
 // pub const FLAGS_NONE                 : DNSServiceFlags = 0x0;
-pub const FLAGS_MORE_COMING          : DNSServiceFlags = 0x1;
-pub const FLAGS_ADD                  : DNSServiceFlags = 0x2;
-pub const FLAGS_DEFAULT              : DNSServiceFlags = 0x4;
-pub const FLAGS_NO_AUTO_RENAME       : DNSServiceFlags = 0x8;
-pub const FLAGS_SHARED               : DNSServiceFlags = 0x10;
-pub const FLAGS_UNIQUE               : DNSServiceFlags = 0x20;
-pub const FLAGS_BROWSE_DOMAINS       : DNSServiceFlags = 0x40;
-pub const FLAGS_REGISTRATION_DOMAINS : DNSServiceFlags = 0x80;
+pub const FLAGS_MORE_COMING: DNSServiceFlags = 0x1;
+pub const FLAGS_ADD: DNSServiceFlags = 0x2;
+pub const FLAGS_DEFAULT: DNSServiceFlags = 0x4;
+pub const FLAGS_NO_AUTO_RENAME: DNSServiceFlags = 0x8;
+pub const FLAGS_SHARED: DNSServiceFlags = 0x10;
+pub const FLAGS_UNIQUE: DNSServiceFlags = 0x20;
+pub const FLAGS_BROWSE_DOMAINS: DNSServiceFlags = 0x40;
+pub const FLAGS_REGISTRATION_DOMAINS: DNSServiceFlags = 0x80;
 // unix only?
 #[cfg(unix)]
-pub const FLAGS_LONG_LIVED_QUERY     : DNSServiceFlags = 0x100;
+pub const FLAGS_LONG_LIVED_QUERY: DNSServiceFlags = 0x100;
 #[cfg(not(unix))]
-pub const FLAGS_LONG_LIVED_QUERY     : DNSServiceFlags = 0;
+pub const FLAGS_LONG_LIVED_QUERY: DNSServiceFlags = 0;
 // avahi only?
-//pub const FLAGS_ALLOW_REMOTE_QUERY   : DNSServiceFlags = 0x200;
-//pub const FLAGS_FORCE_MULTICAS       : DNSServiceFlags = 0x400;
-//pub const FLAGS_RETURN_CNAME         : DNSServiceFlags = 0x800;
+// pub const FLAGS_ALLOW_REMOTE_QUERY: DNSServiceFlags = 0x200;
+// pub const FLAGS_FORCE_MULTICAS: DNSServiceFlags = 0x400;
+// pub const FLAGS_RETURN_CNAME: DNSServiceFlags = 0x800;
 
 /// Maximum length of full name including trailing dot and terminating NULL
 ///
 /// See [`kDNSServiceMaxDomainName`](https://developer.apple.com/documentation/dnssd/kdnsservicemaxdomainname)
-pub const MAX_DOMAIN_NAME : usize = 1009;
+pub const MAX_DOMAIN_NAME: usize = 1009;
 
-pub const INTERFACE_INDEX_ANY : u32 = 0;
-pub const INTERFACE_INDEX_LOCAL_ONLY : u32 = !0;
-pub const INTERFACE_INDEX_UNICAST : u32 = !1;
-pub const INTERFACE_INDEX_P2P : u32 = !2;
+pub const INTERFACE_INDEX_ANY: u32 = 0;
+pub const INTERFACE_INDEX_LOCAL_ONLY: u32 = !0;
+pub const INTERFACE_INDEX_UNICAST: u32 = !1;
+pub const INTERFACE_INDEX_P2P: u32 = !2;
 
 macro_rules! c_api_enum {
 	($name:ident : $ty:tt => $($case:ident = $val:expr,)* ) => (
@@ -99,76 +103,90 @@ c_api_enum!{DNSServiceError: i32 =>
 	BufferTooSmall        = -65558,
 }
 
-pub type DNSServiceDomainEnumReply = Option<extern "C" fn(
-	sd_ref: DNSServiceRef,
-	flags: DNSServiceFlags,
-	interface_index: u32,
-	error_code: DNSServiceErrorType,
-	reply_domain: *const c_char,
-	context: *mut c_void
-)>;
-pub type DNSServiceRegisterReply = Option<extern "C" fn(
-	sd_ref: DNSServiceRef,
-	flags: DNSServiceFlags,
-	error_code: DNSServiceErrorType,
-	name: *const c_char,
-	reg_type: *const c_char,
-	domain: *const c_char,
-	context: *mut c_void
-)>;
-pub type DNSServiceBrowseReply = Option<extern "C" fn(
-	sd_ref: DNSServiceRef,
-	flags: DNSServiceFlags,
-	interface_index: u32,
-	error_code: DNSServiceErrorType,
-	service_name: *const c_char,
-	reg_type: *const c_char,
-	reply_domain: *const c_char,
-	context: *mut c_void
-)>;
-pub type DNSServiceResolveReply = Option<extern "C" fn(
-	sd_ref: DNSServiceRef,
-	flags: DNSServiceFlags,
-	interface_index: u32,
-	error_code: DNSServiceErrorType,
-	fullname: *const c_char,
-	host_target: *const c_char,
-	port: u16,
-	txt_len: u16,
-	txt_record: *const u8,
-	context: *mut c_void
-)>;
-pub type DNSServiceRegisterRecordReply = Option<extern "C" fn(
-	sd_ref: DNSServiceRef,
-	record_ref: DNSRecordRef,
-	flags: DNSServiceFlags,
-	error_code: DNSServiceErrorType,
-	context: *mut c_void
-)>;
-pub type DNSServiceQueryRecordReply = Option<extern "C" fn(
-	sd_ref: DNSServiceRef,
-	flags: DNSServiceFlags,
-	interface_index: u32,
-	error_code: DNSServiceErrorType,
-	fullname: *const c_char,
-	rr_type: u16,
-	rr_class: u16,
-	rd_len: u16,
-	rdata: *const u8,
-	ttl: u32,
-	context: *mut c_void
-)>;
+pub type DNSServiceDomainEnumReply = Option<
+	extern "C" fn(
+		sd_ref: DNSServiceRef,
+		flags: DNSServiceFlags,
+		interface_index: u32,
+		error_code: DNSServiceErrorType,
+		reply_domain: *const c_char,
+		context: *mut c_void,
+	),
+>;
+pub type DNSServiceRegisterReply = Option<
+	extern "C" fn(
+		sd_ref: DNSServiceRef,
+		flags: DNSServiceFlags,
+		error_code: DNSServiceErrorType,
+		name: *const c_char,
+		reg_type: *const c_char,
+		domain: *const c_char,
+		context: *mut c_void,
+	),
+>;
+pub type DNSServiceBrowseReply = Option<
+	extern "C" fn(
+		sd_ref: DNSServiceRef,
+		flags: DNSServiceFlags,
+		interface_index: u32,
+		error_code: DNSServiceErrorType,
+		service_name: *const c_char,
+		reg_type: *const c_char,
+		reply_domain: *const c_char,
+		context: *mut c_void,
+	),
+>;
+pub type DNSServiceResolveReply = Option<
+	extern "C" fn(
+		sd_ref: DNSServiceRef,
+		flags: DNSServiceFlags,
+		interface_index: u32,
+		error_code: DNSServiceErrorType,
+		fullname: *const c_char,
+		host_target: *const c_char,
+		port: u16,
+		txt_len: u16,
+		txt_record: *const u8,
+		context: *mut c_void,
+	),
+>;
+pub type DNSServiceRegisterRecordReply = Option<
+	extern "C" fn(
+		sd_ref: DNSServiceRef,
+		record_ref: DNSRecordRef,
+		flags: DNSServiceFlags,
+		error_code: DNSServiceErrorType,
+		context: *mut c_void,
+	),
+>;
+pub type DNSServiceQueryRecordReply = Option<
+	extern "C" fn(
+		sd_ref: DNSServiceRef,
+		flags: DNSServiceFlags,
+		interface_index: u32,
+		error_code: DNSServiceErrorType,
+		fullname: *const c_char,
+		rr_type: u16,
+		rr_class: u16,
+		rd_len: u16,
+		rdata: *const u8,
+		ttl: u32,
+		context: *mut c_void,
+	),
+>;
 
 extern "C" {
 	pub fn DNSServiceRefSockFD(sd_ref: DNSServiceRef) -> c_int;
-	pub fn DNSServiceProcessResult(sd_ref: DNSServiceRef) -> DNSServiceErrorType;
+	pub fn DNSServiceProcessResult(
+		sd_ref: DNSServiceRef,
+	) -> DNSServiceErrorType;
 	pub fn DNSServiceRefDeallocate(sd_ref: DNSServiceRef);
 	pub fn DNSServiceEnumerateDomains(
 		sd_ref: *mut DNSServiceRef,
 		flags: DNSServiceFlags,
 		interface_index: u32,
 		callback: DNSServiceDomainEnumReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> DNSServiceErrorType;
 	pub fn DNSServiceRegister(
 		sd_ref: *mut DNSServiceRef,
@@ -182,7 +200,7 @@ extern "C" {
 		txt_len: u16,
 		txt_record: *const u8,
 		callback: DNSServiceRegisterReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> DNSServiceErrorType;
 	pub fn DNSServiceAddRecord(
 		sd_ref: DNSServiceRef,
@@ -191,7 +209,7 @@ extern "C" {
 		rr_type: u16,
 		rd_len: u16,
 		rdata: *const u8,
-		ttl: u32
+		ttl: u32,
 	) -> DNSServiceErrorType;
 	pub fn DNSServiceUpdateRecord(
 		sd_ref: DNSServiceRef,
@@ -199,12 +217,12 @@ extern "C" {
 		flags: DNSServiceFlags,
 		rd_len: u16,
 		rdata: *const u8,
-		ttl: u32
+		ttl: u32,
 	) -> DNSServiceErrorType;
 	pub fn DNSServiceRemoveRecord(
 		sd_ref: DNSServiceRef,
 		record_ref: DNSRecordRef,
-		flags: DNSServiceFlags
+		flags: DNSServiceFlags,
 	) -> DNSServiceErrorType;
 	pub fn DNSServiceBrowse(
 		sd_ref: *mut DNSServiceRef,
@@ -213,7 +231,7 @@ extern "C" {
 		reg_type: *const c_char,
 		domain: *const c_char,
 		callback: DNSServiceBrowseReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> DNSServiceErrorType;
 	pub fn DNSServiceResolve(
 		sd_ref: *mut DNSServiceRef,
@@ -223,9 +241,11 @@ extern "C" {
 		reg_type: *const c_char,
 		domain: *const c_char,
 		callback: DNSServiceResolveReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> DNSServiceErrorType;
-	pub fn DNSServiceCreateConnection(sd_ref: *mut DNSServiceRef) -> DNSServiceErrorType;
+	pub fn DNSServiceCreateConnection(
+		sd_ref: *mut DNSServiceRef,
+	) -> DNSServiceErrorType;
 	pub fn DNSServiceRegisterRecord(
 		sd_ref: DNSServiceRef,
 		record_ref: *mut DNSRecordRef,
@@ -238,7 +258,7 @@ extern "C" {
 		rdata: *const u8,
 		ttl: u32,
 		callback: DNSServiceRegisterRecordReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> DNSServiceErrorType;
 	pub fn DNSServiceQueryRecord(
 		sd_ref: *mut DNSServiceRef,
@@ -248,7 +268,7 @@ extern "C" {
 		rr_type: u16,
 		rr_class: u16,
 		callback: DNSServiceQueryRecordReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> DNSServiceErrorType;
 	pub fn DNSServiceReconfirmRecord(
 		flags: DNSServiceFlags,
@@ -257,13 +277,13 @@ extern "C" {
 		rr_type: u16,
 		rr_class: u16,
 		rd_len: u16,
-		rdata: *const u8
+		rdata: *const u8,
 	) -> DNSServiceErrorType;
 	pub fn DNSServiceConstructFullName(
 		fullName: *mut c_char,
 		service: *const c_char,
 		reg_type: *const c_char,
-		domain: *const c_char
+		domain: *const c_char,
 	) -> c_int;
 }
 
@@ -272,17 +292,20 @@ extern "C" {
 
 #[cfg(windows)]
 mod ffi_windows {
-	use std::os::raw::{c_int,c_void};
 	use super::DNSServiceErrorType;
+	use std::os::raw::{
+		c_int,
+		c_void,
+	};
 
 	pub type DNSServiceInitializeFlags = u32;
-	pub const INITIALIZE_FLAGS_NONE            : DNSServiceInitializeFlags = 0x0;
-	pub const INITIALIZE_FLAGS_ADVERTISE       : DNSServiceInitializeFlags = 0x1;
-	pub const INITIALIZE_FLAGS_NO_SERVER_CHECK : DNSServiceInitializeFlags = 0x2;
+	pub const INITIALIZE_FLAGS_NONE: DNSServiceInitializeFlags = 0x0;
+	pub const INITIALIZE_FLAGS_ADVERTISE: DNSServiceInitializeFlags = 0x1;
+	pub const INITIALIZE_FLAGS_NO_SERVER_CHECK: DNSServiceInitializeFlags = 0x2;
 
 	pub type DNSPropertyCode = u32;
 
-	pub const PROPERTY_CODE_VERSION : DNSPropertyCode = 0x76657273;
+	pub const PROPERTY_CODE_VERSION: DNSPropertyCode = 0x76657273;
 	#[repr(C)]
 	pub struct DnsPropertyVersion {
 		pub code: DNSPropertyCode,
@@ -296,7 +319,7 @@ mod ffi_windows {
 	extern "C" {
 		pub fn DNSServiceInitialize(
 			inFlags: DNSServiceInitializeFlags,
-			inCacheEntryCount: c_int
+			inCacheEntryCount: c_int,
 		) -> DNSServiceErrorType;
 		pub fn DNSServiceFinalize();
 		pub fn DNSServiceCheckVersion() -> DNSServiceErrorType;
@@ -305,8 +328,11 @@ mod ffi_windows {
 		// the c API uses a union... - using void instead here
 		pub fn DNSServiceCopyProperty(
 			inCode: DNSPropertyCode,
-			outData: *mut c_void) -> DNSServiceErrorType;
-		pub fn DNSServiceReleaseProperty(inData: *mut c_void) -> DNSServiceErrorType;
+			outData: *mut c_void,
+		) -> DNSServiceErrorType;
+		pub fn DNSServiceReleaseProperty(
+			inData: *mut c_void,
+		) -> DNSServiceErrorType;
 	}
 }
 #[cfg(windows)]

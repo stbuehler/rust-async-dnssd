@@ -12,8 +12,7 @@ fn cfg_os(family: &str) -> bool {
 
 fn find_avahi_compat_dns_sd() {
 	// on unix but not darwin link avahi compat
-	if cfg_family("unix")
-	&& !(cfg_os("macos") || cfg_os("ios")) {
+	if cfg_family("unix") && !(cfg_os("macos") || cfg_os("ios")) {
 		pkg_config::probe_library("avahi-compat-libdns_sd").unwrap();
 	}
 }

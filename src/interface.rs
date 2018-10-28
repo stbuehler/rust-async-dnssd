@@ -5,7 +5,7 @@ use ffi;
 /// Network interface index
 ///
 /// Identifies a single interface by index.
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InterfaceIndex(u32);
 
 impl InterfaceIndex {
@@ -43,7 +43,7 @@ impl fmt::Debug for InterfaceIndex {
 ///
 /// Either identifies a single interface (by index) or the special "Any"
 /// or "LocalOnly" interfaces.
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Interface {
 	/// Any interface; depending on domain name this means either
 	/// multicast or unicast

@@ -87,17 +87,19 @@ extern crate tokio_core;
 #[cfg(windows)]
 extern crate libc;
 #[cfg(windows)]
-extern crate ws2_32;
-#[cfg(windows)]
 extern crate winapi;
+#[cfg(windows)]
+extern crate ws2_32;
 
-pub use self::error::*;
-pub use self::ffi::MAX_DOMAIN_NAME;
-pub use self::interface::*;
-pub use self::remote::*;
-pub use self::service::*;
-pub use self::timeout_stream::*;
-pub use self::txt_record::*;
+pub use self::{
+	error::*,
+	ffi::MAX_DOMAIN_NAME,
+	interface::*,
+	remote::*,
+	service::*,
+	timeout_stream::*,
+	txt_record::*,
+};
 
 mod flags_macro;
 

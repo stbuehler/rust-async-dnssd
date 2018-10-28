@@ -14,20 +14,29 @@
 //! we'd have to try the loopback TCP connection to wake it and fall
 //! back to a smaller timeout.
 
-use futures::sync::mpsc as futures_mpsc;
-use futures::{Async,Sink,Stream};
-use futures::sink::Wait;
-use std::io;
-use std::os::raw::{c_int};
-use std::sync::mpsc as std_mpsc;
-use std::thread;
-use std::time::Duration;
-use tokio_core::reactor::{Handle,Remote};
-use std::cell::UnsafeCell;
+use futures::{
+	sink::Wait,
+	sync::mpsc as futures_mpsc,
+	Async,
+	Sink,
+	Stream,
+};
+use std::{
+	cell::UnsafeCell,
+	io,
+	os::raw::c_int,
+	sync::mpsc as std_mpsc,
+	thread,
+	time::Duration,
+};
+use tokio_core::reactor::{
+	Handle,
+	Remote,
+};
 
 use remote::GetRemote;
 
-#[derive(Clone,Copy,PartialEq,Eq,Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum PollRequest {
 	Poll,
 	Close,
@@ -40,26 +49,21 @@ struct SelectFdRead {
 impl SelectFdRead {
 	pub fn new(fd: c_int) -> Self {
 		use std::mem::uninitialized;
-		let mut read_fds : libc::fd_set = unsafe { uninitialized() };
+		let mut read_fds: libc::fd_set = unsafe { uninitialized() };
 		unsafe { libc::FD_ZERO(&mut read_fds) };
-		SelectFdRead{
-			fd: fd,
-			read_fds: read_fds,
-		}
+		SelectFdRead { fd, read_fds }
 	}
 
 	pub fn select(&mut self, timeout: Option<Duration>) -> bool {
 		use std::ptr::null_mut;
-		let mut timeout = timeout.map(|timeout|
-			libc::timeval{
-				tv_sec: timeout.as_secs() as libc::c_long,
-				tv_usec: (timeout.subsec_nanos() / 1000) as libc::c_long,
-			}
-		);
+		let mut timeout = timeout.map(|timeout| libc::timeval {
+			tv_sec: timeout.as_secs() as libc::c_long,
+			tv_usec: (timeout.subsec_nanos() / 1000) as libc::c_long,
+		});
 		unsafe {
 			libc::FD_SET(self.fd, &mut self.read_fds);
 			libc::select(
-				self.fd+1,
+				self.fd + 1,
 				&mut self.read_fds,
 				null_mut(),
 				null_mut(),
@@ -97,7 +101,9 @@ impl Inner {
 				return Async::Ready(());
 			} else {
 				debug!("poll read: not ready, start thread");
-				self.send_request.send(PollRequest::Poll).expect("select thread terminated");
+				self.send_request
+					.send(PollRequest::Poll)
+					.expect("select thread terminated");
 				self.pending_request = true;
 			}
 		}
@@ -143,7 +149,9 @@ impl Inner {
 					self.send_response.send(()).unwrap();
 				} else {
 					debug!("poll need read: not ready, start thread");
-					self.send_request.send(PollRequest::Poll).expect("select thread terminated");
+					self.send_request
+						.send(PollRequest::Poll)
+						.expect("select thread terminated");
 				}
 			},
 		}
@@ -182,17 +190,19 @@ impl PollReadFd {
 
 				debug!("[select thread] read event");
 
-				if send_response.send(()).is_err() { return; }
+				if send_response.send(()).is_err() {
+					return;
+				}
 			}
 		});
 
-		Ok(PollReadFd(UnsafeCell::new(Inner{
-			fd: fd,
+		Ok(PollReadFd(UnsafeCell::new(Inner {
+			fd,
 			_thread: thread,
 			pending_request: false,
-			send_request: send_request,
+			send_request,
 			send_response: outer_send_response,
-			recv_response: recv_response,
+			recv_response,
 			remote: handle.remote().clone(),
 		})))
 	}
@@ -224,8 +234,17 @@ impl Drop for PollReadFd {
 
 #[cfg(windows)]
 mod libc {
-	pub use libc::{c_int,c_uint,c_long};
-	pub use winapi::{timeval,fd_set,FD_SETSIZE,SOCKET};
+	pub use libc::{
+		c_int,
+		c_long,
+		c_uint,
+	};
+	pub use winapi::{
+		fd_set,
+		timeval,
+		FD_SETSIZE,
+		SOCKET,
+	};
 	pub use ws2_32::select;
 
 	pub unsafe fn FD_ZERO(set: *mut fd_set) {
@@ -234,7 +253,9 @@ mod libc {
 	}
 
 	pub unsafe fn FD_SET(fd: c_int, set: *mut fd_set) {
-		if FD_ISSET(fd, set) { return; }
+		if FD_ISSET(fd, set) {
+			return;
+		}
 		let set = &mut *set;
 		let fd = fd as c_uint as SOCKET;
 		if (set.fd_count as usize) < FD_SETSIZE {
@@ -246,7 +267,9 @@ mod libc {
 	pub unsafe fn FD_ISSET(fd: c_int, set: *mut fd_set) -> bool {
 		let set = &mut *set;
 		let fd = fd as c_uint as SOCKET;
-		set.fd_array[..set.fd_count as usize].iter().any(|i| *i == fd)
+		set.fd_array[..set.fd_count as usize]
+			.iter()
+			.any(|i| *i == fd)
 	}
 }
 

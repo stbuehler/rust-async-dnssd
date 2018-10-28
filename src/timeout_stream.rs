@@ -1,18 +1,27 @@
-use futures::{self,Async,Future};
-use std::io;
-use std::time::Duration;
-use tokio_core::reactor::{Timeout,Remote};
+use futures::{
+	self,
+	Async,
+	Future,
+};
+use std::{
+	io,
+	time::Duration,
+};
+use tokio_core::reactor::{
+	Remote,
+	Timeout,
+};
 
 use remote::GetRemote;
 
 /// `futures::Stream` extension to simplify building
 /// [`TimeoutStream`](struct.TimeoutStream.html)
-pub trait TimeoutTrait: futures::Stream+GetRemote+Sized {
+pub trait TimeoutTrait: futures::Stream + GetRemote + Sized {
 	/// Create new [`TimeoutStream`](struct.TimeoutStream.html)
 	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>>;
 }
 
-impl<S: futures::Stream+GetRemote> TimeoutTrait for S {
+impl<S: futures::Stream + GetRemote> TimeoutTrait for S {
 	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>> {
 		TimeoutStream::new(self, duration)
 	}
@@ -29,12 +38,12 @@ pub struct TimeoutStream<S> {
 	timeout: Option<Timeout>,
 }
 
-impl<S: futures::Stream+GetRemote> TimeoutStream<S> {
+impl<S: futures::Stream + GetRemote> TimeoutStream<S> {
 	/// Create new `TimeoutStream`.
 	///
 	/// Also see [`TimeoutTrait::timeout`](trait.TimeoutTrait.html#method.timeout).
 	pub fn new(stream: S, duration: Duration) -> io::Result<Self> {
-		Ok(TimeoutStream{
+		Ok(TimeoutStream {
 			stream,
 			duration,
 			// delay initialization of timeout, as we cannot get handle
@@ -64,9 +73,13 @@ impl<E: Into<io::Error>> TimeoutStreamError<E> {
 		}
 	}
 }
-impl<S: futures::Stream+GetRemote> TimeoutStream<S> {
+impl<S: futures::Stream + GetRemote> TimeoutStream<S> {
 	fn reset_timer(&mut self) -> Result<(), TimeoutStreamError<S::Error>> {
-		let handle = self.stream.remote().handle().expect("couldn't get handle in poll");
+		let handle = self
+			.stream
+			.remote()
+			.handle()
+			.expect("couldn't get handle in poll");
 		self.timeout = Some(match Timeout::new(self.duration, &handle) {
 			Ok(timeout) => timeout,
 			Err(e) => return Err(TimeoutStreamError::TimeoutError(e)),
@@ -74,7 +87,9 @@ impl<S: futures::Stream+GetRemote> TimeoutStream<S> {
 		Ok(())
 	}
 
-	fn get_timer(&mut self) -> Result<&mut Timeout, TimeoutStreamError<S::Error>> {
+	fn get_timer(
+		&mut self,
+	) -> Result<&mut Timeout, TimeoutStreamError<S::Error>> {
 		if self.timeout.is_none() {
 			self.reset_timer()?;
 		}
@@ -82,10 +97,9 @@ impl<S: futures::Stream+GetRemote> TimeoutStream<S> {
 	}
 }
 
-
-impl<S: futures::Stream+GetRemote> futures::Stream for TimeoutStream<S> {
-	type Item = S::Item;
+impl<S: futures::Stream + GetRemote> futures::Stream for TimeoutStream<S> {
 	type Error = TimeoutStreamError<S::Error>;
+	type Item = S::Item;
 
 	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
 		match self.stream.poll() {
@@ -106,15 +120,15 @@ impl<S: futures::Stream+GetRemote> futures::Stream for TimeoutStream<S> {
 					},
 					// still time left
 					Ok(Async::NotReady) => Ok(Async::NotReady),
-					Err(e) => Err(TimeoutStreamError::TimeoutError(e))
+					Err(e) => Err(TimeoutStreamError::TimeoutError(e)),
 				}
-			}
+			},
 			Err(e) => Err(TimeoutStreamError::StreamError(e)),
 		}
 	}
 }
 
-impl<S: futures::Stream+GetRemote> GetRemote for TimeoutStream<S> {
+impl<S: futures::Stream + GetRemote> GetRemote for TimeoutStream<S> {
 	fn remote(&self) -> &Remote {
 		self.stream.remote()
 	}

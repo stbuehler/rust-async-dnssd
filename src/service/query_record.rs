@@ -1,7 +1,18 @@
-use futures::{self,Async};
-use std::os::raw::{c_void,c_char};
-use std::io;
-use tokio_core::reactor::{Handle,Remote};
+use futures::{
+	self,
+	Async,
+};
+use std::{
+	io,
+	os::raw::{
+		c_char,
+		c_void,
+	},
+};
+use tokio_core::reactor::{
+	Handle,
+	Remote,
+};
 
 use cstr;
 use ffi;
@@ -15,11 +26,11 @@ type CallbackStream = ::stream::ServiceStream<QueryRecordResult>;
 ///
 /// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
 /// can be used to test whether a flag is part of a set.
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct QueryRecordFlags(u8);
 
 /// Flags used to query for a record
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[repr(u8)]
 pub enum QueryRecordFlag {
 	/// long-lived unicast query
@@ -40,11 +51,11 @@ flag_mapping!{QueryRecordFlags: QueryRecordFlag => ffi::DNSServiceFlags:
 ///
 /// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
 /// can be used to test whether a flag is part of a set.
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct QueriedRecordFlags(u8);
 
 /// Flags for [`QueryRecordResult`](struct.QueryRecordResult.html)
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[repr(u8)]
 pub enum QueriedRecordFlag {
 	/// Indicates at least one more result is pending in the queue.  If
@@ -75,8 +86,8 @@ flag_mapping!{QueriedRecordFlags: QueriedRecordFlag => ffi::DNSServiceFlags:
 pub struct QueryRecord(CallbackStream);
 
 impl futures::Stream for QueryRecord {
-	type Item = QueryRecordResult;
 	type Error = io::Error;
+	type Item = QueryRecordResult;
 
 	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
 		self.0.poll()
@@ -92,8 +103,8 @@ impl GetRemote for QueryRecord {
 /// Query result
 ///
 /// See [`DNSServiceQueryRecordReply`](https://developer.apple.com/documentation/dnssd/dnsservicequeryrecordreply).
-#[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
-pub struct QueryRecordResult{
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct QueryRecordResult {
 	///
 	pub flags: QueriedRecordFlags,
 	///
@@ -121,13 +132,14 @@ extern "C" fn query_record_callback(
 	rd_len: u16,
 	rdata: *const u8,
 	ttl: u32,
-	context: *mut c_void
+	context: *mut c_void,
 ) {
 	CallbackStream::run_callback(context, error_code, || {
 		let fullname = unsafe { cstr::from_cstr(fullname) }?;
-		let rdata = unsafe { ::std::slice::from_raw_parts(rdata, rd_len as usize) };
+		let rdata =
+			unsafe { ::std::slice::from_raw_parts(rdata, rd_len as usize) };
 
-		Ok(QueryRecordResult{
+		Ok(QueryRecordResult {
 			flags: QueriedRecordFlags::from(flags),
 			interface: Interface::from_raw(interface_index),
 			fullname: fullname.to_string(),
@@ -148,13 +160,13 @@ pub fn query_record(
 	fullname: &str,
 	rr_type: u16,
 	rr_class: u16,
-	handle: &Handle
+	handle: &Handle,
 ) -> io::Result<QueryRecord> {
 	::init();
 
 	let fullname = cstr::CStr::from(&fullname)?;
 
-	Ok(QueryRecord(CallbackStream::new(handle, move |sender|
+	Ok(QueryRecord(CallbackStream::new(handle, move |sender| {
 		raw::DNSService::query_record(
 			flags.into(),
 			interface.into_raw(),
@@ -164,5 +176,5 @@ pub fn query_record(
 			Some(query_record_callback),
 			sender,
 		)
-	)?))
+	})?))
 }

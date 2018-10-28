@@ -1,8 +1,14 @@
-use futures::{Async};
+use futures::Async;
 use mio;
-use std::io;
-use std::os::raw::{c_int};
-use tokio_core::reactor::{Handle,PollEvented,Remote};
+use std::{
+	io,
+	os::raw::c_int,
+};
+use tokio_core::reactor::{
+	Handle,
+	PollEvented,
+	Remote,
+};
 
 use remote::GetRemote;
 
@@ -31,12 +37,24 @@ impl GetRemote for PollReadFd {
 struct EventedFd(c_int);
 
 impl mio::Evented for EventedFd {
-	fn register(&self, poll: &mio::Poll, token: mio::Token, interest: mio::Ready, opts: mio::PollOpt) -> io::Result<()> {
+	fn register(
+		&self,
+		poll: &mio::Poll,
+		token: mio::Token,
+		interest: mio::Ready,
+		opts: mio::PollOpt,
+	) -> io::Result<()> {
 		let efd = mio::unix::EventedFd(&self.0);
 		mio::Evented::register(&efd, poll, token, interest, opts)
 	}
 
-	fn reregister(&self, poll: &mio::Poll, token: mio::Token, interest: mio::Ready, opts: mio::PollOpt) -> io::Result<()> {
+	fn reregister(
+		&self,
+		poll: &mio::Poll,
+		token: mio::Token,
+		interest: mio::Ready,
+		opts: mio::PollOpt,
+	) -> io::Result<()> {
 		let efd = mio::unix::EventedFd(&self.0);
 		mio::Evented::reregister(&efd, poll, token, interest, opts)
 	}

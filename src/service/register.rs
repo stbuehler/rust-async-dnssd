@@ -1,7 +1,18 @@
-use futures::{self,Async};
-use std::os::raw::{c_void,c_char};
-use std::io;
-use tokio_core::reactor::{Handle,Remote};
+use futures::{
+	self,
+	Async,
+};
+use std::{
+	io,
+	os::raw::{
+		c_char,
+		c_void,
+	},
+};
+use tokio_core::reactor::{
+	Handle,
+	Remote,
+};
 
 use cstr;
 use evented::EventedDNSService;
@@ -16,11 +27,11 @@ type CallbackFuture = ::future::ServiceFuture<RegisterResult>;
 ///
 /// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
 /// can be used to test whether a flag is part of a set.
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RegisterFlags(u8);
 
 /// Flags used to register service
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[repr(u8)]
 pub enum RegisterFlag {
 	/// Indicates a name conflict should not get handled automatically.
@@ -59,15 +70,14 @@ flag_mapping!{RegisterFlags: RegisterFlag => ffi::DNSServiceFlags:
 pub struct Register(CallbackFuture);
 
 impl futures::Future for Register {
-	type Item = (Registration, RegisterResult);
 	type Error = io::Error;
+	type Item = (Registration, RegisterResult);
 
 	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
 		match self.0.poll() {
-			Ok(Async::Ready((service, item))) => Ok(Async::Ready((
-				Registration(service),
-				item
-			))),
+			Ok(Async::Ready((service, item))) => {
+				Ok(Async::Ready((Registration(service), item)))
+			},
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(e) => Err(e),
 		}
@@ -83,8 +93,8 @@ impl GetRemote for Register {
 /// Service registration result
 ///
 /// See [`DNSServiceRegisterReply`](https://developer.apple.com/documentation/dnssd/dnsserviceregisterreply).
-#[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
-pub struct RegisterResult{
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct RegisterResult {
 	/// if [`NoAutoRename`](enum.RegisterFlag.html#variant.NoAutoRename)
 	/// was set this is the original name, otherwise it might be
 	/// different.
@@ -102,14 +112,14 @@ extern "C" fn register_callback(
 	name: *const c_char,
 	reg_type: *const c_char,
 	domain: *const c_char,
-	context: *mut c_void
+	context: *mut c_void,
 ) {
 	CallbackFuture::run_callback(context, error_code, || {
 		let name = unsafe { cstr::from_cstr(name) }?;
 		let reg_type = unsafe { cstr::from_cstr(reg_type) }?;
 		let domain = unsafe { cstr::from_cstr(domain) }?;
 
-		Ok(RegisterResult{
+		Ok(RegisterResult {
 			name: name.to_string(),
 			reg_type: reg_type.to_string(),
 			domain: domain.to_string(),
@@ -132,7 +142,7 @@ pub struct Registration(EventedDNSService);
 /// # use async_dnssd::RegisterData;
 /// RegisterData {
 ///     txt: b"some text data",
-///     .. Default::default()
+///     ..Default::default()
 /// };
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -198,7 +208,8 @@ impl<'a> Default for RegisterData<'a> {
 /// # fn main() -> std::io::Result<()> {
 /// let mut core = tokio_core::reactor::Core::new()?;
 /// let handle = core.handle();
-/// let registration = core.run(register("_ssh._tcp", 22, Default::default(), &handle)?)?;
+/// let registration =
+/// 	core.run(register("_ssh._tcp", 22, Default::default(), &handle)?)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -216,7 +227,7 @@ pub fn register(
 	let domain = cstr::NullableCStr::from(&data.domain)?;
 	let host = cstr::NullableCStr::from(&data.host)?;
 
-	Ok(Register(CallbackFuture::new(handle, move |sender|
+	Ok(Register(CallbackFuture::new(handle, move |sender| {
 		raw::DNSService::register(
 			data.flags.into(),
 			data.interface.into_raw(),
@@ -229,7 +240,7 @@ pub fn register(
 			Some(register_callback),
 			sender,
 		)
-	)?))
+	})?))
 }
 
 impl Register {
@@ -240,14 +251,13 @@ impl Register {
 		&self,
 		rr_type: u16,
 		rdata: &[u8],
-		ttl: u32
+		ttl: u32,
 	) -> io::Result<::Record> {
-		Ok(super::new_record(self.0.service().add_record(
-			0, /* no flags */
-			rr_type,
-			rdata,
-			ttl
-		)?))
+		Ok(super::new_record(
+			self.0
+				.service()
+				.add_record(0 /* no flags */, rr_type, rdata, ttl)?,
+		))
 	}
 
 	/// Get [`Record`](struct.Record.html) handle for default TXT record
@@ -268,14 +278,13 @@ impl Registration {
 		&self,
 		rr_type: u16,
 		rdata: &[u8],
-		ttl: u32
+		ttl: u32,
 	) -> io::Result<::Record> {
-		Ok(super::new_record(self.0.service().add_record(
-			0, /* no flags */
-			rr_type,
-			rdata,
-			ttl
-		)?))
+		Ok(super::new_record(
+			self.0
+				.service()
+				.add_record(0 /* no flags */, rr_type, rdata, ttl)?,
+		))
 	}
 
 	/// Get [`Record`](struct.Record.html) handle for default TXT record

@@ -1,11 +1,13 @@
-use std::fmt;
-use std::error;
-use std::io;
+use std::{
+	error,
+	fmt,
+	io,
+};
 
 use ffi;
 
 /// API Error
-#[derive(Clone,Copy,Eq,PartialEq,Hash)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Error {
 	/// If error code used some recognized name
 	KnownError(ffi::DNSServiceError),
@@ -37,7 +39,9 @@ impl From<Error> for io::Error {
 impl fmt::Debug for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match *self {
-			Error::KnownError(ffi_err) => write!(f, "known error {:?}: {}", ffi_err, ffi_err),
+			Error::KnownError(ffi_err) => {
+				write!(f, "known error {:?}: {}", ffi_err, ffi_err)
+			},
 			Error::UnknownError(e) => write!(f, "unknown error code: {:?}", e),
 		}
 	}
@@ -65,27 +69,27 @@ impl error::Error for ffi::DNSServiceError {
 	fn description(&self) -> &str {
 		use ffi::DNSServiceError::*;
 		match *self {
-			Unknown               => "unknown error",
-			NoSuchName            => "no such name",
-			NoMemory              => "out of memory",
-			BadParam              => "bad parameter",
-			BadReference          => "bad reference",
-			BadState              => "bad state",
-			BadFlags              => "bad flags",
-			Unsupported           => "not supported",
-			NotInitialized        => "not initialized",
-			NoCache               => "no cache",
-			AlreadyRegistered     => "already registered",
-			NameConflict          => "name conflict",
-			Invalid               => "invalid",
-			Incompatible          => "client library incompatible with daemon",
-			BadInterfaceIndex     => "bad interface index",
-			Refused               => "refused",
-			NoSuchRecord          => "no such record",
-			NoAuth                => "no auth",
-			NoSuchKey             => "no such key",
-			NoValue               => "no value",
-			BufferTooSmall        => "buffer too small",
+			Unknown => "unknown error",
+			NoSuchName => "no such name",
+			NoMemory => "out of memory",
+			BadParam => "bad parameter",
+			BadReference => "bad reference",
+			BadState => "bad state",
+			BadFlags => "bad flags",
+			Unsupported => "not supported",
+			NotInitialized => "not initialized",
+			NoCache => "no cache",
+			AlreadyRegistered => "already registered",
+			NameConflict => "name conflict",
+			Invalid => "invalid",
+			Incompatible => "client library incompatible with daemon",
+			BadInterfaceIndex => "bad interface index",
+			Refused => "refused",
+			NoSuchRecord => "no such record",
+			NoAuth => "no auth",
+			NoSuchKey => "no such key",
+			NoValue => "no value",
+			BufferTooSmall => "buffer too small",
 		}
 	}
 }

@@ -1,9 +1,14 @@
 #![cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
 
-use std::os::raw::{c_int,c_void};
-use std::cell::UnsafeCell;
-use std::ptr::null_mut;
-use std::rc::Rc;
+use std::{
+	cell::UnsafeCell,
+	os::raw::{
+		c_int,
+		c_void,
+	},
+	ptr::null_mut,
+	rc::Rc,
+};
 
 use cstr;
 use error::Error;
@@ -27,20 +32,24 @@ impl InnerDNSService {
 	}
 
 	fn process_result(&self) -> FFIResult<()> {
-		Error::from(unsafe {
-			ffi::DNSServiceProcessResult(self.0)
-		})
+		Error::from(unsafe { ffi::DNSServiceProcessResult(self.0) })
 	}
 
 	fn enumerate_domains(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		callback: ffi::DNSServiceDomainEnumReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<InnerDNSService> {
-		let mut sd_ref : ffi::DNSServiceRef = null_mut();
+		let mut sd_ref: ffi::DNSServiceRef = null_mut();
 		Error::from(unsafe {
-			ffi::DNSServiceEnumerateDomains(&mut sd_ref, flags, interface_index, callback, context)
+			ffi::DNSServiceEnumerateDomains(
+				&mut sd_ref,
+				flags,
+				interface_index,
+				callback,
+				context,
+			)
 		})?;
 		Ok(InnerDNSService(sd_ref))
 	}
@@ -55,14 +64,14 @@ impl InnerDNSService {
 		port: u16,
 		txt: &[u8],
 		callback: ffi::DNSServiceRegisterReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<InnerDNSService> {
 		let txt_len = txt.len();
 		assert!(txt_len < (1 << 16));
 		let txt_len = txt_len as u16;
 		let txt_record = txt.as_ptr();
 
-		let mut sd_ref : ffi::DNSServiceRef = null_mut();
+		let mut sd_ref: ffi::DNSServiceRef = null_mut();
 		Error::from(unsafe {
 			ffi::DNSServiceRegister(
 				&mut sd_ref,
@@ -76,7 +85,7 @@ impl InnerDNSService {
 				txt_len,
 				txt_record,
 				callback,
-				context
+				context,
 			)
 		})?;
 		Ok(InnerDNSService(sd_ref))
@@ -88,9 +97,9 @@ impl InnerDNSService {
 		reg_type: &cstr::CStr,
 		domain: &cstr::NullableCStr,
 		callback: ffi::DNSServiceBrowseReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<InnerDNSService> {
-		let mut sd_ref : ffi::DNSServiceRef = null_mut();
+		let mut sd_ref: ffi::DNSServiceRef = null_mut();
 		Error::from(unsafe {
 			ffi::DNSServiceBrowse(
 				&mut sd_ref,
@@ -99,7 +108,7 @@ impl InnerDNSService {
 				reg_type.as_ptr(),
 				domain.as_ptr(),
 				callback,
-				context
+				context,
 			)
 		})?;
 		Ok(InnerDNSService(sd_ref))
@@ -112,9 +121,9 @@ impl InnerDNSService {
 		reg_type: &cstr::CStr,
 		domain: &cstr::CStr,
 		callback: ffi::DNSServiceResolveReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<InnerDNSService> {
-		let mut sd_ref : ffi::DNSServiceRef = null_mut();
+		let mut sd_ref: ffi::DNSServiceRef = null_mut();
 		Error::from(unsafe {
 			ffi::DNSServiceResolve(
 				&mut sd_ref,
@@ -124,17 +133,15 @@ impl InnerDNSService {
 				reg_type.as_ptr(),
 				domain.as_ptr(),
 				callback,
-				context
+				context,
 			)
 		})?;
 		Ok(InnerDNSService(sd_ref))
 	}
 
 	fn create_connection() -> FFIResult<InnerDNSService> {
-		let mut sd_ref : ffi::DNSServiceRef = null_mut();
-		Error::from(unsafe {
-			ffi::DNSServiceCreateConnection(&mut sd_ref)
-		})?;
+		let mut sd_ref: ffi::DNSServiceRef = null_mut();
+		Error::from(unsafe { ffi::DNSServiceCreateConnection(&mut sd_ref) })?;
 		Ok(InnerDNSService(sd_ref))
 	}
 
@@ -145,9 +152,9 @@ impl InnerDNSService {
 		rr_type: u16,
 		rr_class: u16,
 		callback: ffi::DNSServiceQueryRecordReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<InnerDNSService> {
-		let mut sd_ref : ffi::DNSServiceRef = null_mut();
+		let mut sd_ref: ffi::DNSServiceRef = null_mut();
 		Error::from(unsafe {
 			ffi::DNSServiceQueryRecord(
 				&mut sd_ref,
@@ -157,7 +164,7 @@ impl InnerDNSService {
 				rr_type,
 				rr_class,
 				callback,
-				context
+				context,
 			)
 		})?;
 		Ok(InnerDNSService(sd_ref))
@@ -189,11 +196,14 @@ impl DNSService {
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		callback: ffi::DNSServiceDomainEnumReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<DNSService> {
-		Self::new(
-			InnerDNSService::enumerate_domains(flags, interface_index, callback, context)
-		)
+		Self::new(InnerDNSService::enumerate_domains(
+			flags,
+			interface_index,
+			callback,
+			context,
+		))
 	}
 
 	pub fn register(
@@ -206,11 +216,20 @@ impl DNSService {
 		port: u16,
 		txt: &[u8],
 		callback: ffi::DNSServiceRegisterReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<DNSService> {
-		Self::new(
-			InnerDNSService::register(flags, interface_index, name, reg_type, domain, host, port, txt, callback, context)
-		)
+		Self::new(InnerDNSService::register(
+			flags,
+			interface_index,
+			name,
+			reg_type,
+			domain,
+			host,
+			port,
+			txt,
+			callback,
+			context,
+		))
 	}
 
 	pub fn add_record(
@@ -218,18 +237,16 @@ impl DNSService {
 		flags: ffi::DNSServiceFlags,
 		rr_type: u16,
 		rdata: &[u8],
-		ttl: u32
+		ttl: u32,
 	) -> FFIResult<DNSRecord> {
-		Ok(DNSRecord(
-			InnerDNSRecord::add_record(self, flags, rr_type, rdata, ttl)?
-		))
+		Ok(DNSRecord(InnerDNSRecord::add_record(
+			self, flags, rr_type, rdata, ttl,
+		)?))
 	}
 
 	pub fn get_default_txt_record(&self) -> DNSRecord {
-		const RR_TYPE_TXT : u16 = 16;
-		DNSRecord(
-			InnerDNSRecord(self.clone(), null_mut(), RR_TYPE_TXT)
-		)
+		const RR_TYPE_TXT: u16 = 16;
+		DNSRecord(InnerDNSRecord(self.clone(), null_mut(), RR_TYPE_TXT))
 	}
 
 	pub fn browse(
@@ -238,11 +255,16 @@ impl DNSService {
 		reg_type: &cstr::CStr,
 		domain: &cstr::NullableCStr,
 		callback: ffi::DNSServiceBrowseReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<DNSService> {
-		Self::new(
-			InnerDNSService::browse(flags, interface_index, reg_type, domain, callback, context)
-		)
+		Self::new(InnerDNSService::browse(
+			flags,
+			interface_index,
+			reg_type,
+			domain,
+			callback,
+			context,
+		))
 	}
 
 	pub fn resolve(
@@ -252,14 +274,21 @@ impl DNSService {
 		reg_type: &cstr::CStr,
 		domain: &cstr::CStr,
 		callback: ffi::DNSServiceResolveReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<DNSService> {
-		Self::new(
-			InnerDNSService::resolve(flags, interface_index, name, reg_type, domain, callback, context)
-		)
+		Self::new(InnerDNSService::resolve(
+			flags,
+			interface_index,
+			name,
+			reg_type,
+			domain,
+			callback,
+			context,
+		))
 	}
 
-	pub fn register_record(&self,
+	pub fn register_record(
+		&self,
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		fullname: &cstr::CStr,
@@ -268,28 +297,24 @@ impl DNSService {
 		rdata: &[u8],
 		ttl: u32,
 		callback: ffi::DNSServiceRegisterRecordReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<DNSRecord> {
-		Ok(DNSRecord(
-			InnerDNSRecord::register_record(
-				self,
-				flags,
-				interface_index,
-				fullname,
-				rr_type,
-				rr_class,
-				rdata,
-				ttl,
-				callback,
-				context
-			)?
-		))
+		Ok(DNSRecord(InnerDNSRecord::register_record(
+			self,
+			flags,
+			interface_index,
+			fullname,
+			rr_type,
+			rr_class,
+			rdata,
+			ttl,
+			callback,
+			context,
+		)?))
 	}
 
 	pub fn create_connection() -> FFIResult<DNSService> {
-		Self::new(
-			InnerDNSService::create_connection()
-		)
+		Self::new(InnerDNSService::create_connection())
 	}
 
 	pub fn query_record(
@@ -299,11 +324,17 @@ impl DNSService {
 		rr_type: u16,
 		rr_class: u16,
 		callback: ffi::DNSServiceQueryRecordReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<DNSService> {
-		Self::new(
-			InnerDNSService::query_record(flags, interface_index, fullname, rr_type, rr_class, callback, context)
-		)
+		Self::new(InnerDNSService::query_record(
+			flags,
+			interface_index,
+			fullname,
+			rr_type,
+			rr_class,
+			callback,
+			context,
+		))
 	}
 }
 
@@ -316,7 +347,7 @@ impl Drop for InnerDNSRecord {
 				ffi::DNSServiceRemoveRecord(
 					self.get_service().0,
 					self.1,
-					0 /* no flags */
+					0, // no flags
 				);
 			}
 		}
@@ -338,7 +369,7 @@ impl InnerDNSRecord {
 		flags: ffi::DNSServiceFlags,
 		rr_type: u16,
 		rdata: &[u8],
-		ttl: u32
+		ttl: u32,
 	) -> FFIResult<InnerDNSRecord> {
 		let rd_len = rdata.len();
 		assert!(rd_len < (1 << 16));
@@ -354,7 +385,7 @@ impl InnerDNSRecord {
 				rr_type,
 				rd_len,
 				rdata,
-				ttl
+				ttl,
 			)
 		})?;
 		Ok(InnerDNSRecord(service.clone(), record_ref, rr_type))
@@ -371,7 +402,7 @@ impl InnerDNSRecord {
 		rdata: &[u8],
 		ttl: u32,
 		callback: ffi::DNSServiceRegisterRecordReply,
-		context: *mut c_void
+		context: *mut c_void,
 	) -> FFIResult<InnerDNSRecord> {
 		let rd_len = rdata.len();
 		assert!(rd_len < (1 << 16));
@@ -392,7 +423,7 @@ impl InnerDNSRecord {
 				rdata,
 				ttl,
 				callback,
-				context
+				context,
 			)
 		})?;
 		Ok(InnerDNSRecord(service.clone(), record_ref, rr_type))
@@ -402,7 +433,7 @@ impl InnerDNSRecord {
 		&self,
 		flags: ffi::DNSServiceFlags,
 		rdata: &[u8],
-		ttl: u32
+		ttl: u32,
 	) -> FFIResult<()> {
 		let rd_len = rdata.len();
 		assert!(rd_len < (1 << 16));
@@ -416,7 +447,7 @@ impl InnerDNSRecord {
 				flags,
 				rd_len,
 				rdata,
-				ttl
+				ttl,
 			)
 		})
 	}
@@ -437,7 +468,7 @@ impl DNSRecord {
 		&self,
 		flags: ffi::DNSServiceFlags,
 		rdata: &[u8],
-		ttl: u32
+		ttl: u32,
 	) -> FFIResult<()> {
 		self.0.update_record(flags, rdata, ttl)
 	}
@@ -454,7 +485,7 @@ pub fn reconfirm_record(
 	fullname: &cstr::CStr,
 	rr_type: u16,
 	rr_class: u16,
-	rdata: &[u8]
+	rdata: &[u8],
 ) {
 	let rd_len = rdata.len();
 	assert!(rd_len < (1 << 16));
@@ -469,7 +500,7 @@ pub fn reconfirm_record(
 			rr_type,
 			rr_class,
 			rd_len,
-			rdata
+			rdata,
 		);
 	}
 }

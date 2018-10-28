@@ -10,7 +10,10 @@ mod windows;
 
 use futures;
 use std::io;
-use tokio_core::reactor::{Handle,Remote};
+use tokio_core::reactor::{
+	Handle,
+	Remote,
+};
 
 use raw::DNSService;
 use remote::GetRemote;
@@ -25,7 +28,7 @@ impl EventedDNSService {
 	pub fn new(service: DNSService, handle: &Handle) -> io::Result<Self> {
 		let fd = service.fd();
 
-		Ok(EventedDNSService{
+		Ok(EventedDNSService {
 			service,
 			poll: PollReadFd::new(fd, handle)?,
 		})

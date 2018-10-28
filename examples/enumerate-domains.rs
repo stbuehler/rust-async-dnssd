@@ -14,8 +14,10 @@ fn main() {
 	let listing = async_dnssd::enumerate_domains(
 		async_dnssd::Enumerate::BrowseDomains,
 		async_dnssd::Interface::Any,
-		&handle
-	).unwrap().for_each(|e| {
+		&handle,
+	)
+	.unwrap()
+	.for_each(|e| {
 		println!("Domain: {:?}", e);
 		Ok(())
 	});

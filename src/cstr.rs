@@ -1,8 +1,10 @@
-use std::os::raw::c_char;
-use std::borrow::Cow;
-use std::ffi;
-use std::ptr::null;
-use std::io;
+use std::{
+	borrow::Cow,
+	ffi,
+	io,
+	os::raw::c_char,
+	ptr::null,
+};
 
 pub unsafe fn from_cstr(s: *const c_char) -> io::Result<&'static str> {
 	ffi::CStr::from_ptr(s)
@@ -10,12 +12,13 @@ pub unsafe fn from_cstr(s: *const c_char) -> io::Result<&'static str> {
 		.map_err(|e| io::Error::new(io::ErrorKind::Other, e))
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct CStr<'a>(Cow<'a, ffi::CStr>);
 
 impl<'a> CStr<'a> {
 	pub fn from<T>(s: &'a T) -> Result<Self, ffi::NulError>
-	where Self: CStrFrom<'a, T>
+	where
+		Self: CStrFrom<'a, T>,
 	{
 		CStrFrom::cstr_from(s)
 	}
@@ -25,12 +28,13 @@ impl<'a> CStr<'a> {
 	}
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct NullableCStr<'a>(Option<Cow<'a, ffi::CStr>>);
 
 impl<'a> NullableCStr<'a> {
 	pub fn from<T>(s: &'a T) -> Result<Self, ffi::NulError>
-	where Self: CStrFrom<'a, T>
+	where
+		Self: CStrFrom<'a, T>,
 	{
 		CStrFrom::cstr_from(s)
 	}
@@ -38,7 +42,7 @@ impl<'a> NullableCStr<'a> {
 	pub fn as_ptr(&self) -> *const c_char {
 		match self.0 {
 			Some(ref s) => s.as_ptr(),
-			None => null()
+			None => null(),
 		}
 	}
 }
@@ -56,9 +60,9 @@ impl<'a, T: AsRef<str>> CStrFrom<'a, T> for CStr<'a> {
 impl<'a, T: AsRef<str>> CStrFrom<'a, Option<T>> for NullableCStr<'a> {
 	fn cstr_from(s: &'a Option<T>) -> Result<Self, ffi::NulError> {
 		match *s {
-			Some(ref s) => Ok(NullableCStr(Some(
-				Cow::Owned(ffi::CString::new(s.as_ref())?)
-			))),
+			Some(ref s) => Ok(NullableCStr(Some(Cow::Owned(
+				ffi::CString::new(s.as_ref())?,
+			)))),
 			None => Ok(NullableCStr(None)),
 		}
 	}

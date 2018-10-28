@@ -1,8 +1,17 @@
-use futures::{self,Async,Future};
-use std::os::raw::{c_void};
-use std::io;
-use std::rc::Rc;
-use tokio_core::reactor::{Handle,Remote};
+use futures::{
+	self,
+	Async,
+	Future,
+};
+use std::{
+	io,
+	os::raw::c_void,
+	rc::Rc,
+};
+use tokio_core::reactor::{
+	Handle,
+	Remote,
+};
 
 use cstr;
 use evented::EventedDNSService;
@@ -30,20 +39,18 @@ pub fn connect(handle: &Handle) -> io::Result<Connection> {
 	::init();
 
 	let con = raw::DNSService::create_connection()?;
-	Ok(Connection(Rc::new(
-		EventedDNSService::new(con, handle)?
-	)))
+	Ok(Connection(Rc::new(EventedDNSService::new(con, handle)?)))
 }
 
 /// Set of [`RegisterRecordFlag`](enum.RegisterRecordFlag.html)s
 ///
 /// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
 /// can be used to test whether a flag is part of a set.
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RegisterRecordFlags(u8);
 
 /// Flags used to register a record
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[repr(u8)]
 pub enum RegisterRecordFlag {
 	/// Indicates there might me multiple records with the given name, type and class.
@@ -77,14 +84,14 @@ flag_mapping!{RegisterRecordFlags: RegisterRecordFlag => ffi::DNSServiceFlags:
 pub struct RegisterRecord(CallbackFuture, Option<raw::DNSRecord>);
 
 impl futures::Future for RegisterRecord {
-	type Item = ::Record;
 	type Error = io::Error;
+	type Item = ::Record;
 
 	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
 		match self.0.poll() {
-			Ok(Async::Ready(RegisterRecordResult)) => Ok(Async::Ready(
-				super::new_record(self.1.take().unwrap())
-			)),
+			Ok(Async::Ready(RegisterRecordResult)) => {
+				Ok(Async::Ready(super::new_record(self.1.take().unwrap())))
+			},
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(e) => Err(e),
 		}
@@ -97,7 +104,7 @@ impl GetRemote for RegisterRecord {
 	}
 }
 
-#[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 struct RegisterRecordResult;
 
 extern "C" fn register_record_callback(
@@ -105,7 +112,7 @@ extern "C" fn register_record_callback(
 	_record_ref: ffi::DNSRecordRef,
 	_flags: ffi::DNSServiceFlags,
 	error_code: ffi::DNSServiceErrorType,
-	context: *mut c_void
+	context: *mut c_void,
 ) {
 	CallbackFuture::run_callback(context, error_code, || {
 		Ok(RegisterRecordResult)
@@ -119,7 +126,7 @@ extern "C" fn register_record_callback(
 /// # use async_dnssd::RegisterRecordData;
 /// RegisterRecordData {
 ///     ttl: 60,
-///     .. Default::default()
+///     ..Default::default()
 /// };
 /// ```
 pub struct RegisterRecordData {
@@ -159,19 +166,20 @@ impl Connection {
 	) -> io::Result<RegisterRecord> {
 		let fullname = cstr::CStr::from(&fullname)?;
 
-		let (serv, record) = CallbackFuture::new(self.0.clone(), move |sender|
-			self.0.service().register_record(
-				data.flags.into(),
-				data.interface.into_raw(),
-				&fullname,
-				rr_type,
-				data.rr_class,
-				rdata,
-				data.ttl,
-				Some(register_record_callback),
-				sender,
-			)
-		)?;
+		let (serv, record) =
+			CallbackFuture::new(self.0.clone(), move |sender| {
+				self.0.service().register_record(
+					data.flags.into(),
+					data.interface.into_raw(),
+					&fullname,
+					rr_type,
+					data.rr_class,
+					rdata,
+					data.ttl,
+					Some(register_record_callback),
+					sender,
+				)
+			})?;
 
 		Ok(RegisterRecord(serv, Some(record)))
 	}
@@ -202,16 +210,8 @@ impl RegisterRecord {
 	/// [`Record`](struct.Record.html) instead.
 	///
 	/// See [`DNSServiceUpdateRecord`](https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord).
-	pub fn update_record(
-		&self,
-		rdata: &[u8],
-		ttl: u32
-	) -> io::Result<()> {
-		self.record().update_record(
-			0, /* no flags */
-			rdata,
-			ttl
-		)?;
+	pub fn update_record(&self, rdata: &[u8], ttl: u32) -> io::Result<()> {
+		self.record().update_record(0 /* no flags */, rdata, ttl)?;
 		Ok(())
 	}
 
@@ -234,7 +234,8 @@ impl RegisterRecord {
 	//   underyling service, and drop it either when dropping the
 	//   service or the callback was called.
 	pub fn keep(self, handle: &Handle) {
-		let (fut, rec) = (self.0, self.1.expect("RegisterRecord future is done"));
+		let (fut, rec) =
+			(self.0, self.1.expect("RegisterRecord future is done"));
 		// drive future to continuation, ignore errors
 		handle.spawn(fut.then(|_| Ok(())));
 		rec.keep();

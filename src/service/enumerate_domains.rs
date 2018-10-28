@@ -1,7 +1,18 @@
-use futures::{self,Async};
-use std::os::raw::{c_void,c_char};
-use std::io;
-use tokio_core::reactor::{Handle,Remote};
+use futures::{
+	self,
+	Async,
+};
+use std::{
+	io,
+	os::raw::{
+		c_char,
+		c_void,
+	},
+};
+use tokio_core::reactor::{
+	Handle,
+	Remote,
+};
 
 use cstr;
 use ffi;
@@ -13,7 +24,7 @@ type CallbackStream = ::stream::ServiceStream<EnumerateResult>;
 
 /// Whether to enumerate domains which are browsed or domains for which
 /// registrations can be made.
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Enumerate {
 	/// enumerate domains which can be browsed
 	BrowseDomains,
@@ -34,11 +45,11 @@ impl Into<ffi::DNSServiceFlags> for Enumerate {
 ///
 /// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
 /// can be used to test whether a flag is part of a set.
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EnumeratedFlags(u8);
 
 /// Flags for [`EnumerateDomains`](struct.EnumerateDomains.html)
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[repr(u8)]
 pub enum EnumeratedFlag {
 	/// Indicates at least one more result is pending in the queue.  If
@@ -76,8 +87,8 @@ flag_mapping!{EnumeratedFlags: EnumeratedFlag => ffi::DNSServiceFlags:
 pub struct EnumerateDomains(CallbackStream);
 
 impl futures::Stream for EnumerateDomains {
-	type Item = EnumerateResult;
 	type Error = io::Error;
+	type Item = EnumerateResult;
 
 	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
 		self.0.poll()
@@ -93,8 +104,8 @@ impl GetRemote for EnumerateDomains {
 /// Domain enumeration result
 ///
 /// See [DNSServiceDomainEnumReply](https://developer.apple.com/documentation/dnssd/dnsservicedomainenumreply).
-#[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
-pub struct EnumerateResult{
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct EnumerateResult {
 	///
 	pub flags: EnumeratedFlags,
 	///
@@ -109,12 +120,12 @@ extern "C" fn enumerate_callback(
 	interface_index: u32,
 	error_code: ffi::DNSServiceErrorType,
 	reply_domain: *const c_char,
-	context: *mut c_void
+	context: *mut c_void,
 ) {
 	CallbackStream::run_callback(context, error_code, || {
 		let reply_domain = unsafe { cstr::from_cstr(reply_domain) }?;
 
-		Ok(EnumerateResult{
+		Ok(EnumerateResult {
 			flags: EnumeratedFlags::from(flags),
 			interface: Interface::from_raw(interface_index),
 			domain: reply_domain.to_string(),
@@ -125,15 +136,22 @@ extern "C" fn enumerate_callback(
 /// Enumerate domains that are recommended for registration or browsing
 ///
 /// See [`DNSServiceEnumerateDomains`](https://developer.apple.com/documentation/dnssd/1804754-dnsserviceenumeratedomains).
-pub fn enumerate_domains(enumerate: Enumerate, interface: Interface, handle: &Handle) -> io::Result<EnumerateDomains> {
+pub fn enumerate_domains(
+	enumerate: Enumerate,
+	interface: Interface,
+	handle: &Handle,
+) -> io::Result<EnumerateDomains> {
 	::init();
 
-	Ok(EnumerateDomains(CallbackStream::new(handle, move |sender|
-		raw::DNSService::enumerate_domains(
-			enumerate.into(),
-			interface.into_raw(),
-			Some(enumerate_callback),
-			sender,
-		)
+	Ok(EnumerateDomains(CallbackStream::new(
+		handle,
+		move |sender| {
+			raw::DNSService::enumerate_domains(
+				enumerate.into(),
+				interface.into_raw(),
+				Some(enumerate_callback),
+				sender,
+			)
+		},
 	)?))
 }

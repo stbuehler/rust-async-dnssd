@@ -1,7 +1,18 @@
-use futures::{self,Async};
-use std::os::raw::{c_void,c_char};
-use std::io;
-use tokio_core::reactor::{Handle,Remote};
+use futures::{
+	self,
+	Async,
+};
+use std::{
+	io,
+	os::raw::{
+		c_char,
+		c_void,
+	},
+};
+use tokio_core::reactor::{
+	Handle,
+	Remote,
+};
 
 use cstr;
 use ffi;
@@ -15,11 +26,11 @@ type CallbackStream = ::stream::ServiceStream<BrowseResult>;
 ///
 /// Flags and sets can be combined with bitor (`|`), and bitand (`&`)
 /// can be used to test whether a flag is part of a set.
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BrowsedFlags(u8);
 
 /// Flags for [`BrowseResult`](struct.BrowseResult.html)
-#[derive(Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[repr(u8)]
 pub enum BrowsedFlag {
 	/// Indicates at least one more result is pending in the queue.  If
@@ -52,8 +63,8 @@ flag_mapping!{BrowsedFlags: BrowsedFlag => ffi::DNSServiceFlags:
 pub struct Browse(CallbackStream);
 
 impl futures::Stream for Browse {
-	type Item = BrowseResult;
 	type Error = io::Error;
+	type Item = BrowseResult;
 
 	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
 		self.0.poll()
@@ -69,8 +80,8 @@ impl GetRemote for Browse {
 /// Browse result
 ///
 /// See [DNSServiceBrowseReply](https://developer.apple.com/documentation/dnssd/dnsservicebrowsereply).
-#[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash,Debug)]
-pub struct BrowseResult{
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct BrowseResult {
 	/// Flags indicating whether the service was added or removed and
 	/// whether there are more pending results.
 	pub flags: BrowsedFlags,
@@ -95,7 +106,7 @@ impl BrowseResult {
 			&self.service_name,
 			&self.reg_type,
 			&self.domain,
-			handle
+			handle,
 		)
 	}
 }
@@ -108,14 +119,14 @@ extern "C" fn browse_callback(
 	service_name: *const c_char,
 	reg_type: *const c_char,
 	reply_domain: *const c_char,
-	context: *mut c_void
+	context: *mut c_void,
 ) {
 	CallbackStream::run_callback(context, error_code, || {
 		let service_name = unsafe { cstr::from_cstr(service_name) }?;
 		let reg_type = unsafe { cstr::from_cstr(reg_type) }?;
 		let reply_domain = unsafe { cstr::from_cstr(reply_domain) }?;
 
-		Ok(BrowseResult{
+		Ok(BrowseResult {
 			flags: BrowsedFlags::from(flags),
 			interface: Interface::from_raw(interface_index),
 			service_name: service_name.to_string(),
@@ -134,21 +145,21 @@ pub fn browse(
 	interface: Interface,
 	reg_type: &str,
 	domain: Option<&str>,
-	handle: &Handle
+	handle: &Handle,
 ) -> io::Result<Browse> {
 	::init();
 
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::NullableCStr::from(&domain)?;
 
-	Ok(Browse(CallbackStream::new(handle, move |sender|
+	Ok(Browse(CallbackStream::new(handle, move |sender| {
 		raw::DNSService::browse(
-			0, /* no flags */
+			0, // no flags
 			interface.into_raw(),
 			&reg_type,
 			&domain,
 			Some(browse_callback),
 			sender,
 		)
-	)?))
+	})?))
 }
