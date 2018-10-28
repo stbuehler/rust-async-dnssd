@@ -7,7 +7,7 @@ use remote::GetRemote;
 
 /// `futures::Stream` extension to simplify building
 /// [`TimeoutStream`](struct.TimeoutStream.html)
-pub trait TimeoutTrait: futures::Stream+Sized {
+pub trait TimeoutTrait: futures::Stream+GetRemote+Sized {
 	/// Create new [`TimeoutStream`](struct.TimeoutStream.html)
 	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>>;
 }
