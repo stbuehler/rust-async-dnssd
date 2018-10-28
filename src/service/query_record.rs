@@ -15,7 +15,10 @@ use tokio_core::reactor::{
 };
 
 use cstr;
-use dns_consts::{Class, Type};
+use dns_consts::{
+	Class,
+	Type,
+};
 use ffi;
 use interface::Interface;
 use raw;
@@ -76,19 +79,19 @@ impl GetRemote for QueryRecord {
 /// See [`DNSServiceQueryRecordReply`](https://developer.apple.com/documentation/dnssd/dnsservicequeryrecordreply).
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct QueryRecordResult {
-	///
+	/// flags
 	pub flags: QueriedRecordFlags,
-	///
+	/// interface the record was found on
 	pub interface: Interface,
-	///
+	/// name of record
 	pub fullname: String,
-	///
+	/// type of record
 	pub rr_type: Type,
-	///
+	/// class of record
 	pub rr_class: Class,
-	///
+	/// wire RDATA of record
 	pub rdata: Vec<u8>,
-	///
+	/// TTL (time to live) of record
 	pub ttl: u32,
 }
 
@@ -129,9 +132,9 @@ extern "C" fn query_record_callback(
 /// # use async_dnssd::QueryRecordData;
 /// # use async_dnssd::QueryRecordFlags;
 /// QueryRecordData {
-///     flags: QueryRecordFlags::LONG_LIVED_QUERY,
-///     ..Default::default()
-/// };
+/// 	flags: QueryRecordFlags::LONG_LIVED_QUERY,
+/// 	..Default::default()
+/// 	};
 /// ```
 pub struct QueryRecordData {
 	/// flags for query
@@ -155,7 +158,7 @@ impl Default for QueryRecordData {
 /// Query for an arbitrary DNS record
 ///
 /// See [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord).
-pub fn query_record(
+pub fn query_record_extended(
 	fullname: &str,
 	rr_type: Type,
 	data: QueryRecordData,
@@ -176,4 +179,20 @@ pub fn query_record(
 			sender,
 		)
 	})?))
+}
+
+/// Query for an arbitrary DNS record
+///
+/// Uses [`query_record_extended`] with default [`QueryRecordData`].
+///
+/// See [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord).
+///
+/// [`query_record_extended`]: fn.query_record_extended.html
+/// [`QueryRecordData`]: struct.QueryRecordData.html
+pub fn query_record(
+	fullname: &str,
+	rr_type: Type,
+	handle: &Handle,
+) -> io::Result<QueryRecord> {
+	query_record_extended(fullname, rr_type, QueryRecordData::default(), handle)
 }

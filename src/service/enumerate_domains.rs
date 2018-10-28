@@ -88,11 +88,11 @@ impl GetRemote for EnumerateDomains {
 /// See [DNSServiceDomainEnumReply](https://developer.apple.com/documentation/dnssd/dnsservicedomainenumreply).
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct EnumerateResult {
-	///
+	/// flags
 	pub flags: EnumeratedFlags,
-	///
+	/// interface domain was found on
 	pub interface: Interface,
-	///
+	/// domain name
 	pub domain: String,
 }
 

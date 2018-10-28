@@ -11,7 +11,10 @@ use std::{
 };
 
 use cstr;
-use dns_consts::{Class, Type};
+use dns_consts::{
+	Class,
+	Type,
+};
 use error::Error;
 use ffi;
 

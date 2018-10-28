@@ -120,30 +120,70 @@ extern "C" fn browse_callback(
 	});
 }
 
+/// Optional data when browsing for a service; either use its default
+/// value or customize it like:
+///
+/// ```
+/// # use async_dnssd::BrowseData;
+/// BrowseData {
+/// 	domain: Some("example.com"),
+/// 	..Default::default()
+/// 	};
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct BrowseData<'a> {
+	/// interface to query records on
+	pub interface: Interface,
+	/// domain on which to search for the service
+	pub domain: Option<&'a str>,
+}
+
+impl<'a> Default for BrowseData<'a> {
+	fn default() -> Self {
+		BrowseData {
+			interface: Interface::default(),
+			domain: None,
+		}
+	}
+}
+
 /// Browse for available services
 ///
 /// `reg_type` specifies the service type to search, e.g. `"_ssh._tcp"`.
 ///
 /// See [`DNSServiceBrowse`](https://developer.apple.com/documentation/dnssd/1804742-dnsservicebrowse).
-pub fn browse(
-	interface: Interface,
+pub fn browse_extended(
 	reg_type: &str,
-	domain: Option<&str>,
+	data: BrowseData,
 	handle: &Handle,
 ) -> io::Result<Browse> {
 	::init();
 
 	let reg_type = cstr::CStr::from(&reg_type)?;
-	let domain = cstr::NullableCStr::from(&domain)?;
+	let domain = cstr::NullableCStr::from(&data.domain)?;
 
 	Ok(Browse(CallbackStream::new(handle, move |sender| {
 		raw::DNSService::browse(
 			0, // no flags
-			interface.into_raw(),
+			data.interface.into_raw(),
 			&reg_type,
 			&domain,
 			Some(browse_callback),
 			sender,
 		)
 	})?))
+}
+
+/// Browse for available services
+///
+/// `reg_type` specifies the service type to search, e.g. `"_ssh._tcp"`.
+///
+/// Uses [`browse_extended`] with default [`BrowseData`].
+///
+/// See [`DNSServiceBrowse`](https://developer.apple.com/documentation/dnssd/1804742-dnsservicebrowse).
+///
+/// [`browse_extended`]: fn.browse_extended.html
+/// [`BrowseData`]: struct.BrowseData.html
+pub fn browse(reg_type: &str, handle: &Handle) -> io::Result<Browse> {
+	browse_extended(reg_type, BrowseData::default(), handle)
 }

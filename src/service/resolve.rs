@@ -46,15 +46,15 @@ impl GetRemote for Resolve {
 /// See [`DNSServiceResolveReply`](https://developer.apple.com/documentation/dnssd/dnsserviceresolvereply).
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct ResolveResult {
-	///
+	/// interface service was resolved on
 	pub interface: Interface,
-	///
+	/// full name of service
 	pub fullname: String,
-	///
+	/// hostname the service is provided on
 	pub host_target: String,
-	///
+	/// port the service is provided on (native endian)
 	pub port: u16,
-	///
+	/// TXT RDATA describing service parameters
 	pub txt: Vec<u8>,
 }
 
@@ -89,7 +89,11 @@ extern "C" fn resolve_callback(
 
 /// Find hostname and port (and more) for a service
 ///
+/// You probably want to use [`BrowseResult::resolve`] instead.
+///
 /// See [`DNSServiceResolve`](https://developer.apple.com/documentation/dnssd/1804744-dnsserviceresolve).
+///
+/// [`BrowseResult::resolve`]: struct.BrowseResult.html#method.resolve
 pub fn resolve(
 	interface: Interface,
 	name: &str,

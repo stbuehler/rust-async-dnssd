@@ -41,6 +41,8 @@ impl Record {
 	}
 }
 
-pub fn new_record(r: raw::DNSRecord) -> Record {
-	Record(r)
+impl From<raw::DNSRecord> for Record {
+	fn from(r: raw::DNSRecord) -> Self {
+		Record(r)
+	}
 }

@@ -10,7 +10,7 @@ fn main() -> std::io::Result<()> {
 	let mut core = tokio_core::reactor::Core::new()?;
 	let handle = core.handle();
 	let (_registration, result) =
-		core.run(register("_ssh._tcp", 2022, Default::default(), &handle)?)?;
+		core.run(register("_ssh._tcp", 2022, &handle)?)?;
 	println!("Registered: {:?}", result);
 	// wait until killed
 	core.run(futures::future::empty::<(), ()>()).unwrap();

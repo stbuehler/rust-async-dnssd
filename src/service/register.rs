@@ -45,12 +45,74 @@ bitflags! {
 	}
 }
 
+/// Successful registration
+///
+/// On dropping the registration the service will be unregistered.
+/// Registered [`Record`](struct.Record.html)s from this `Registration`
+/// or the originating [`Register`](struct.Register.html) future will
+/// keep the `Registration` alive.
+pub struct Registration(EventedDNSService);
+
+impl Registration {
+	/// Add a record to a registered service
+	///
+	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
+	pub fn add_record(
+		&self,
+		rr_type: Type,
+		rdata: &[u8],
+		ttl: u32,
+	) -> io::Result<::Record> {
+		Ok(self
+			.0
+			.service()
+			.add_record(0 /* no flags */, rr_type, rdata, ttl)?
+			.into())
+	}
+
+	/// Get [`Record`](struct.Record.html) handle for default TXT record
+	/// associated with the service registration (e.g. to update it).
+	///
+	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
+	/// anything useful on that handle.
+	pub fn get_default_txt_record(&self) -> ::Record {
+		self.0.service().get_default_txt_record().into()
+	}
+}
+
 /// Pending registration
 ///
 /// Becomes invalid when the future completes; use the returned
 /// [`Registration`](struct.Registration.html) instead.
 #[must_use = "futures do nothing unless polled"]
 pub struct Register(CallbackFuture);
+
+impl Register {
+	/// Add a record to a registered service
+	///
+	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
+	pub fn add_record(
+		&self,
+		rr_type: Type,
+		rdata: &[u8],
+		ttl: u32,
+	) -> io::Result<::Record> {
+		Ok(self
+			.0
+			.service()
+			.add_record(0 /* no flags */, rr_type, rdata, ttl)?
+			.into())
+	}
+
+	/// Get [`Record`](struct.Record.html) handle for default TXT record
+	/// associated with the service registration (e.g. to update it).
+	///
+	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
+	/// anything useful on that handle.
+	pub fn get_default_txt_record(&self) -> ::Record {
+		self.0.service().get_default_txt_record().into()
+	}
+}
 
 impl futures::Future for Register {
 	type Error = io::Error;
@@ -82,9 +144,9 @@ pub struct RegisterResult {
 	/// was set this is the original name, otherwise it might be
 	/// different.
 	pub name: String,
-	///
+	/// the registered service type
 	pub reg_type: String,
-	///
+	/// domain the service was registered on
 	pub domain: String,
 }
 
@@ -110,23 +172,15 @@ extern "C" fn register_callback(
 	});
 }
 
-/// Successful registration
-///
-/// On dropping the registration the service will be unregistered.
-/// Registered [`Record`](struct.Record.html)s from this `Registration`
-/// or the originating [`Register`](struct.Register.html) future will
-/// keep the `Registration` alive.
-pub struct Registration(EventedDNSService);
-
 /// Optional data when registering a service; either use its default
 /// value or customize it like:
 ///
 /// ```
 /// # use async_dnssd::RegisterData;
 /// RegisterData {
-///     txt: b"some text data",
-///     ..Default::default()
-/// };
+/// 	txt: b"some text data",
+/// 	..Default::default()
+/// 	};
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct RegisterData<'a> {
@@ -174,30 +228,13 @@ impl<'a> Default for RegisterData<'a> {
 ///   [`DNSServiceRegister`]
 /// * `port`: The port (in native byte order) on which the service
 ///   accepts connections.  Pass 0 for a "placeholder" service.
-/// * `data`: additional service data; `Default::default()` should be
-///   fine usually.
+/// * `data`: additional service data
 /// * `handle`: the tokio event loop handle
 ///
 /// See
 /// [`DNSServiceRegister`](https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister).
-///
-/// # Example
-///
-/// ```no_run
-/// # extern crate async_dnssd;
-/// # extern crate tokio_core;
-/// # use async_dnssd::register;
-/// # #[deny(unused_must_use)]
-/// # fn main() -> std::io::Result<()> {
-/// let mut core = tokio_core::reactor::Core::new()?;
-/// let handle = core.handle();
-/// let registration =
-/// 	core.run(register("_ssh._tcp", 22, Default::default(), &handle)?)?;
-/// # Ok(())
-/// # }
-/// ```
 #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
-pub fn register(
+pub fn register_extended(
 	reg_type: &str,
 	port: u16,
 	data: RegisterData,
@@ -226,56 +263,42 @@ pub fn register(
 	})?))
 }
 
-impl Register {
-	/// Add a record to a registered service
-	///
-	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
-	pub fn add_record(
-		&self,
-		rr_type: Type,
-		rdata: &[u8],
-		ttl: u32,
-	) -> io::Result<::Record> {
-		Ok(super::new_record(
-			self.0
-				.service()
-				.add_record(0 /* no flags */, rr_type, rdata, ttl)?,
-		))
-	}
-
-	/// Get [`Record`](struct.Record.html) handle for default TXT record
-	/// associated with the service registration (e.g. to update it).
-	///
-	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
-	/// anything useful on that handle.
-	pub fn get_default_txt_record(&self) -> ::Record {
-		super::new_record(self.0.service().get_default_txt_record())
-	}
-}
-
-impl Registration {
-	/// Add a record to a registered service
-	///
-	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
-	pub fn add_record(
-		&self,
-		rr_type: Type,
-		rdata: &[u8],
-		ttl: u32,
-	) -> io::Result<::Record> {
-		Ok(super::new_record(
-			self.0
-				.service()
-				.add_record(0 /* no flags */, rr_type, rdata, ttl)?,
-		))
-	}
-
-	/// Get [`Record`](struct.Record.html) handle for default TXT record
-	/// associated with the service registration (e.g. to update it).
-	///
-	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
-	/// anything useful on that handle.
-	pub fn get_default_txt_record(&self) -> ::Record {
-		super::new_record(self.0.service().get_default_txt_record())
-	}
+/// Register a service
+///
+/// * `reg_type`: the service type followed by the protocol, separated
+///   by a dot (for example, "_ssh._tcp").  For details see
+///   [`DNSServiceRegister`]
+/// * `port`: The port (in native byte order) on which the service
+///   accepts connections.  Pass 0 for a "placeholder" service.
+/// * `handle`: the tokio event loop handle
+///
+/// Uses [`register_extended`] with default [`RegisterData`].
+///
+/// [`register_extended`]: fn.register_extended.html
+/// [`RegisterData`]: struct.RegisterData.html
+///
+/// See
+/// [`DNSServiceRegister`](https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister).
+///
+/// # Example
+///
+/// ```no_run
+/// # extern crate async_dnssd;
+/// # extern crate tokio_core;
+/// # use async_dnssd::register;
+/// # #[deny(unused_must_use)]
+/// # fn main() -> std::io::Result<()> {
+/// let mut core = tokio_core::reactor::Core::new()?;
+/// let handle = core.handle();
+/// let registration = core.run(register("_ssh._tcp", 22, &handle)?)?;
+/// # Ok(())
+/// # }
+/// ```
+#[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
+pub fn register(
+	reg_type: &str,
+	port: u16,
+	handle: &Handle,
+) -> io::Result<Register> {
+	register_extended(reg_type, port, RegisterData::default(), handle)
 }

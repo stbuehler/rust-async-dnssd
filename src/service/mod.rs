@@ -1,4 +1,3 @@
-use self::records::new_record;
 pub use self::{
 	browse::*,
 	connection::*,
@@ -17,7 +16,10 @@ mod records;
 mod register;
 mod resolve;
 
-use dns_consts::{Class, Type};
+use dns_consts::{
+	Class,
+	Type,
+};
 
 /// Purge record from cache
 ///

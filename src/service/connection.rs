@@ -14,7 +14,10 @@ use tokio_core::reactor::{
 };
 
 use cstr;
-use dns_consts::{Class, Type};
+use dns_consts::{
+	Class,
+	Type,
+};
 use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
@@ -66,7 +69,7 @@ bitflags! {
 // the future gets canceled by dropping the record; must
 // not drop the future without dropping the record.
 #[must_use = "futures do nothing unless polled"]
-pub struct RegisterRecord(CallbackFuture, Option<raw::DNSRecord>);
+pub struct RegisterRecord(CallbackFuture, Option<::Record>);
 
 impl futures::Future for RegisterRecord {
 	type Error = io::Error;
@@ -75,7 +78,7 @@ impl futures::Future for RegisterRecord {
 	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
 		match self.0.poll() {
 			Ok(Async::Ready(RegisterRecordResult)) => {
-				Ok(Async::Ready(super::new_record(self.1.take().unwrap())))
+				Ok(Async::Ready(self.1.take().unwrap()))
 			},
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(e) => Err(e),
@@ -110,9 +113,9 @@ extern "C" fn register_record_callback(
 /// ```
 /// # use async_dnssd::RegisterRecordData;
 /// RegisterRecordData {
-///     ttl: 60,
-///     ..Default::default()
-/// };
+/// 	ttl: 60,
+/// 	..Default::default()
+/// 	};
 /// ```
 pub struct RegisterRecordData {
 	/// flags for registration
@@ -142,7 +145,7 @@ impl Connection {
 	/// and ttl
 	///
 	/// See [`DNSServiceRegisterRecord`](https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord).
-	pub fn register_record(
+	pub fn register_record_extended(
 		&self,
 		fullname: &str,
 		rr_type: Type,
@@ -166,12 +169,35 @@ impl Connection {
 				)
 			})?;
 
-		Ok(RegisterRecord(serv, Some(record)))
+		Ok(RegisterRecord(serv, Some(record.into())))
+	}
+
+	/// Register record on interface with given name, type, class, rdata
+	/// and ttl
+	///
+	/// Uses [`register_record_extended`] with default [`RegisterRecordData`].
+	///
+	/// See [`DNSServiceRegisterRecord`](https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord).
+	///
+	/// [`register_record_extended`]: fn.register_record_extended.html
+	/// [`RegisterRecordData`]: struct.RegisterRecordData.html
+	pub fn register_record(
+		&self,
+		fullname: &str,
+		rr_type: Type,
+		rdata: &[u8],
+	) -> io::Result<RegisterRecord> {
+		self.register_record_extended(
+			fullname,
+			rr_type,
+			rdata,
+			RegisterRecordData::default(),
+		)
 	}
 }
 
 impl RegisterRecord {
-	fn record(&self) -> &raw::DNSRecord {
+	fn record(&self) -> &::Record {
 		self.1.as_ref().expect("RegisterRecord future is done")
 	}
 
@@ -196,8 +222,7 @@ impl RegisterRecord {
 	///
 	/// See [`DNSServiceUpdateRecord`](https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord).
 	pub fn update_record(&self, rdata: &[u8], ttl: u32) -> io::Result<()> {
-		self.record().update_record(0 /* no flags */, rdata, ttl)?;
-		Ok(())
+		self.record().update_record(rdata, ttl)
 	}
 
 	/// Keep record for as long as the underlying connection lives.
