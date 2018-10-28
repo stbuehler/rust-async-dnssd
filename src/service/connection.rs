@@ -113,9 +113,9 @@ extern "C" fn register_record_callback(
 /// ```
 /// # use async_dnssd::RegisterRecordData;
 /// RegisterRecordData {
-/// 	ttl: 60,
-/// 	..Default::default()
-/// 	};
+///     ttl: 60,
+///     ..Default::default()
+/// };
 /// ```
 pub struct RegisterRecordData {
 	/// flags for registration

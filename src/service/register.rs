@@ -178,9 +178,9 @@ extern "C" fn register_callback(
 /// ```
 /// # use async_dnssd::RegisterData;
 /// RegisterData {
-/// 	txt: b"some text data",
-/// 	..Default::default()
-/// 	};
+///     txt: b"some text data",
+///     ..Default::default()
+/// };
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct RegisterData<'a> {

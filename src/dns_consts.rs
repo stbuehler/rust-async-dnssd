@@ -1,3 +1,5 @@
+#![cfg_attr(rustfmt, rustfmt_skip)]
+
 /// DNS CLASS
 ///
 /// Originally QCLASS was a superset of CLASS; RFC 6895 now defines:

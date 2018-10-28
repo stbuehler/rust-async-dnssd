@@ -132,9 +132,9 @@ extern "C" fn query_record_callback(
 /// # use async_dnssd::QueryRecordData;
 /// # use async_dnssd::QueryRecordFlags;
 /// QueryRecordData {
-/// 	flags: QueryRecordFlags::LONG_LIVED_QUERY,
-/// 	..Default::default()
-/// 	};
+///     flags: QueryRecordFlags::LONG_LIVED_QUERY,
+///     ..Default::default()
+/// };
 /// ```
 pub struct QueryRecordData {
 	/// flags for query

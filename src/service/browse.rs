@@ -126,9 +126,9 @@ extern "C" fn browse_callback(
 /// ```
 /// # use async_dnssd::BrowseData;
 /// BrowseData {
-/// 	domain: Some("example.com"),
-/// 	..Default::default()
-/// 	};
+///     domain: Some("example.com"),
+///     ..Default::default()
+/// };
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct BrowseData<'a> {
