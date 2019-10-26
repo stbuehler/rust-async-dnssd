@@ -30,6 +30,40 @@ impl TxtRecord {
 		TxtRecord(Vec::new())
 	}
 
+	/// Parse binary blob as TXT RDATA
+	///
+	/// Same as [`parse`] but takes ownership of buffer.
+	///
+	/// [`parse`]: #method.parse
+	pub fn parse_vec(data: Vec<u8>) -> Option<Self> {
+		if data.len() == 1 && data[0] == 0 {
+			let mut data = data;
+			data.clear();
+			return Some(TxtRecord(data));
+		}
+		let mut pos = 0;
+		while pos < data.len() {
+			let len = data[pos] as usize;
+			let new_pos = pos + 1 + len;
+			if new_pos > data.len() {
+				return None;
+			}
+			pos = new_pos;
+		}
+		Some(TxtRecord(data))
+	}
+
+	/// Parse some binary blob as TXT RDATA
+	///
+	/// A single empty string (encoded as `0x00`) gets decoded as "empty" `TxtRecord` (i.e. the
+	/// reverse th `rdata()`); an empty slice is treated the same, although it wouldn't be valid
+	/// RDATA.
+	///
+	/// This only fails when the length of a chunk exceeds the remaining data.
+	pub fn parse(data: &[u8]) -> Option<Self> {
+		Self::parse_vec(data.into())
+	}
+
 	/// Constructs a new, empty `TxtRecord` with the specified capacity.
 	///
 	/// The inserting operations will still reallocate if necessary.
