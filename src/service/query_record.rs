@@ -136,6 +136,7 @@ extern "C" fn query_record_callback(
 ///     ..Default::default()
 /// };
 /// ```
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct QueryRecordData {
 	/// flags for query
 	pub flags: QueryRecordFlags,

@@ -117,6 +117,7 @@ extern "C" fn register_record_callback(
 ///     ..Default::default()
 /// };
 /// ```
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct RegisterRecordData {
 	/// flags for registration
 	pub flags: RegisterRecordFlags,
