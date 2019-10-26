@@ -45,9 +45,10 @@ pub const INTERFACE_INDEX_UNICAST: u32 = !1;
 pub const INTERFACE_INDEX_P2P: u32 = !2;
 
 macro_rules! c_api_enum {
-	($name:ident : $ty:tt => $($case:ident = $val:expr,)* ) => (
+	($(#[$m:meta])* $name:ident : $ty:tt => $($case:ident = $val:expr,)* ) => (
 		#[derive(Clone,Copy,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 		#[repr($ty)]
+		$(#[$m])*
 		pub enum $name {
 			$($case = $val,)*
 		}
@@ -75,11 +76,11 @@ c_api_enum!{DNSServiceNoError: i32 =>
 	ConfigChanged         = -65791,
 	MemFree               = -65792,
 }
+c_api_enum!{
 /// Known error codes
 ///
 /// See [`DNSServiceErrorType`](https://developer.apple.com/documentation/dnssd/1823426-anonymous)
-#[allow(missing_docs)]
-c_api_enum!{DNSServiceError: i32 =>
+DNSServiceError: i32 =>
 	Unknown               = -65537,
 	NoSuchName            = -65538,
 	NoMemory              = -65539,

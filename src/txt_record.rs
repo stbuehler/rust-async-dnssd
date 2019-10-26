@@ -129,7 +129,7 @@ impl TxtRecord {
 	/// Returns `None` if there is no such entry, `Some(None)` if the
 	/// entry exists but has no value, and `Some(Some(value))` if the
 	/// entry exists and has a value.
-	#[cfg_attr(feature = "cargo-clippy", allow(option_option))]
+	#[allow(clippy::option_option)]
 	pub fn get(&self, key: &[u8]) -> Option<Option<&[u8]>> {
 		self.iter().find(|&(k, _)| key == k).map(|(_, value)| value)
 	}

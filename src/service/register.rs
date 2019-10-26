@@ -233,7 +233,7 @@ impl<'a> Default for RegisterData<'a> {
 ///
 /// See
 /// [`DNSServiceRegister`](https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister).
-#[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
+#[allow(clippy::too_many_arguments)]
 pub fn register_extended(
 	reg_type: &str,
 	port: u16,
@@ -294,7 +294,7 @@ pub fn register_extended(
 /// # Ok(())
 /// # }
 /// ```
-#[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
+#[allow(clippy::too_many_arguments)]
 pub fn register(
 	reg_type: &str,
 	port: u16,
