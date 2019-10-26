@@ -86,6 +86,16 @@ impl Interface {
 			Interface::PeerToPeer => ffi::INTERFACE_INDEX_P2P,
 		}
 	}
+
+	/// Extract scope id / interface index
+	///
+	/// Returns the interface index (or zero if not a single interface is selected)
+	pub fn scope_id(self) -> u32 {
+		match self {
+			Interface::Index(InterfaceIndex(scope_id)) => scope_id,
+			_ => 0,
+		}
+	}
 }
 
 impl Into<u32> for Interface {
