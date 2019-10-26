@@ -3,9 +3,8 @@ extern crate futures;
 extern crate tokio_core;
 
 use async_dnssd::{
-	Class,
 	TimeoutTrait,
-	Type,
+	TxtRecord,
 };
 use futures::{
 	Future,
@@ -13,32 +12,9 @@ use futures::{
 };
 use std::{
 	env,
-	net::{
-		IpAddr,
-		Ipv4Addr,
-		Ipv6Addr,
-	},
 	time::Duration,
 };
 use tokio_core::reactor::Core;
-
-fn decode_address(a: &async_dnssd::QueryRecordResult) -> Option<IpAddr> {
-	if a.rr_class == Class::IN {
-		if a.rr_type == Type::A && a.rdata.len() == 4 {
-			let mut octets = [0u8; 4];
-			octets.clone_from_slice(&a.rdata);
-			Some(IpAddr::V4(Ipv4Addr::from(octets)))
-		} else if a.rr_type == Type::AAAA && a.rdata.len() == 16 {
-			let mut octets = [0u8; 16];
-			octets.clone_from_slice(&a.rdata);
-			Some(IpAddr::V6(Ipv6Addr::from(octets)))
-		} else {
-			None
-		}
-	} else {
-		None
-	}
-}
 
 fn main() {
 	let mut core = Core::new().unwrap();
@@ -114,45 +90,36 @@ fn main() {
 				.expect("failed timeout")
 				.map_err(|e| e.into_io_error())
 				.for_each(move |r| {
+					let txt = TxtRecord::parse(&r.txt).map(|rdata|
+						rdata
+						.iter()
+						.map(|(key, value)| (
+							String::from(String::from_utf8_lossy(key)),
+							value.map(|value| String::from(String::from_utf8_lossy(value))),
+						))
+						.collect::<Vec<_>>()
+					);
 					println!(
-						"Resolved {:?}: {:?}:{} (txt {:?})\t\t[{:?}]",
+						"Resolved {:?} on {:?}: {:?}:{} (txt {:?})\t\t[{:?}]",
 						service.service_name,
+						r.interface,
 						r.host_target,
 						r.port,
-						String::from_utf8_lossy(&r.txt),
+						txt,
 						r
 					);
-					let host_target = r.host_target.clone();
+					let fullname = r.fullname.clone();
 					let host_target_e = r.host_target.clone();
 					inner_handle.spawn(
-						// Query IPv4
-						async_dnssd::query_record(
-							&r.host_target,
-							Type::A,
-							&inner_handle,
-						)?
+						// Query IPv4 + IPv6
+						r.resolve_socket_address(&inner_handle)?
 						.timeout(address_timeout)?
-						.select(
-							// Query IPv6 and merge the results
-							async_dnssd::query_record(
-								&r.host_target,
-								Type::AAAA,
-								&inner_handle,
-							)?
-							.timeout(address_timeout)?,
-						)
 						.map_err(|e| e.into_io_error())
-						.for_each(move |a| {
-							match decode_address(&a) {
-								Some(addr) => println!(
-									"Address for {}: {}\t\t[{:?}]",
-									host_target, addr, a
-								),
-								None => println!(
-									"Address for {}: <unknown>\t\t[{:?}]",
-									host_target, a
-								),
-							}
+						.for_each(move |addr| {
+							println!(
+								"Address for {}: {}",
+								fullname, addr
+							);
 							Ok(())
 						})
 						.or_else(move |e| {
