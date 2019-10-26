@@ -78,6 +78,7 @@
 
 #[macro_use]
 extern crate bitflags;
+#[macro_use]
 extern crate futures;
 #[cfg(windows)] // only the windows event loop has debug logging for now
 #[macro_use]

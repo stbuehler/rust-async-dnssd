@@ -6,6 +6,7 @@ pub use self::{
 	records::Record,
 	register::*,
 	resolve::*,
+	resolve_host::*,
 };
 
 mod browse;
@@ -15,6 +16,7 @@ mod query_record;
 mod records;
 mod register;
 mod resolve;
+mod resolve_host;
 
 use dns_consts::{
 	Class,

@@ -19,6 +19,11 @@ use ffi;
 use interface::Interface;
 use raw;
 use remote::GetRemote;
+use service::{
+	ResolveHost,
+	ResolveHostData,
+	resolve_host_extended,
+};
 
 type CallbackStream = ::stream::ServiceStream<ResolveResult>;
 
@@ -56,6 +61,17 @@ pub struct ResolveResult {
 	pub port: u16,
 	/// TXT RDATA describing service parameters
 	pub txt: Vec<u8>,
+}
+
+impl ResolveResult {
+	/// Lookup socket addresses for resolved service
+	pub fn resolve_socket_address(&self, handle: &Handle) -> io::Result<ResolveHost> {
+		let rhdata = ResolveHostData {
+			interface: self.interface,
+			.. Default::default()
+		};
+		resolve_host_extended(&self.host_target, self.port, rhdata, handle)
+	}
 }
 
 extern "C" fn resolve_callback(
