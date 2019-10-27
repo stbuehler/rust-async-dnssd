@@ -20,7 +20,7 @@ bitflags = "1.0.4"
 futures = "0.1.15"
 log = "0.3.8"
 mio = "0.6"
-tokio-core = "0.1.8"
+tokio = "0.1.22"
 
 [target.'cfg(windows)'.dependencies]
 libc = "0.2.43"

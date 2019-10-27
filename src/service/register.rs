@@ -9,10 +9,6 @@ use std::{
 		c_void,
 	},
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
 
 use cstr;
 use dns_consts::Type;
@@ -20,7 +16,6 @@ use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
 use raw;
-use remote::GetRemote;
 
 type CallbackFuture = ::future::ServiceFuture<RegisterResult>;
 
@@ -129,12 +124,6 @@ impl futures::Future for Register {
 	}
 }
 
-impl GetRemote for Register {
-	fn remote(&self) -> &Remote {
-		self.0.remote()
-	}
-}
-
 /// Service registration result
 ///
 /// See [`DNSServiceRegisterReply`](https://developer.apple.com/documentation/dnssd/dnsserviceregisterreply).
@@ -229,7 +218,6 @@ impl<'a> Default for RegisterData<'a> {
 /// * `port`: The port (in native byte order) on which the service
 ///   accepts connections.  Pass 0 for a "placeholder" service.
 /// * `data`: additional service data
-/// * `handle`: the tokio event loop handle
 ///
 /// See
 /// [`DNSServiceRegister`](https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister).
@@ -238,7 +226,6 @@ pub fn register_extended(
 	reg_type: &str,
 	port: u16,
 	data: RegisterData,
-	handle: &Handle,
 ) -> io::Result<Register> {
 	::init();
 
@@ -247,7 +234,7 @@ pub fn register_extended(
 	let domain = cstr::NullableCStr::from(&data.domain)?;
 	let host = cstr::NullableCStr::from(&data.host)?;
 
-	Ok(Register(CallbackFuture::new(handle, move |sender| {
+	Ok(Register(CallbackFuture::new(move |sender| {
 		raw::DNSService::register(
 			data.flags.bits(),
 			data.interface.into_raw(),
@@ -288,9 +275,9 @@ pub fn register_extended(
 /// # use async_dnssd::register;
 /// # #[deny(unused_must_use)]
 /// # fn main() -> std::io::Result<()> {
-/// let mut core = tokio_core::reactor::Core::new()?;
+/// let mut core = tokio::reactor::Core::new()?;
 /// let handle = core.handle();
-/// let registration = core.run(register("_ssh._tcp", 22, &handle)?)?;
+/// let registration = core.run(register("_ssh._tcp", 22)?)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -298,7 +285,6 @@ pub fn register_extended(
 pub fn register(
 	reg_type: &str,
 	port: u16,
-	handle: &Handle,
 ) -> io::Result<Register> {
-	register_extended(reg_type, port, RegisterData::default(), handle)
+	register_extended(reg_type, port, RegisterData::default())
 }

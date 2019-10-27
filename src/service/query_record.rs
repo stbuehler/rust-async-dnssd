@@ -9,10 +9,6 @@ use std::{
 		c_void,
 	},
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
 
 use cstr;
 use dns_consts::{
@@ -22,7 +18,6 @@ use dns_consts::{
 use ffi;
 use interface::Interface;
 use raw;
-use remote::GetRemote;
 
 type CallbackStream = ::stream::ServiceStream<QueryRecordResult>;
 
@@ -65,12 +60,6 @@ impl futures::Stream for QueryRecord {
 
 	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
 		self.0.poll()
-	}
-}
-
-impl GetRemote for QueryRecord {
-	fn remote(&self) -> &Remote {
-		self.0.remote()
 	}
 }
 
@@ -163,13 +152,12 @@ pub fn query_record_extended(
 	fullname: &str,
 	rr_type: Type,
 	data: QueryRecordData,
-	handle: &Handle,
 ) -> io::Result<QueryRecord> {
 	::init();
 
 	let fullname = cstr::CStr::from(&fullname)?;
 
-	Ok(QueryRecord(CallbackStream::new(handle, move |sender| {
+	Ok(QueryRecord(CallbackStream::new(move |sender| {
 		raw::DNSService::query_record(
 			data.flags.bits(),
 			data.interface.into_raw(),
@@ -193,7 +181,6 @@ pub fn query_record_extended(
 pub fn query_record(
 	fullname: &str,
 	rr_type: Type,
-	handle: &Handle,
 ) -> io::Result<QueryRecord> {
-	query_record_extended(fullname, rr_type, QueryRecordData::default(), handle)
+	query_record_extended(fullname, rr_type, QueryRecordData::default())
 }

@@ -10,7 +10,7 @@
 //! used to terminate the thread anyway.
 //!
 //! This of course wastes one thread per fd we want to watch; a bigger
-//! solution would reuse the same backend thread over and over, but than
+//! solution would reuse the same backend thread over and over, but then
 //! we'd have to try the loopback TCP connection to wake it and fall
 //! back to a smaller timeout.
 
@@ -18,6 +18,7 @@ use futures::{
 	sink::Wait,
 	sync::mpsc as futures_mpsc,
 	Async,
+	Poll,
 	Sink,
 	Stream,
 };
@@ -29,12 +30,6 @@ use std::{
 	thread,
 	time::Duration,
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
-
-use remote::GetRemote;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum PollRequest {
@@ -84,21 +79,21 @@ struct Inner {
 	pending_request: bool,
 	/// send poll or close request to select thread
 	send_request: std_mpsc::SyncSender<PollRequest>,
-	/// when need_read() is called we use this to trigger a response if
+	/// when clear_read_ready() is called we use this to trigger a response if
 	/// we already know the read event is pending
 	send_response: Wait<futures_mpsc::Sender<()>>,
 	/// a response means a read event is pending
 	recv_response: futures_mpsc::Receiver<()>,
-	remote: Remote,
 }
+
 impl Inner {
-	fn poll_read(&mut self) -> Async<()> {
+	fn poll_read_ready(&mut self) -> Poll<(), io::Error> {
 		debug!("poll read");
 		if !self.pending_request {
 			let mut read_fds = SelectFdRead::new(self.fd);
 			if read_fds.select(Some(Duration::from_millis(0))) {
 				debug!("poll read: local ready");
-				return Async::Ready(());
+				return Ok(Async::Ready(()));
 			} else {
 				debug!("poll read: not ready, start thread");
 				self.send_request
@@ -113,16 +108,16 @@ impl Inner {
 			Async::Ready(Some(())) => {
 				debug!("poll read: thread ready");
 				self.pending_request = false;
-				Async::Ready(())
+				Ok(Async::Ready(()))
 			},
 			Async::NotReady => {
 				debug!("poll read: thread not ready");
-				Async::NotReady
+				Ok(Async::NotReady)
 			},
 		}
 	}
 
-	fn need_read(&mut self) {
+	fn clear_read_ready(&mut self) -> io::Result<()> {
 		// we need to get Async::NotReady from recv_response.poll
 		match self.recv_response.poll().unwrap() {
 			Async::Ready(None) => unreachable!(),
@@ -155,13 +150,14 @@ impl Inner {
 				}
 			},
 		}
+		Ok(())
 	}
 }
 
 pub struct PollReadFd(UnsafeCell<Inner>);
 impl PollReadFd {
 	/// does not take overship of fd
-	pub fn new(fd: c_int, handle: &Handle) -> io::Result<Self> {
+	pub fn new(fd: c_int) -> io::Result<Self> {
 		// buffer one request for "Close"
 		let (send_request, recv_request) = std_mpsc::sync_channel(1);
 		// buffer one notification
@@ -203,7 +199,6 @@ impl PollReadFd {
 			send_request,
 			send_response: outer_send_response,
 			recv_response,
-			remote: handle.remote().clone(),
 		})))
 	}
 
@@ -211,18 +206,12 @@ impl PollReadFd {
 		unsafe { &mut *self.0.get() }
 	}
 
-	pub fn poll_read(&self) -> Async<()> {
-		self.inner().poll_read()
+	pub fn poll_read_ready(&self) -> Poll<(), io::Error> {
+		self.inner().poll_read_ready()
 	}
 
-	pub fn need_read(&self) {
-		self.inner().need_read()
-	}
-}
-
-impl GetRemote for PollReadFd {
-	fn remote(&self) -> &Remote {
-		&self.inner().remote
+	pub fn clear_read_ready(&self) -> io::Result<()> {
+		self.inner().clear_read_ready()
 	}
 }
 

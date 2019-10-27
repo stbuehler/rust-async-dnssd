@@ -15,10 +15,6 @@ use futures::{
 	Stream,
 	stream,
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
 
 use dns_consts::{
 	Class,
@@ -32,7 +28,6 @@ use service::{
 	query_record_extended,
 };
 use interface::Interface;
-use remote::GetRemote;
 
 fn decode_a(a: QueryRecordResult) -> Option<(IpAddr, Interface)> {
 	if a.rr_class == Class::IN && a.rr_type == Type::A && a.rdata.len() == 4 {
@@ -89,7 +84,6 @@ type DecodedStream = stream::FilterMap<QueryRecord, DecodeFn>;
 pub struct ResolveHost {
 	inner: stream::Select<DecodedStream, DecodedStream>,
 	port: u16,
-	remote: Remote,
 }
 
 impl Stream for ResolveHost {
@@ -100,12 +94,6 @@ impl Stream for ResolveHost {
 		Ok(Async::Ready(try_ready!(self.inner.poll()).map(|(ip, iface)|
 			ScopedSocketAddr::new(ip, self.port, iface.scope_id())
 		)))
-	}
-}
-
-impl GetRemote for ResolveHost {
-	fn remote(&self) -> &Remote {
-		&self.remote
 	}
 }
 
@@ -201,21 +189,20 @@ impl fmt::Debug for ScopedSocketAddr {
 /// Uses
 /// [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord)
 /// to query for `A` and `AAAA` records (in the `IN` class).
-pub fn resolve_host_extended(host: &str, port: u16, data: ResolveHostData, handle: &Handle) -> io::Result<ResolveHost> {
+pub fn resolve_host_extended(host: &str, port: u16, data: ResolveHostData) -> io::Result<ResolveHost> {
 	let qrdata = QueryRecordData {
 		flags: data.flags,
 		interface: data.interface,
 		rr_class: Class::IN,
 	};
 
-	let inner = query_record_extended(host, Type::AAAA, qrdata, handle)?
+	let inner = query_record_extended(host, Type::AAAA, qrdata)?
 		.filter_map(decode_aaaa as DecodeFn)
 		.select(
-			query_record_extended(host, Type::A, qrdata, handle)?
+			query_record_extended(host, Type::A, qrdata)?
 			.filter_map(decode_a as DecodeFn)
 		);
 
-	let remote = handle.remote().clone();
 
-	Ok(ResolveHost { inner, port, remote })
+	Ok(ResolveHost { inner, port })
 }

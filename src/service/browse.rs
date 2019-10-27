@@ -9,16 +9,11 @@ use std::{
 		c_void,
 	},
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
 
 use cstr;
 use ffi;
 use interface::Interface;
 use raw;
-use remote::GetRemote;
 
 type CallbackStream = ::stream::ServiceStream<BrowseResult>;
 
@@ -55,12 +50,6 @@ impl futures::Stream for Browse {
 	}
 }
 
-impl GetRemote for Browse {
-	fn remote(&self) -> &Remote {
-		self.0.remote()
-	}
-}
-
 /// Browse result
 ///
 /// See [DNSServiceBrowseReply](https://developer.apple.com/documentation/dnssd/dnsservicebrowsereply).
@@ -84,13 +73,12 @@ impl BrowseResult {
 	///
 	/// Should check before whether result has the `Add` flag, as
 	/// otherwise it probably won't find anything.
-	pub fn resolve(&self, handle: &Handle) -> io::Result<::Resolve> {
+	pub fn resolve(&self) -> io::Result<::Resolve> {
 		::resolve(
 			self.interface,
 			&self.service_name,
 			&self.reg_type,
 			&self.domain,
-			handle,
 		)
 	}
 }
@@ -155,14 +143,13 @@ impl<'a> Default for BrowseData<'a> {
 pub fn browse_extended(
 	reg_type: &str,
 	data: BrowseData,
-	handle: &Handle,
 ) -> io::Result<Browse> {
 	::init();
 
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::NullableCStr::from(&data.domain)?;
 
-	Ok(Browse(CallbackStream::new(handle, move |sender| {
+	Ok(Browse(CallbackStream::new(move |sender| {
 		raw::DNSService::browse(
 			0, // no flags
 			data.interface.into_raw(),
@@ -184,6 +171,6 @@ pub fn browse_extended(
 ///
 /// [`browse_extended`]: fn.browse_extended.html
 /// [`BrowseData`]: struct.BrowseData.html
-pub fn browse(reg_type: &str, handle: &Handle) -> io::Result<Browse> {
-	browse_extended(reg_type, BrowseData::default(), handle)
+pub fn browse(reg_type: &str) -> io::Result<Browse> {
+	browse_extended(reg_type, BrowseData::default())
 }

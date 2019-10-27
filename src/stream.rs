@@ -7,17 +7,12 @@ use std::{
 	io,
 	os::raw::c_void,
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
 
 use error::Error;
 use evented::EventedDNSService;
 use ffi;
 use raw::DNSService;
 use raw_box::RawBox;
-use remote::GetRemote;
 
 type CallbackContext<T> = mpsc::UnboundedSender<io::Result<T>>;
 
@@ -49,7 +44,7 @@ impl<T> ServiceStream<T> {
 			.expect("receiver must still be alive");
 	}
 
-	pub fn new<F>(handle: &Handle, f: F) -> io::Result<Self>
+	pub fn new<F>(f: F) -> io::Result<Self>
 	where
 		F: FnOnce(*mut c_void) -> Result<DNSService, Error>,
 	{
@@ -57,7 +52,7 @@ impl<T> ServiceStream<T> {
 		let sender = RawBox::new(sender);
 
 		let service = f(sender.get_ptr() as *mut c_void)?;
-		let service = EventedDNSService::new(service, handle)?;
+		let service = EventedDNSService::new(service)?;
 
 		Ok(ServiceStream {
 			service,
@@ -79,11 +74,5 @@ impl<T> futures::Stream for ServiceStream<T> {
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(()) => unreachable!(),
 		}
-	}
-}
-
-impl<T> GetRemote for ServiceStream<T> {
-	fn remote(&self) -> &Remote {
-		self.service.remote()
 	}
 }

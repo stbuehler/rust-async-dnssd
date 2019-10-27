@@ -1,18 +1,18 @@
 extern crate async_dnssd;
 extern crate futures;
-extern crate tokio_core;
+extern crate tokio;
 
 use async_dnssd::register;
 
 fn main() -> std::io::Result<()> {
 	// Use `cargo run --example register`
+	let mut rt = tokio::runtime::current_thread::Runtime::new()?;
 
-	let mut core = tokio_core::reactor::Core::new()?;
-	let handle = core.handle();
 	let (_registration, result) =
-		core.run(register("_ssh._tcp", 2022, &handle)?)?;
+		rt.block_on(register("_ssh._tcp", 2022)?)?;
 	println!("Registered: {:?}", result);
+
 	// wait until killed
-	core.run(futures::future::empty::<(), ()>()).unwrap();
+	rt.block_on(futures::future::empty::<(), ()>()).unwrap();
 	Ok(())
 }

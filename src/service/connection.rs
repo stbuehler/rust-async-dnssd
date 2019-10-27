@@ -8,10 +8,6 @@ use std::{
 	os::raw::c_void,
 	rc::Rc,
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
 
 use cstr;
 use dns_consts::{
@@ -22,28 +18,21 @@ use evented::EventedDNSService;
 use ffi;
 use interface::Interface;
 use raw;
-use remote::GetRemote;
 
 type CallbackFuture = ::future::ServiceFutureSingle<RegisterRecordResult>;
 
 /// Connection to register records with
 pub struct Connection(Rc<EventedDNSService>);
 
-impl GetRemote for Connection {
-	fn remote(&self) -> &Remote {
-		self.0.remote()
-	}
-}
-
 /// Create [`Connection`](struct.Connection.html) to register records
 /// with
 ///
 /// See [`DNSServiceCreateConnection`](https://developer.apple.com/documentation/dnssd/1804724-dnsservicecreateconnection).
-pub fn connect(handle: &Handle) -> io::Result<Connection> {
+pub fn connect() -> io::Result<Connection> {
 	::init();
 
 	let con = raw::DNSService::create_connection()?;
-	Ok(Connection(Rc::new(EventedDNSService::new(con, handle)?)))
+	Ok(Connection(Rc::new(EventedDNSService::new(con)?)))
 }
 
 bitflags! {
@@ -83,12 +72,6 @@ impl futures::Future for RegisterRecord {
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(e) => Err(e),
 		}
-	}
-}
-
-impl GetRemote for RegisterRecord {
-	fn remote(&self) -> &Remote {
-		self.0.remote()
 	}
 }
 
@@ -244,11 +227,11 @@ impl RegisterRecord {
 	//   before. instead we could store the callback context with the
 	//   underyling service, and drop it either when dropping the
 	//   service or the callback was called.
-	pub fn keep(self, handle: &Handle) {
+	pub fn keep(self) {
 		let (fut, rec) =
 			(self.0, self.1.expect("RegisterRecord future is done"));
 		// drive future to continuation, ignore errors
-		handle.spawn(fut.then(|_| Ok(())));
+		tokio::runtime::current_thread::spawn(fut.then(|_| Ok(())));
 		rec.keep();
 	}
 }

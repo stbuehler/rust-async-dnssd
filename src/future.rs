@@ -8,17 +8,12 @@ use std::{
 	os::raw::c_void,
 	rc::Rc,
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
 
 use error::Error;
 use evented::EventedDNSService;
 use ffi;
 use raw::DNSService;
 use raw_box::RawBox;
-use remote::GetRemote;
 
 type CallbackContext<T> = Option<oneshot::Sender<io::Result<T>>>;
 
@@ -51,7 +46,7 @@ impl<T> ServiceFuture<T> {
 		sender.send(data).expect("receiver must still be alive");
 	}
 
-	pub fn new<F>(handle: &Handle, f: F) -> io::Result<Self>
+	pub fn new<F>(f: F) -> io::Result<Self>
 	where
 		F: FnOnce(*mut c_void) -> Result<DNSService, Error>,
 	{
@@ -59,7 +54,7 @@ impl<T> ServiceFuture<T> {
 		let sender = RawBox::new(Some(sender));
 
 		let service = f(sender.get_ptr() as *mut c_void)?;
-		let service = EventedDNSService::new(service, handle)?;
+		let service = EventedDNSService::new(service)?;
 
 		Ok(ServiceFuture(Some(Inner {
 			service,
@@ -98,12 +93,6 @@ impl<T> futures::Future for ServiceFuture<T> {
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(futures::Canceled) => unreachable!(),
 		}
-	}
-}
-
-impl<T> GetRemote for ServiceFuture<T> {
-	fn remote(&self) -> &Remote {
-		self.inner().service.remote()
 	}
 }
 
@@ -168,11 +157,5 @@ impl<T> futures::Future for ServiceFutureSingle<T> {
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(futures::Canceled) => unreachable!(),
 		}
-	}
-}
-
-impl<T> GetRemote for ServiceFutureSingle<T> {
-	fn remote(&self) -> &Remote {
-		self.service.remote()
 	}
 }

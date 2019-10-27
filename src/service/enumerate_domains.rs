@@ -9,16 +9,11 @@ use std::{
 		c_void,
 	},
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
 
 use cstr;
 use ffi;
 use interface::Interface;
 use raw;
-use remote::GetRemote;
 
 type CallbackStream = ::stream::ServiceStream<EnumerateResult>;
 
@@ -77,12 +72,6 @@ impl futures::Stream for EnumerateDomains {
 	}
 }
 
-impl GetRemote for EnumerateDomains {
-	fn remote(&self) -> &Remote {
-		self.0.remote()
-	}
-}
-
 /// Domain enumeration result
 ///
 /// See [DNSServiceDomainEnumReply](https://developer.apple.com/documentation/dnssd/dnsservicedomainenumreply).
@@ -121,12 +110,10 @@ extern "C" fn enumerate_callback(
 pub fn enumerate_domains(
 	enumerate: Enumerate,
 	interface: Interface,
-	handle: &Handle,
 ) -> io::Result<EnumerateDomains> {
 	::init();
 
 	Ok(EnumerateDomains(CallbackStream::new(
-		handle,
 		move |sender| {
 			raw::DNSService::enumerate_domains(
 				enumerate.into(),

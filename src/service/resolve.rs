@@ -9,16 +9,11 @@ use std::{
 		c_void,
 	},
 };
-use tokio_core::reactor::{
-	Handle,
-	Remote,
-};
 
 use cstr;
 use ffi;
 use interface::Interface;
 use raw;
-use remote::GetRemote;
 use service::{
 	ResolveHost,
 	ResolveHostData,
@@ -37,12 +32,6 @@ impl futures::Stream for Resolve {
 
 	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
 		self.0.poll()
-	}
-}
-
-impl GetRemote for Resolve {
-	fn remote(&self) -> &Remote {
-		self.0.remote()
 	}
 }
 
@@ -65,12 +54,12 @@ pub struct ResolveResult {
 
 impl ResolveResult {
 	/// Lookup socket addresses for resolved service
-	pub fn resolve_socket_address(&self, handle: &Handle) -> io::Result<ResolveHost> {
+	pub fn resolve_socket_address(&self) -> io::Result<ResolveHost> {
 		let rhdata = ResolveHostData {
 			interface: self.interface,
 			.. Default::default()
 		};
-		resolve_host_extended(&self.host_target, self.port, rhdata, handle)
+		resolve_host_extended(&self.host_target, self.port, rhdata)
 	}
 }
 
@@ -115,7 +104,6 @@ pub fn resolve(
 	name: &str,
 	reg_type: &str,
 	domain: &str,
-	handle: &Handle,
 ) -> io::Result<Resolve> {
 	::init();
 
@@ -123,7 +111,7 @@ pub fn resolve(
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::CStr::from(&domain)?;
 
-	Ok(Resolve(CallbackStream::new(handle, move |sender| {
+	Ok(Resolve(CallbackStream::new(move |sender| {
 		raw::DNSService::resolve(
 			0, // no flags
 			interface.into_raw(),

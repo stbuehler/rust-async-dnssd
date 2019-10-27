@@ -84,7 +84,7 @@ extern crate futures;
 #[macro_use]
 extern crate log;
 extern crate mio;
-extern crate tokio_core;
+extern crate tokio;
 
 #[cfg(windows)]
 extern crate libc;
@@ -96,7 +96,6 @@ pub use self::{
 	error::*,
 	ffi::MAX_DOMAIN_NAME,
 	interface::*,
-	remote::*,
 	service::*,
 	timeout_stream::*,
 	txt_record::*,
@@ -111,7 +110,6 @@ mod future;
 mod interface;
 mod raw;
 mod raw_box;
-mod remote;
 mod service;
 mod stream;
 mod timeout_stream;

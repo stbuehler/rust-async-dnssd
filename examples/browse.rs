@@ -1,6 +1,6 @@
 extern crate async_dnssd;
 extern crate futures;
-extern crate tokio_core;
+extern crate tokio;
 
 use async_dnssd::{
 	TimeoutTrait,
@@ -14,11 +14,9 @@ use std::{
 	env,
 	time::Duration,
 };
-use tokio_core::reactor::Core;
 
 fn main() {
-	let mut core = Core::new().unwrap();
-	let handle = core.handle();
+	let mut rt = tokio::runtime::current_thread::Runtime::new().unwrap();
 
 	let search_timeout = Duration::from_secs(10);
 	let resolve_timeout = Duration::from_secs(3);
@@ -34,7 +32,7 @@ fn main() {
 		.unwrap_or_else(|| list_all_services.to_string());
 	println!("Browse: {}", query);
 
-	let listing = async_dnssd::browse(&query, &handle)
+	let listing = async_dnssd::browse(&query)
 		.expect("failed browse")
 		.timeout(search_timeout)
 		.expect("failed timeout")
@@ -77,9 +75,8 @@ fn main() {
 
 			let service_name_e = service.service_name.clone();
 
-			let inner_handle = handle.clone();
-			handle.spawn(
-				match service.resolve(&handle) {
+			tokio::runtime::current_thread::spawn(
+				match service.resolve() {
 					Ok(r) => r,
 					Err(e) => {
 						println!("resolve failed: {:?}", e);
@@ -110,9 +107,9 @@ fn main() {
 					);
 					let fullname = r.fullname.clone();
 					let host_target_e = r.host_target.clone();
-					inner_handle.spawn(
+					tokio::runtime::current_thread::spawn(
 						// Query IPv4 + IPv6
-						r.resolve_socket_address(&inner_handle)?
+						r.resolve_socket_address()?
 						.timeout(address_timeout)?
 						.map_err(|e| e.into_io_error())
 						.for_each(move |addr| {
@@ -140,5 +137,6 @@ fn main() {
 
 			Ok(())
 		});
-	core.run(listing).unwrap();
+	rt.block_on(listing).unwrap();
+	rt.run().unwrap();
 }

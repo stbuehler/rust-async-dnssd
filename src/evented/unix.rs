@@ -1,36 +1,30 @@
-use futures::Async;
+use futures::{Async, Poll};
 use mio;
 use std::{
 	io,
 	os::raw::c_int,
 };
-use tokio_core::reactor::{
-	Handle,
-	PollEvented,
-	Remote,
+use tokio::reactor::{
+	PollEvented2 as PollEvented,
 };
-
-use remote::GetRemote;
 
 pub struct PollReadFd(PollEvented<EventedFd>);
 
 impl PollReadFd {
-	pub fn new(fd: c_int, handle: &Handle) -> io::Result<Self> {
-		Ok(PollReadFd(PollEvented::new(EventedFd(fd), handle)?))
+	pub fn new(fd: c_int) -> io::Result<Self> {
+		Ok(PollReadFd(PollEvented::new(EventedFd(fd))))
 	}
 
-	pub fn poll_read(&self) -> Async<()> {
-		self.0.poll_read()
+	pub fn poll_read_ready(&self) -> Poll<(), io::Error> {
+		if try_ready!(self.0.poll_read_ready(mio::Ready::readable())).is_readable() {
+			Ok(Async::Ready(()))
+		} else {
+			Ok(Async::NotReady)
+		}
 	}
 
-	pub fn need_read(&self) {
-		self.0.need_read()
-	}
-}
-
-impl GetRemote for PollReadFd {
-	fn remote(&self) -> &Remote {
-		self.0.remote()
+	pub fn clear_read_ready(&self) -> io::Result<()> {
+		self.0.clear_read_ready(mio::Ready::readable())
 	}
 }
 
