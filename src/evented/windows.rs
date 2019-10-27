@@ -154,6 +154,11 @@ impl Inner {
 	}
 }
 
+pub fn is_readable(fd: c_int) -> io::Result<bool> {
+	let mut read_fds = SelectFdRead::new(fd);
+	Ok(read_fds.select(Some(Duration::from_millis(0))))
+}
+
 pub struct PollReadFd(UnsafeCell<Inner>);
 impl PollReadFd {
 	/// does not take overship of fd

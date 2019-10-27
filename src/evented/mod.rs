@@ -1,10 +1,10 @@
 #[cfg(unix)]
-use self::unix::*;
+use self::unix as platform;
 #[cfg(unix)]
 mod unix;
 
 #[cfg(windows)]
-use self::windows::*;
+use self::windows as platform;
 #[cfg(windows)]
 mod windows;
 
@@ -16,7 +16,7 @@ use raw::DNSService;
 #[must_use = "EventedDNSService does nothing unless polled"]
 pub struct EventedDNSService {
 	service: DNSService,
-	poll: PollReadFd,
+	poll: platform::PollReadFd,
 }
 
 impl EventedDNSService {
@@ -25,14 +25,17 @@ impl EventedDNSService {
 
 		Ok(EventedDNSService {
 			service,
-			poll: PollReadFd::new(fd)?,
+			poll: platform::PollReadFd::new(fd)?,
 		})
 	}
 
 	pub fn poll(&self) -> io::Result<()> {
 		match self.poll.poll_read_ready()? {
 			futures::Async::Ready(()) => {
-				self.service.process_result()?;
+				let fd = self.service.fd();
+				while platform::is_readable(fd)? {
+					self.service.process_result()?;
+				}
 				self.poll.clear_read_ready()?;
 			},
 			futures::Async::NotReady => (),
