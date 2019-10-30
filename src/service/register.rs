@@ -271,13 +271,12 @@ pub fn register_extended(
 ///
 /// ```no_run
 /// # extern crate async_dnssd;
-/// # extern crate tokio_core;
+/// # extern crate tokio;
 /// # use async_dnssd::register;
 /// # #[deny(unused_must_use)]
 /// # fn main() -> std::io::Result<()> {
-/// let mut core = tokio::reactor::Core::new()?;
-/// let handle = core.handle();
-/// let registration = core.run(register("_ssh._tcp", 22)?)?;
+/// let mut rt = tokio::runtime::current_thread::Runtime::new()?;
+/// let registration = rt.block_on(register("_ssh._tcp", 22)?)?;
 /// # Ok(())
 /// # }
 /// ```
