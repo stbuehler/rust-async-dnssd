@@ -108,7 +108,6 @@ mod ffi;
 mod future;
 mod interface;
 mod raw;
-mod raw_box;
 mod service;
 mod stream;
 mod timeout_stream;

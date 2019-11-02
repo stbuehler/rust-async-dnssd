@@ -12,14 +12,13 @@ use error::Error;
 use evented::EventedDNSService;
 use ffi;
 use raw::DNSService;
-use raw_box::RawBox;
 
 type CallbackContext<T> = mpsc::UnboundedSender<io::Result<T>>;
 
 #[must_use = "streams do nothing unless polled"]
 pub struct ServiceStream<T> {
 	service: EventedDNSService,
-	_sender: RawBox<CallbackContext<T>>,
+	_sender: Box<CallbackContext<T>>,
 	receiver: mpsc::UnboundedReceiver<io::Result<T>>,
 }
 
@@ -49,9 +48,9 @@ impl<T> ServiceStream<T> {
 		F: FnOnce(*mut c_void) -> Result<DNSService, Error>,
 	{
 		let (sender, receiver) = mpsc::unbounded::<io::Result<T>>();
-		let sender = RawBox::new(sender);
+		let mut sender = Box::new(sender);
 
-		let service = f(sender.get_ptr() as *mut c_void)?;
+		let service = f(&mut sender as *mut _ as *mut c_void)?;
 		let service = EventedDNSService::new(service)?;
 
 		Ok(ServiceStream {

@@ -13,13 +13,12 @@ use error::Error;
 use evented::EventedDNSService;
 use ffi;
 use raw::DNSService;
-use raw_box::RawBox;
 
 type CallbackContext<T> = Option<oneshot::Sender<io::Result<T>>>;
 
 struct Inner<T> {
 	service: EventedDNSService,
-	_sender: RawBox<CallbackContext<T>>,
+	_sender: Box<CallbackContext<T>>,
 	receiver: oneshot::Receiver<io::Result<T>>,
 }
 
@@ -51,9 +50,9 @@ impl<T> ServiceFuture<T> {
 		F: FnOnce(*mut c_void) -> Result<DNSService, Error>,
 	{
 		let (sender, receiver) = oneshot::channel::<io::Result<T>>();
-		let sender = RawBox::new(Some(sender));
+		let mut sender = Box::new(Some(sender));
 
-		let service = f(sender.get_ptr() as *mut c_void)?;
+		let service = f(&mut sender as *mut _ as *mut c_void)?;
 		let service = EventedDNSService::new(service)?;
 
 		Ok(ServiceFuture(Some(Inner {
@@ -99,7 +98,7 @@ impl<T> futures::Future for ServiceFuture<T> {
 #[must_use = "futures do nothing unless polled"]
 pub struct ServiceFutureSingle<T> {
 	service: Rc<EventedDNSService>,
-	_sender: RawBox<CallbackContext<T>>,
+	_sender: Box<CallbackContext<T>>,
 	receiver: oneshot::Receiver<io::Result<T>>,
 }
 
@@ -131,9 +130,9 @@ impl<T> ServiceFutureSingle<T> {
 		F: FnOnce(*mut c_void) -> Result<R, Error>,
 	{
 		let (sender, receiver) = oneshot::channel::<io::Result<T>>();
-		let sender = RawBox::new(Some(sender));
+		let mut sender = Box::new(Some(sender));
 
-		let res = f(sender.get_ptr() as *mut c_void)?;
+		let res = f(&mut sender as *mut _ as *mut c_void)?;
 
 		Ok((
 			ServiceFutureSingle {
