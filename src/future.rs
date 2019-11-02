@@ -45,7 +45,7 @@ impl<T> ServiceFuture<T> {
 		sender.send(data).expect("receiver must still be alive");
 	}
 
-	pub fn new<F>(f: F) -> io::Result<Self>
+	pub(crate) fn new<F>(f: F) -> io::Result<Self>
 	where
 		F: FnOnce(*mut c_void) -> Result<DNSService, Error>,
 	{
@@ -70,7 +70,7 @@ impl<T> ServiceFuture<T> {
 		self.0.as_mut().expect("can only get ready once")
 	}
 
-	pub fn service(&self) -> &DNSService {
+	pub(crate) fn service(&self) -> &DNSService {
 		&self.inner().service.service()
 	}
 }
@@ -96,7 +96,7 @@ impl<T> futures::Future for ServiceFuture<T> {
 }
 
 #[must_use = "futures do nothing unless polled"]
-pub struct ServiceFutureSingle<T> {
+pub(crate) struct ServiceFutureSingle<T> {
 	service: Rc<EventedDNSService>,
 	_sender: Box<CallbackContext<T>>,
 	receiver: oneshot::Receiver<io::Result<T>>,
@@ -122,7 +122,7 @@ impl<T> ServiceFutureSingle<T> {
 		sender.send(data).expect("receiver must still be alive");
 	}
 
-	pub fn new<R, F>(
+	pub(crate) fn new<R, F>(
 		service: Rc<EventedDNSService>,
 		f: F,
 	) -> io::Result<(Self, R)>

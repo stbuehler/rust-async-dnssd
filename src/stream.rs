@@ -16,7 +16,7 @@ use raw::DNSService;
 type CallbackContext<T> = mpsc::UnboundedSender<io::Result<T>>;
 
 #[must_use = "streams do nothing unless polled"]
-pub struct ServiceStream<T> {
+pub(crate) struct ServiceStream<T> {
 	service: EventedDNSService,
 	_sender: Box<CallbackContext<T>>,
 	receiver: mpsc::UnboundedReceiver<io::Result<T>>,
@@ -43,7 +43,7 @@ impl<T> ServiceStream<T> {
 			.expect("receiver must still be alive");
 	}
 
-	pub fn new<F>(f: F) -> io::Result<Self>
+	pub(crate) fn new<F>(f: F) -> io::Result<Self>
 	where
 		F: FnOnce(*mut c_void) -> Result<DNSService, Error>,
 	{

@@ -176,7 +176,7 @@ impl InnerDNSService {
 }
 
 #[derive(Clone)]
-pub struct DNSService(Rc<UnsafeCell<InnerDNSService>>);
+pub(crate) struct DNSService(Rc<UnsafeCell<InnerDNSService>>);
 
 impl DNSService {
 	fn get(&self) -> &InnerDNSService {
@@ -188,15 +188,15 @@ impl DNSService {
 		s.map(|s| DNSService(Rc::new(UnsafeCell::new(s))))
 	}
 
-	pub fn fd(&self) -> c_int {
+	pub(crate) fn fd(&self) -> c_int {
 		self.get().fd()
 	}
 
-	pub fn process_result(&self) -> FFIResult<()> {
+	pub(crate) fn process_result(&self) -> FFIResult<()> {
 		self.get().process_result()
 	}
 
-	pub fn enumerate_domains(
+	pub(crate) fn enumerate_domains(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		callback: ffi::DNSServiceDomainEnumReply,
@@ -210,7 +210,7 @@ impl DNSService {
 		))
 	}
 
-	pub fn register(
+	pub(crate) fn register(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		name: &cstr::NullableCStr,
@@ -236,7 +236,7 @@ impl DNSService {
 		))
 	}
 
-	pub fn add_record(
+	pub(crate) fn add_record(
 		&self,
 		flags: ffi::DNSServiceFlags,
 		rr_type: Type,
@@ -248,11 +248,11 @@ impl DNSService {
 		)?))
 	}
 
-	pub fn get_default_txt_record(&self) -> DNSRecord {
+	pub(crate) fn get_default_txt_record(&self) -> DNSRecord {
 		DNSRecord(InnerDNSRecord(self.clone(), null_mut(), Type::TXT))
 	}
 
-	pub fn browse(
+	pub(crate) fn browse(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		reg_type: &cstr::CStr,
@@ -270,7 +270,7 @@ impl DNSService {
 		))
 	}
 
-	pub fn resolve(
+	pub(crate) fn resolve(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		name: &cstr::CStr,
@@ -290,7 +290,7 @@ impl DNSService {
 		))
 	}
 
-	pub fn register_record(
+	pub(crate) fn register_record(
 		&self,
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
@@ -316,11 +316,11 @@ impl DNSService {
 		)?))
 	}
 
-	pub fn create_connection() -> FFIResult<DNSService> {
+	pub(crate) fn create_connection() -> FFIResult<DNSService> {
 		Self::new(InnerDNSService::create_connection())
 	}
 
-	pub fn query_record(
+	pub(crate) fn query_record(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
 		fullname: &cstr::CStr,

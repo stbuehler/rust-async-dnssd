@@ -14,13 +14,13 @@ use std::io;
 use raw::DNSService;
 
 #[must_use = "EventedDNSService does nothing unless polled"]
-pub struct EventedDNSService {
+pub(crate) struct EventedDNSService {
 	service: DNSService,
 	poll: platform::PollReadFd,
 }
 
 impl EventedDNSService {
-	pub fn new(service: DNSService) -> io::Result<Self> {
+	pub(crate) fn new(service: DNSService) -> io::Result<Self> {
 		let fd = service.fd();
 
 		Ok(EventedDNSService {
@@ -29,7 +29,7 @@ impl EventedDNSService {
 		})
 	}
 
-	pub fn poll(&self) -> io::Result<()> {
+	pub(crate) fn poll(&self) -> io::Result<()> {
 		match self.poll.poll_read_ready()? {
 			futures::Async::Ready(()) => {
 				let fd = self.service.fd();
@@ -43,7 +43,7 @@ impl EventedDNSService {
 		Ok(())
 	}
 
-	pub fn service(&self) -> &DNSService {
+	pub(crate) fn service(&self) -> &DNSService {
 		&self.service
 	}
 }
