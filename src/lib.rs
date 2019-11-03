@@ -77,13 +77,27 @@
 //! [`TxtRecord`]: struct.TxtRecord.html
 
 pub use self::{
-	dns_consts::*,
-	error::*,
+	dns_consts::{
+		Class,
+		Type,
+	},
+	error::Error,
 	ffi::MAX_DOMAIN_NAME,
-	interface::*,
+	interface::{
+		Interface,
+		InterfaceIndex,
+	},
 	service::*,
-	timeout_stream::*,
-	txt_record::*,
+	timeout_stream::{
+		StreamTimeoutExt,
+		TimeoutStream,
+		TimeoutStreamError,
+	},
+	txt_record::{
+		TxtRecord,
+		TxtRecordError,
+		TxtRecordIter,
+	},
 };
 
 mod cstr;
