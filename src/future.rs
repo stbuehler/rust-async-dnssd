@@ -14,6 +14,11 @@ use evented::EventedDNSService;
 use ffi;
 use raw::DNSService;
 
+#[allow(clippy::borrowed_box)]
+fn box_raw<T>(ptr: &mut Box<T>) -> *mut c_void {
+	ptr.as_mut() as *mut T as *mut c_void
+}
+
 type CallbackContext<T> = Option<oneshot::Sender<io::Result<T>>>;
 
 struct Inner<T> {
@@ -52,7 +57,7 @@ impl<T> ServiceFuture<T> {
 		let (sender, receiver) = oneshot::channel::<io::Result<T>>();
 		let mut sender = Box::new(Some(sender));
 
-		let service = f(&mut sender as *mut _ as *mut c_void)?;
+		let service = f(box_raw(&mut sender))?;
 		let service = EventedDNSService::new(service)?;
 
 		Ok(ServiceFuture(Some(Inner {
@@ -132,7 +137,7 @@ impl<T> ServiceFutureSingle<T> {
 		let (sender, receiver) = oneshot::channel::<io::Result<T>>();
 		let mut sender = Box::new(Some(sender));
 
-		let res = f(&mut sender as *mut _ as *mut c_void)?;
+		let res = f(box_raw(&mut sender))?;
 
 		Ok((
 			ServiceFutureSingle {

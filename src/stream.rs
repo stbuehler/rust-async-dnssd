@@ -13,6 +13,11 @@ use evented::EventedDNSService;
 use ffi;
 use raw::DNSService;
 
+#[allow(clippy::borrowed_box)]
+fn box_raw<T>(ptr: &mut Box<T>) -> *mut c_void {
+	ptr.as_mut() as *mut T as *mut c_void
+}
+
 type CallbackContext<T> = mpsc::UnboundedSender<io::Result<T>>;
 
 #[must_use = "streams do nothing unless polled"]
@@ -50,7 +55,7 @@ impl<T> ServiceStream<T> {
 		let (sender, receiver) = mpsc::unbounded::<io::Result<T>>();
 		let mut sender = Box::new(sender);
 
-		let service = f(&mut sender as *mut _ as *mut c_void)?;
+		let service = f(box_raw(&mut sender))?;
 		let service = EventedDNSService::new(service)?;
 
 		Ok(ServiceStream {
