@@ -207,22 +207,27 @@ impl PollReadFd {
 		})))
 	}
 
-	fn inner(&self) -> &mut Inner {
-		unsafe { &mut *self.0.get() }
+	unsafe fn inner(&self) -> &mut Inner {
+		&mut *self.0.get()
 	}
 
 	pub fn poll_read_ready(&self) -> Poll<(), io::Error> {
-		self.inner().poll_read_ready()
+		// This is safe because `Self` is not `Send`, and thus we do have
+		// exclusive access to the inner in this function scope.
+		unsafe { self.inner() }.poll_read_ready()
 	}
 
 	pub fn clear_read_ready(&self) -> io::Result<()> {
-		self.inner().clear_read_ready()
+		// This is safe because `Self` is not `Send`, and thus we do have
+		// exclusive access to the inner in this function scope.
+		unsafe { self.inner() }.clear_read_ready()
 	}
 }
 
 impl Drop for PollReadFd {
 	fn drop(&mut self) {
-		let _ = self.inner().send_request.send(PollRequest::Close);
+		// This is safe because we have exclusive access guaranteed by the `&mut`.
+		let _ = unsafe { self.inner() }.send_request.send(PollRequest::Close);
 	}
 }
 
