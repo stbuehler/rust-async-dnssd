@@ -14,6 +14,7 @@ use futures::{
 	Poll,
 	Stream,
 	stream,
+	try_ready,
 };
 
 use crate::dns_consts::{
@@ -160,7 +161,7 @@ impl Into<SocketAddrV6> for ScopedSocketAddr {
 }
 
 impl fmt::Display for ScopedSocketAddr {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
 			ScopedSocketAddr::V4 { address, port, scope_id: 0 } => {
 				write!(f, "{}:{}", address, port)
@@ -179,7 +180,7 @@ impl fmt::Display for ScopedSocketAddr {
 }
 
 impl fmt::Debug for ScopedSocketAddr {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		fmt::Display::fmt(self, f)
 	}
 }

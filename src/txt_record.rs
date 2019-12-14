@@ -109,7 +109,7 @@ impl TxtRecord {
 		}
 	}
 
-	fn _position_keys(&self) -> PositionKeyIter {
+	fn _position_keys(&self) -> PositionKeyIter<'_> {
 		PositionKeyIter {
 			pos: 0,
 			data: &self.0,
@@ -117,7 +117,7 @@ impl TxtRecord {
 	}
 
 	/// Iterate over all `(key, value)` pairs.
-	pub fn iter(&self) -> TxtRecordIter {
+	pub fn iter(&self) -> TxtRecordIter<'_> {
 		TxtRecordIter {
 			pos: 0,
 			data: &self.0,

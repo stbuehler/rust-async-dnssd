@@ -76,20 +76,6 @@
 //! [`TimeoutStream`]: struct.TimeoutStream.html
 //! [`TxtRecord`]: struct.TxtRecord.html
 
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate futures;
-extern crate libc;
-#[cfg(windows)] // only the windows event loop has debug logging for now
-#[macro_use]
-extern crate log;
-extern crate mio;
-extern crate tokio;
-
-#[cfg(windows)]
-extern crate winapi;
-
 pub use self::{
 	dns_consts::*,
 	error::*,

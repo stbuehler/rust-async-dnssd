@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use futures::{
 	self,
 	Async,
@@ -142,7 +143,7 @@ impl<'a> Default for BrowseData<'a> {
 /// See [`DNSServiceBrowse`](https://developer.apple.com/documentation/dnssd/1804742-dnsservicebrowse).
 pub fn browse_extended(
 	reg_type: &str,
-	data: BrowseData,
+	data: BrowseData<'_>,
 ) -> io::Result<Browse> {
 	crate::init();
 

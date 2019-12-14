@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use futures::{
 	self,
 	Async,

@@ -1,7 +1,3 @@
-extern crate async_dnssd;
-extern crate futures;
-extern crate tokio;
-
 use futures::stream::Stream;
 
 fn main() {

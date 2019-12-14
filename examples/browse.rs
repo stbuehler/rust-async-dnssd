@@ -1,7 +1,3 @@
-extern crate async_dnssd;
-extern crate futures;
-extern crate tokio;
-
 use async_dnssd::{
 	TimeoutTrait,
 	TxtRecord,

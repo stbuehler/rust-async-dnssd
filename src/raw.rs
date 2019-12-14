@@ -61,10 +61,10 @@ impl InnerDNSService {
 	fn register(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		name: &cstr::NullableCStr,
-		reg_type: &cstr::CStr,
-		domain: &cstr::NullableCStr,
-		host: &cstr::NullableCStr,
+		name: &cstr::NullableCStr<'_>,
+		reg_type: &cstr::CStr<'_>,
+		domain: &cstr::NullableCStr<'_>,
+		host: &cstr::NullableCStr<'_>,
 		port: u16,
 		txt: &[u8],
 		callback: ffi::DNSServiceRegisterReply,
@@ -98,8 +98,8 @@ impl InnerDNSService {
 	fn browse(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		reg_type: &cstr::CStr,
-		domain: &cstr::NullableCStr,
+		reg_type: &cstr::CStr<'_>,
+		domain: &cstr::NullableCStr<'_>,
 		callback: ffi::DNSServiceBrowseReply,
 		context: *mut c_void,
 	) -> FFIResult<InnerDNSService> {
@@ -121,9 +121,9 @@ impl InnerDNSService {
 	fn resolve(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		name: &cstr::CStr,
-		reg_type: &cstr::CStr,
-		domain: &cstr::CStr,
+		name: &cstr::CStr<'_>,
+		reg_type: &cstr::CStr<'_>,
+		domain: &cstr::CStr<'_>,
 		callback: ffi::DNSServiceResolveReply,
 		context: *mut c_void,
 	) -> FFIResult<InnerDNSService> {
@@ -152,7 +152,7 @@ impl InnerDNSService {
 	fn query_record(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		fullname: &cstr::CStr,
+		fullname: &cstr::CStr<'_>,
 		rr_type: Type,
 		rr_class: Class,
 		callback: ffi::DNSServiceQueryRecordReply,
@@ -213,10 +213,10 @@ impl DNSService {
 	pub(crate) fn register(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		name: &cstr::NullableCStr,
-		reg_type: &cstr::CStr,
-		domain: &cstr::NullableCStr,
-		host: &cstr::NullableCStr,
+		name: &cstr::NullableCStr<'_>,
+		reg_type: &cstr::CStr<'_>,
+		domain: &cstr::NullableCStr<'_>,
+		host: &cstr::NullableCStr<'_>,
 		port: u16,
 		txt: &[u8],
 		callback: ffi::DNSServiceRegisterReply,
@@ -255,8 +255,8 @@ impl DNSService {
 	pub(crate) fn browse(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		reg_type: &cstr::CStr,
-		domain: &cstr::NullableCStr,
+		reg_type: &cstr::CStr<'_>,
+		domain: &cstr::NullableCStr<'_>,
 		callback: ffi::DNSServiceBrowseReply,
 		context: *mut c_void,
 	) -> FFIResult<DNSService> {
@@ -273,9 +273,9 @@ impl DNSService {
 	pub(crate) fn resolve(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		name: &cstr::CStr,
-		reg_type: &cstr::CStr,
-		domain: &cstr::CStr,
+		name: &cstr::CStr<'_>,
+		reg_type: &cstr::CStr<'_>,
+		domain: &cstr::CStr<'_>,
 		callback: ffi::DNSServiceResolveReply,
 		context: *mut c_void,
 	) -> FFIResult<DNSService> {
@@ -294,7 +294,7 @@ impl DNSService {
 		&self,
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		fullname: &cstr::CStr,
+		fullname: &cstr::CStr<'_>,
 		rr_type: Type,
 		rr_class: Class,
 		rdata: &[u8],
@@ -323,7 +323,7 @@ impl DNSService {
 	pub(crate) fn query_record(
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		fullname: &cstr::CStr,
+		fullname: &cstr::CStr<'_>,
 		rr_type: Type,
 		rr_class: Class,
 		callback: ffi::DNSServiceQueryRecordReply,
@@ -399,7 +399,7 @@ impl InnerDNSRecord {
 		service: &DNSService,
 		flags: ffi::DNSServiceFlags,
 		interface_index: u32,
-		fullname: &cstr::CStr,
+		fullname: &cstr::CStr<'_>,
 		rr_type: Type,
 		rr_class: Class,
 		rdata: &[u8],
@@ -485,7 +485,7 @@ impl DNSRecord {
 pub fn reconfirm_record(
 	flags: ffi::DNSServiceFlags,
 	interface_index: u32,
-	fullname: &cstr::CStr,
+	fullname: &cstr::CStr<'_>,
 	rr_type: Type,
 	rr_class: Class,
 	rdata: &[u8],
