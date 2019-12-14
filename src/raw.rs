@@ -1,7 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 
 use std::{
-	cell::UnsafeCell,
 	os::raw::{
 		c_int,
 		c_void,
@@ -176,24 +175,23 @@ impl InnerDNSService {
 }
 
 #[derive(Clone)]
-pub(crate) struct DNSService(Rc<UnsafeCell<InnerDNSService>>);
+pub(crate) struct DNSService(Rc<InnerDNSService>);
 
 impl DNSService {
 	fn get(&self) -> &InnerDNSService {
-		let r = self.0.get();
-		unsafe { &*r }
+		self.0.as_ref()
 	}
 
 	fn new(s: FFIResult<InnerDNSService>) -> FFIResult<DNSService> {
-		s.map(|s| DNSService(Rc::new(UnsafeCell::new(s))))
+		s.map(|s| DNSService(Rc::new(s)))
 	}
 
 	pub(crate) fn fd(&self) -> c_int {
-		self.get().fd()
+		self.0.fd()
 	}
 
 	pub(crate) fn process_result(&self) -> FFIResult<()> {
-		self.get().process_result()
+		self.0.process_result()
 	}
 
 	pub(crate) fn enumerate_domains(
