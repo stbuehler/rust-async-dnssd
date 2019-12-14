@@ -233,15 +233,18 @@ mod fd_set {
 		FD_SETSIZE,
 		SOCKET,
 	};
+	use std::mem::MaybeUninit;
 
 	pub(super) struct FdSet(RawFdSet);
 
 	impl FdSet {
 		pub fn new() -> Self {
-			FdSet(RawFdSet {
-				fd_count: 0,
-				fd_array: [0; FD_SETSIZE],
-			})
+			let fd_count = 0;
+			// This is safe because we don't read from it when the slot is not initialized.
+			let fd_array = [unsafe {
+				MaybeUninit::<usize>::uninit().assume_init()
+			}; FD_SETSIZE];
+			FdSet(RawFdSet { fd_count, fd_array })
 		}
 
 		pub fn inner(&mut self) -> *mut RawFdSet {
