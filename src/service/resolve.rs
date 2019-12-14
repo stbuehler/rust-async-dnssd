@@ -72,7 +72,7 @@ impl ResolveResult {
 	}
 }
 
-extern "C" fn resolve_callback(
+unsafe extern "C" fn resolve_callback(
 	_sd_ref: ffi::DNSServiceRef,
 	_flags: ffi::DNSServiceFlags,
 	interface_index: u32,
@@ -85,9 +85,9 @@ extern "C" fn resolve_callback(
 	context: *mut c_void,
 ) {
 	CallbackStream::run_callback(context, error_code, || {
-		let fullname = unsafe { cstr::from_cstr(fullname) }?;
-		let host_target = unsafe { cstr::from_cstr(host_target) }?;
-		let txt = unsafe { ::std::slice::from_raw_parts(txt_record, txt_len as usize) };
+		let fullname = cstr::from_cstr(fullname)?;
+		let host_target = cstr::from_cstr(host_target)?;
+		let txt = ::std::slice::from_raw_parts(txt_record, txt_len as usize);
 
 		Ok(ResolveResult {
 			interface: Interface::from_raw(interface_index),

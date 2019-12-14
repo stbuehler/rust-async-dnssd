@@ -92,7 +92,7 @@ impl BrowseResult {
 	}
 }
 
-extern "C" fn browse_callback(
+unsafe extern "C" fn browse_callback(
 	_sd_ref: ffi::DNSServiceRef,
 	flags: ffi::DNSServiceFlags,
 	interface_index: u32,
@@ -103,9 +103,9 @@ extern "C" fn browse_callback(
 	context: *mut c_void,
 ) {
 	CallbackStream::run_callback(context, error_code, || {
-		let service_name = unsafe { cstr::from_cstr(service_name) }?;
-		let reg_type = unsafe { cstr::from_cstr(reg_type) }?;
-		let reply_domain = unsafe { cstr::from_cstr(reply_domain) }?;
+		let service_name = cstr::from_cstr(service_name)?;
+		let reg_type = cstr::from_cstr(reg_type)?;
+		let reply_domain = cstr::from_cstr(reply_domain)?;
 
 		Ok(BrowseResult {
 			flags: BrowsedFlags::from_bits_truncate(flags),

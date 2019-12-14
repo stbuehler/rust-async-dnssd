@@ -94,7 +94,7 @@ pub struct EnumerateResult {
 	pub domain: String,
 }
 
-extern "C" fn enumerate_callback(
+unsafe extern "C" fn enumerate_callback(
 	_sd_ref: ffi::DNSServiceRef,
 	flags: ffi::DNSServiceFlags,
 	interface_index: u32,
@@ -103,7 +103,7 @@ extern "C" fn enumerate_callback(
 	context: *mut c_void,
 ) {
 	CallbackStream::run_callback(context, error_code, || {
-		let reply_domain = unsafe { cstr::from_cstr(reply_domain) }?;
+		let reply_domain = cstr::from_cstr(reply_domain)?;
 
 		Ok(EnumerateResult {
 			flags: EnumeratedFlags::from_bits_truncate(flags),

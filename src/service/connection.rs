@@ -81,7 +81,7 @@ impl Future for RegisterRecord {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 struct RegisterRecordResult;
 
-extern "C" fn register_record_callback(
+unsafe extern "C" fn register_record_callback(
 	_sd_ref: ffi::DNSServiceRef,
 	_record_ref: ffi::DNSRecordRef,
 	_flags: ffi::DNSServiceFlags,

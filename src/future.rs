@@ -35,13 +35,13 @@ struct Inner<S: EventedService, T> {
 pub(crate) struct ServiceFuture<S: EventedService, T>(Option<Inner<S, T>>);
 
 impl<S: EventedService, T> ServiceFuture<S, T> {
-	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
+	pub(crate) unsafe fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
 	where
 		F: FnOnce() -> io::Result<T>,
 		T: ::std::fmt::Debug,
 	{
 		let sender = context as *mut CallbackContext<T>;
-		let sender: &mut CallbackContext<T> = unsafe { &mut *sender };
+		let sender: &mut CallbackContext<T> = &mut *sender;
 		let sender = sender.take().expect("callback must be run only once");
 
 		let data = Error::from(error_code)
