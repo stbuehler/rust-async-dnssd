@@ -14,6 +14,7 @@ use futures::{
 	Poll,
 	Stream,
 	stream,
+	try_ready,
 };
 
 use crate::dns_consts::{

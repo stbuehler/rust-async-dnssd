@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use futures::{
 	self,
 	Async,
@@ -270,8 +271,6 @@ pub fn register_extended(
 /// # Example
 ///
 /// ```no_run
-/// # extern crate async_dnssd;
-/// # extern crate tokio;
 /// # use async_dnssd::register;
 /// # #[deny(unused_must_use)]
 /// # fn main() -> std::io::Result<()> {
