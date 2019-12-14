@@ -84,7 +84,7 @@ pub struct QueryRecordResult {
 	pub ttl: u32,
 }
 
-extern "C" fn query_record_callback(
+unsafe extern "C" fn query_record_callback(
 	_sd_ref: ffi::DNSServiceRef,
 	flags: ffi::DNSServiceFlags,
 	interface_index: u32,
@@ -98,9 +98,8 @@ extern "C" fn query_record_callback(
 	context: *mut c_void,
 ) {
 	CallbackStream::run_callback(context, error_code, || {
-		let fullname = unsafe { cstr::from_cstr(fullname) }?;
-		let rdata =
-			unsafe { ::std::slice::from_raw_parts(rdata, rd_len as usize) };
+		let fullname = cstr::from_cstr(fullname)?;
+		let rdata = ::std::slice::from_raw_parts(rdata, rd_len as usize);
 
 		Ok(QueryRecordResult {
 			flags: QueriedRecordFlags::from_bits_truncate(flags),

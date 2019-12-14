@@ -139,7 +139,7 @@ pub struct RegisterResult {
 	pub domain: String,
 }
 
-extern "C" fn register_callback(
+unsafe extern "C" fn register_callback(
 	_sd_ref: ffi::DNSServiceRef,
 	_flags: ffi::DNSServiceFlags,
 	error_code: ffi::DNSServiceErrorType,
@@ -149,9 +149,9 @@ extern "C" fn register_callback(
 	context: *mut c_void,
 ) {
 	CallbackFuture::run_callback(context, error_code, || {
-		let name = unsafe { cstr::from_cstr(name) }?;
-		let reg_type = unsafe { cstr::from_cstr(reg_type) }?;
-		let domain = unsafe { cstr::from_cstr(domain) }?;
+		let name = cstr::from_cstr(name)?;
+		let reg_type = cstr::from_cstr(reg_type)?;
+		let domain = cstr::from_cstr(domain)?;
 
 		Ok(RegisterResult {
 			name: name.to_string(),
