@@ -16,18 +16,18 @@ use futures::{
 	stream,
 };
 
-use dns_consts::{
+use crate::dns_consts::{
 	Class,
 	Type,
 };
-use service::{
+use crate::service::{
 	QueryRecord,
 	QueryRecordData,
 	QueryRecordFlags,
 	QueryRecordResult,
 	query_record_extended,
 };
-use interface::Interface;
+use crate::interface::Interface;
 
 fn decode_a(a: QueryRecordResult) -> Option<(IpAddr, Interface)> {
 	if a.rr_class == Class::IN && a.rr_type == Type::A && a.rdata.len() == 4 {

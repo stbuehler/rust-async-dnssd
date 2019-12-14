@@ -1,6 +1,6 @@
 use std::fmt;
 
-use ffi;
+use crate::ffi;
 
 /// Network interface index
 ///

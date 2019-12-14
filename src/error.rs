@@ -4,7 +4,7 @@ use std::{
 	io,
 };
 
-use ffi;
+use crate::ffi;
 
 /// API Error
 #[derive(Clone, Copy, Eq, PartialEq, Hash)]
@@ -67,7 +67,7 @@ impl fmt::Display for ffi::DNSServiceError {
 }
 impl error::Error for ffi::DNSServiceError {
 	fn description(&self) -> &str {
-		use ffi::DNSServiceError::*;
+		use crate::ffi::DNSServiceError::*;
 		match *self {
 			Unknown => "unknown error",
 			NoSuchName => "no such name",
