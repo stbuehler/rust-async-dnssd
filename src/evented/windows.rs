@@ -230,40 +230,84 @@ impl Drop for PollReadFd {
 mod fd_set {
 	use libc::{c_int, c_uint};
 	use winapi::um::winsock2::{
-		fd_set as RawFdSet,
+		u_int,
+		fd_set,
 		FD_SETSIZE,
 		SOCKET,
 	};
+	use std::mem::MaybeUninit;
+	use std::ptr;
 
-	pub(super) struct FdSet(RawFdSet);
+	/// Layout compatible struct of `fd_set`, but it holds maybe uninitialized `fd_array`.
+	///
+	/// # Safety
+	/// The first `fd_count` slots of `fd_array` must be initialized,
+	/// and the rest may be uninitialized.
+	#[repr(C)]
+	pub(super) struct FdSet {
+		fd_count: u_int,
+		fd_array: [MaybeUninit<SOCKET>; FD_SETSIZE],
+	}
 
 	impl FdSet {
 		pub fn new() -> Self {
-			FdSet(RawFdSet {
+			FdSet {
 				fd_count: 0,
-				fd_array: [0; FD_SETSIZE],
-			})
+				// safe according to:
+				// https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
+				fd_array: unsafe { MaybeUninit::uninit().assume_init() },
+			}
 		}
 
-		pub fn inner(&mut self) -> *mut RawFdSet {
-			&mut self.0
+		pub fn inner(&mut self) -> *mut fd_set {
+			self as *mut FdSet as *mut _
 		}
 
 		pub fn set(&mut self, fd: c_int) {
 			if self.is_set(fd) {
 				return;
 			}
-			let count = self.0.fd_count as usize;
+			let count = self.fd_count as usize;
 			if count < FD_SETSIZE {
-				self.0.fd_array[count] = fd as c_uint as SOCKET;
-				self.0.fd_count += 1;
+				let fd = fd as c_uint as SOCKET;
+				// This is safe because this slot is uninitialized.
+				unsafe { ptr::write(self.fd_array[count].as_mut_ptr(), fd) };
+				self.fd_count += 1;
 			}
 		}
 
 		pub fn is_set(&self, fd: c_int) -> bool {
 			let fd = fd as c_uint as SOCKET;
-			let count = self.0.fd_count as usize;
-			self.0.fd_array[..count].iter().any(|i| *i == fd)
+			let count = self.fd_count as usize;
+			self.fd_array[..count].iter().any(|slot| {
+				// This is safe because it's reading from first `fd_count` slots.
+				fd == unsafe { ptr::read(slot.as_ptr()) }
+			})
+		}
+	}
+
+	#[cfg(test)]
+	mod tests {
+		use super::*;
+		use std::mem::{needs_drop, transmute};
+
+		// Check that `FdSet` is layout compatible with `fd_set`.
+		#[test]
+		fn fd_set_layout_compatible() {
+			let mut fd_set = FdSet::new();
+			(0..FD_SETSIZE as c_int).for_each(|i| fd_set.set(i));
+			let fd_set: fd_set = unsafe { transmute(fd_set) };
+			assert_eq!(fd_set.fd_count, FD_SETSIZE as u32);
+			for i in 0..FD_SETSIZE as usize {
+				assert_eq!(fd_set.fd_array[i], i as SOCKET);
+			}
+		}
+
+		// Check that `SOCKET` doesn't need to be dropped, so that we don't need to
+		// implement `Drop` for `FdSet`.
+		#[test]
+		fn socket_not_drop() {
+			assert!(!needs_drop::<SOCKET>());
 		}
 	}
 }
