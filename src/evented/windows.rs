@@ -31,6 +31,9 @@ use std::{
 	thread,
 	time::Duration,
 };
+use winapi::um::winsock2;
+
+use self::fd_set::FdSet;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum PollRequest {
@@ -40,33 +43,30 @@ enum PollRequest {
 
 struct SelectFdRead {
 	fd: c_int,
-	read_fds: libc::fd_set,
+	read_fds: FdSet,
 }
 impl SelectFdRead {
 	pub fn new(fd: c_int) -> Self {
-		use std::mem::uninitialized;
-		let mut read_fds: libc::fd_set = unsafe { uninitialized() };
-		unsafe { libc::FD_ZERO(&mut read_fds) };
-		SelectFdRead { fd, read_fds }
+		SelectFdRead { fd, read_fds: FdSet::new() }
 	}
 
 	pub fn select(&mut self, timeout: Option<Duration>) -> bool {
 		use std::ptr::null_mut;
-		let mut timeout = timeout.map(|timeout| libc::timeval {
+		let mut timeout = timeout.map(|timeout| winsock2::timeval {
 			tv_sec: timeout.as_secs() as libc::c_long,
 			tv_usec: (timeout.subsec_nanos() / 1000) as libc::c_long,
 		});
+		self.read_fds.set(self.fd);
 		unsafe {
-			libc::FD_SET(self.fd, &mut self.read_fds);
-			libc::select(
+			winsock2::select(
 				self.fd + 1,
-				&mut self.read_fds,
+				self.read_fds.inner(),
 				null_mut(),
 				null_mut(),
 				timeout.as_mut().map(|x| x as *mut _).unwrap_or(null_mut()),
 			);
-			libc::FD_ISSET(self.fd, &mut self.read_fds)
 		}
+		self.read_fds.is_set(self.fd)
 	}
 }
 
@@ -227,49 +227,43 @@ impl Drop for PollReadFd {
 	}
 }
 
-#[cfg(windows)]
-mod libc {
-	pub use libc::{
-		c_int,
-		c_long,
-		c_uint,
-	};
-	pub use winapi::um::winsock2::{
-		fd_set,
-		select,
-		timeval,
+mod fd_set {
+	use libc::{c_int, c_uint};
+	use winapi::um::winsock2::{
+		fd_set as RawFdSet,
 		FD_SETSIZE,
 		SOCKET,
 	};
 
-	#[allow(non_snake_case)]
-	pub unsafe fn FD_ZERO(set: *mut fd_set) {
-		let set = &mut *set;
-		set.fd_count = 0;
-	}
+	pub(super) struct FdSet(RawFdSet);
 
-	#[allow(non_snake_case)]
-	pub unsafe fn FD_SET(fd: c_int, set: *mut fd_set) {
-		if FD_ISSET(fd, set) {
-			return;
+	impl FdSet {
+		pub fn new() -> Self {
+			FdSet(RawFdSet {
+				fd_count: 0,
+				fd_array: [0; FD_SETSIZE],
+			})
 		}
-		let set = &mut *set;
-		let fd = fd as c_uint as SOCKET;
-		if (set.fd_count as usize) < FD_SETSIZE {
-			set.fd_array[set.fd_count as usize] = fd;
-			set.fd_count += 1;
-		}
-	}
 
-	#[allow(non_snake_case)]
-	pub unsafe fn FD_ISSET(fd: c_int, set: *mut fd_set) -> bool {
-		let set = &mut *set;
-		let fd = fd as c_uint as SOCKET;
-		set.fd_array[..set.fd_count as usize]
-			.iter()
-			.any(|i| *i == fd)
+		pub fn inner(&mut self) -> *mut RawFdSet {
+			&mut self.0
+		}
+
+		pub fn set(&mut self, fd: c_int) {
+			if self.is_set(fd) {
+				return;
+			}
+			let count = self.0.fd_count as usize;
+			if count < FD_SETSIZE {
+				self.0.fd_array[count] = fd as c_uint as SOCKET;
+				self.0.fd_count += 1;
+			}
+		}
+
+		pub fn is_set(&self, fd: c_int) -> bool {
+			let fd = fd as c_uint as SOCKET;
+			let count = self.0.fd_count as usize;
+			self.0.fd_array[..count].iter().any(|i| *i == fd)
+		}
 	}
 }
-
-#[cfg(unix)]
-use libc;
