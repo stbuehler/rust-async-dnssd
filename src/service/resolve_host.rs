@@ -9,13 +9,16 @@ use std::{
 		SocketAddrV4,
 		SocketAddrV6,
 	},
+	pin::Pin,
+	task::{
+		Context,
+		Poll,
+	},
 };
 
 use futures::{
+	prelude::*,
 	stream,
-	try_ready,
-	Async,
-	Poll,
 	Stream,
 };
 
@@ -27,7 +30,6 @@ use crate::{
 	interface::Interface,
 	service::{
 		query_record_extended,
-		QueryRecord,
 		QueryRecordData,
 		QueryRecordFlags,
 		QueryRecordResult,
@@ -75,24 +77,22 @@ pub struct ResolveHostData {
 	pub interface: Interface,
 }
 
-type DecodeFn = fn(QueryRecordResult) -> Option<(IpAddr, Interface)>;
-type DecodedStream = stream::FilterMap<QueryRecord, DecodeFn>;
-
 /// Pending resolve
 #[must_use = "streams do nothing unless polled"]
 pub struct ResolveHost {
-	inner: stream::Select<DecodedStream, DecodedStream>,
+	// inner: stream::BoxStream<'static, io::Result<(IpAddr, Interface)>>,
+	inner: Pin<Box<dyn Stream<Item = io::Result<(IpAddr, Interface)>> + 'static + Send + Sync>>,
 	port: u16,
 }
 
 impl Stream for ResolveHost {
-	type Error = io::Error;
-	type Item = ScopedSocketAddr;
+	type Item = io::Result<ScopedSocketAddr>;
 
-	fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-		Ok(Async::Ready(try_ready!(self.inner.poll()).map(
-			|(ip, iface)| ScopedSocketAddr::new(ip, self.port, iface.scope_id()),
-		)))
+	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+		Poll::Ready(
+			futures::ready!(self.inner.poll_next_unpin(cx)?)
+				.map(|(ip, iface)| Ok(ScopedSocketAddr::new(ip, self.port, iface.scope_id()))),
+		)
 	}
 }
 
@@ -221,9 +221,11 @@ pub fn resolve_host_extended(
 		rr_class: Class::IN,
 	};
 
-	let inner = query_record_extended(host, Type::AAAA, qrdata)?
-		.filter_map(decode_aaaa as DecodeFn)
-		.select(query_record_extended(host, Type::A, qrdata)?.filter_map(decode_a as DecodeFn));
+	let inner_v6 = query_record_extended(host, Type::AAAA, qrdata)?
+		.try_filter_map(|addr| async { Ok(decode_aaaa(addr)) });
+	let inner_v4 = query_record_extended(host, Type::A, qrdata)?
+		.try_filter_map(|addr| async { Ok(decode_a(addr)) });
+	let inner = Box::pin(stream::select(inner_v6, inner_v4));
 
 	Ok(ResolveHost { inner, port })
 }

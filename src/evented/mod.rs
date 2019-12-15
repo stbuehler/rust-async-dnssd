@@ -8,42 +8,41 @@ use self::windows as platform;
 #[cfg(windows)]
 mod windows;
 
-use futures;
-use std::io;
+use std::{
+	io,
+	task::{
+		Context,
+		Poll,
+	},
+};
 
-use crate::raw::DNSService;
-
-#[must_use = "EventedDNSService does nothing unless polled"]
-pub(crate) struct EventedDNSService {
-	service: DNSService,
+pub(crate) struct ReadProcessor {
+	fd: libc::c_int,
 	poll: platform::PollReadFd,
 }
 
-impl EventedDNSService {
-	pub(crate) fn new(service: DNSService) -> io::Result<Self> {
-		let fd = service.fd();
-
-		Ok(EventedDNSService {
-			service,
-			poll: platform::PollReadFd::new(fd)?,
-		})
+impl ReadProcessor {
+	pub(crate) fn new(fd: libc::c_int) -> Self {
+		Self {
+			fd,
+			poll: platform::PollReadFd::new(fd),
+		}
 	}
 
-	pub(crate) fn poll(&self) -> io::Result<()> {
-		match self.poll.poll_read_ready()? {
-			futures::Async::Ready(()) => {
-				let fd = self.service.fd();
-				while platform::is_readable(fd)? {
-					self.service.process_result()?;
+	/// call "p" until fd is no longer readable
+	pub(crate) fn process<P>(&mut self, cx: &mut Context<'_>, mut p: P) -> io::Result<()>
+	where
+		P: FnMut() -> io::Result<()>,
+	{
+		match self.poll.poll_read_ready(cx)? {
+			Poll::Ready(()) => {
+				while platform::is_readable(self.fd)? {
+					p()?;
 				}
-				self.poll.clear_read_ready()?;
+				self.poll.clear_read_ready(cx)?;
 			},
-			futures::Async::NotReady => (),
+			Poll::Pending => (),
 		}
 		Ok(())
-	}
-
-	pub(crate) fn service(&self) -> &DNSService {
-		&self.service
 	}
 }

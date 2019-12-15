@@ -15,19 +15,19 @@
 //! back to a smaller timeout.
 
 use futures::{
-	sink::Wait,
-	sync::mpsc as futures_mpsc,
-	Async,
-	Poll,
-	Sink,
-	Stream,
+	channel::mpsc as futures_mpsc,
+	prelude::*,
 };
 use log::debug;
 use std::{
-	cell::UnsafeCell,
 	io,
 	os::raw::c_int,
+	sync::Mutex,
 	sync::mpsc as std_mpsc,
+	task::{
+		Context,
+		Poll,
+	},
 	thread,
 	time::Duration,
 };
@@ -85,72 +85,77 @@ struct Inner {
 	send_request: std_mpsc::SyncSender<PollRequest>,
 	/// when clear_read_ready() is called we use this to trigger a response if
 	/// we already know the read event is pending
-	send_response: Wait<futures_mpsc::Sender<()>>,
+	send_response: futures_mpsc::Sender<()>,
 	/// a response means a read event is pending
 	recv_response: futures_mpsc::Receiver<()>,
 }
 
 impl Inner {
-	fn poll_read_ready(&mut self) -> Poll<(), io::Error> {
+	fn poll_read_ready(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
 		debug!("poll read");
 		if !self.pending_request {
+			self.pending_request = true;
 			let mut read_fds = SelectFdRead::new(self.fd);
 			if read_fds.select(Some(Duration::from_millis(0))) {
 				debug!("poll read: local ready");
-				return Ok(Async::Ready(()));
+				return Poll::Ready(Ok(()));
 			} else {
 				debug!("poll read: not ready, start thread");
 				self.send_request
 					.send(PollRequest::Poll)
 					.expect("select thread terminated");
-				self.pending_request = true;
 			}
 		}
 
-		match self.recv_response.poll().unwrap() {
-			Async::Ready(None) => unreachable!(),
-			Async::Ready(Some(())) => {
+		match self.recv_response.poll_next_unpin(cx) {
+			Poll::Ready(None) => unreachable!(), // can't be disconnected
+			Poll::Ready(Some(())) => {
 				debug!("poll read: thread ready");
 				self.pending_request = false;
-				Ok(Async::Ready(()))
+				Poll::Ready(Ok(()))
 			},
-			Async::NotReady => {
+			Poll::Pending => {
 				debug!("poll read: thread not ready");
-				Ok(Async::NotReady)
+				Poll::Pending
 			},
 		}
 	}
 
-	fn clear_read_ready(&mut self) -> io::Result<()> {
-		// we need to get Async::NotReady from recv_response.poll
-		match self.recv_response.poll().unwrap() {
-			Async::Ready(None) => unreachable!(),
-			Async::Ready(Some(())) => {
+	// read() return EAGAIN; re-trigger polling and notify cx
+	fn clear_read_ready(&mut self, cx: &mut Context<'_>) -> io::Result<()> {
+		// we need to get Poll::Pending from recv_response.poll to make sure `cx` was registered
+		match self.recv_response.poll_next_unpin(cx) {
+			Poll::Ready(None) => unreachable!(), // can't be disconnected
+			Poll::Ready(Some(())) => {
 				// was ready. damn...
 				assert!(self.pending_request);
-				// try again - can't be ready again
-				match self.recv_response.poll().unwrap() {
-					Async::Ready(None) => unreachable!(),
-					Async::Ready(Some(())) => unreachable!(),
-					Async::NotReady => (),
+				// try again - can't be ready again, but register context
+				match self.recv_response.poll_next_unpin(cx) {
+					Poll::Ready(None) => unreachable!(), // can't be disconnected
+					Poll::Ready(Some(())) => unreachable!(), // no one could have sent this
+					Poll::Pending => (),
 				}
 				// now send a response - it was ready after all
-				self.send_response.send(()).unwrap();
+				self.send_response.try_send(()).expect("channel can't be full or disconnected");
 			},
-			Async::NotReady => {
+			Poll::Pending => {
 				// yay!
 				//
-				// now we need something to trigger a response
-				let mut read_fds = SelectFdRead::new(self.fd);
-				self.pending_request = true;
-				if read_fds.select(Some(Duration::from_millis(0))) {
-					// ready, send a response
-					self.send_response.send(()).unwrap();
-				} else {
-					debug!("poll need read: not ready, start thread");
-					self.send_request
-						.send(PollRequest::Poll)
-						.expect("select thread terminated");
+				// already on the way (background thread polling)?
+				if !self.pending_request {
+					// now we need something to trigger a response
+					self.pending_request = true;
+					let mut read_fds = SelectFdRead::new(self.fd);
+					if read_fds.select(Some(Duration::from_millis(0))) {
+						debug!("poll need read: local ready");
+						// ready, send a response
+						self.send_response.try_send(()).expect("channel can't be full or disconnected");
+					} else {
+						debug!("poll need read: not ready, start thread");
+						self.send_request
+							.send(PollRequest::Poll)
+							.expect("select thread terminated");
+					}
 				}
 			},
 		}
@@ -163,19 +168,18 @@ pub fn is_readable(fd: c_int) -> io::Result<bool> {
 	Ok(read_fds.select(Some(Duration::from_millis(0))))
 }
 
-pub struct PollReadFd(UnsafeCell<Inner>);
+pub struct PollReadFd(Mutex<Inner>);
 impl PollReadFd {
 	/// does not take overship of fd
-	pub fn new(fd: c_int) -> io::Result<Self> {
+	pub fn new(fd: c_int) -> Self {
 		// buffer one request for "Close"
 		let (send_request, recv_request) = std_mpsc::sync_channel(1);
 		// buffer one notification
-		let (send_response, recv_response) = futures_mpsc::channel(1);
-		let outer_send_response = send_response.clone().wait();
+		let (mut send_response, recv_response) = futures_mpsc::channel(1);
+		let outer_send_response = send_response.clone();
 
 		let thread = thread::spawn(move || {
 			let mut read_fds = SelectFdRead::new(fd);
-			let mut send_response = send_response.wait();
 			loop {
 				debug!("[select thread] waiting for request");
 				match recv_request.recv() {
@@ -195,38 +199,32 @@ impl PollReadFd {
 
 				debug!("[select thread] read event");
 
-				if send_response.send(()).is_err() {
-					return;
-				}
+				futures::executor::block_on(send_response.send(())).unwrap();
 			}
 		});
 
-		Ok(PollReadFd(UnsafeCell::new(Inner {
+		PollReadFd(Mutex::new(Inner {
 			fd,
 			_thread: thread,
 			pending_request: false,
 			send_request,
 			send_response: outer_send_response,
 			recv_response,
-		})))
+		}))
 	}
 
-	fn inner(&self) -> &mut Inner {
-		unsafe { &mut *self.0.get() }
+	pub fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+		self.0.lock().expect("lock failed").poll_read_ready(cx)
 	}
 
-	pub fn poll_read_ready(&self) -> Poll<(), io::Error> {
-		self.inner().poll_read_ready()
-	}
-
-	pub fn clear_read_ready(&self) -> io::Result<()> {
-		self.inner().clear_read_ready()
+	pub fn clear_read_ready(&self, cx: &mut Context<'_>) -> io::Result<()> {
+		self.0.lock().expect("lock failed").clear_read_ready(cx)
 	}
 }
 
 impl Drop for PollReadFd {
 	fn drop(&mut self) {
-		let _ = self.inner().send_request.send(PollRequest::Close);
+		let _ = self.0.lock().expect("lock failed").send_request.send(PollRequest::Close);
 	}
 }
 

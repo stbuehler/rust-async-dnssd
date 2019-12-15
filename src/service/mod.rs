@@ -36,7 +36,7 @@ pub fn reconfirm_record(
 	crate::init();
 
 	let fullname = crate::cstr::CStr::from(&fullname)?;
-	crate::raw::reconfirm_record(
+	crate::inner::reconfirm_record(
 		0, // no flags
 		interface.into_raw(),
 		&fullname,

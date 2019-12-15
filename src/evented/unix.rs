@@ -1,14 +1,13 @@
-use futures::{
-	try_ready,
-	Async,
-	Poll,
-};
 use mio;
 use std::{
 	io,
 	os::raw::c_int,
+	task::{
+		Context,
+		Poll,
+	},
 };
-use tokio::reactor::PollEvented2 as PollEvented;
+use tokio::io::PollEvented;
 
 pub fn is_readable(fd: c_int) -> io::Result<bool> {
 	let mut fds = libc::pollfd {
@@ -35,20 +34,20 @@ pub fn is_readable(fd: c_int) -> io::Result<bool> {
 pub struct PollReadFd(PollEvented<EventedFd>);
 
 impl PollReadFd {
-	pub fn new(fd: c_int) -> io::Result<Self> {
-		Ok(PollReadFd(PollEvented::new(EventedFd(fd))))
+	pub fn new(fd: c_int) -> Self {
+		PollReadFd(PollEvented::new(EventedFd(fd)).unwrap())
 	}
 
-	pub fn poll_read_ready(&self) -> Poll<(), io::Error> {
-		if try_ready!(self.0.poll_read_ready(mio::Ready::readable())).is_readable() {
-			Ok(Async::Ready(()))
+	pub fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+		if futures::ready!(self.0.poll_read_ready(cx, mio::Ready::readable()))?.is_readable() {
+			Poll::Ready(Ok(()))
 		} else {
-			Ok(Async::NotReady)
+			Poll::Pending
 		}
 	}
 
-	pub fn clear_read_ready(&self) -> io::Result<()> {
-		self.0.clear_read_ready(mio::Ready::readable())
+	pub fn clear_read_ready(&self, cx: &mut Context<'_>) -> io::Result<()> {
+		self.0.clear_read_ready(cx, mio::Ready::readable())
 	}
 }
 

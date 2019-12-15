@@ -65,7 +65,7 @@ impl fmt::Display for ffi::DNSServiceError {
 }
 impl error::Error for ffi::DNSServiceError {
 	fn description(&self) -> &str {
-		use crate::ffi::DNSServiceError::*;
+		use ffi::DNSServiceError::*;
 		match *self {
 			Unknown => "unknown error",
 			NoSuchName => "no such name",

@@ -1,20 +1,22 @@
-use futures::{
-	self,
-	Async,
-};
+use futures::{self,};
 use std::{
 	io,
 	os::raw::{
 		c_char,
 		c_void,
 	},
+	pin::Pin,
+	task::{
+		Context,
+		Poll,
+	},
 };
 
 use crate::{
 	cstr,
 	ffi,
+	inner,
 	interface::Interface,
-	raw,
 	service::{
 		resolve_host_extended,
 		ResolveHost,
@@ -22,18 +24,23 @@ use crate::{
 	},
 };
 
-type CallbackStream = crate::stream::ServiceStream<ResolveResult>;
+type CallbackStream = crate::stream::ServiceStream<inner::OwnedService, ResolveResult>;
 
 /// Pending resolve request
 #[must_use = "streams do nothing unless polled"]
-pub struct Resolve(CallbackStream);
+pub struct Resolve {
+	stream: CallbackStream,
+}
+
+impl Resolve {
+	pin_utils::unsafe_pinned!(stream: CallbackStream);
+}
 
 impl futures::Stream for Resolve {
-	type Error = io::Error;
-	type Item = ResolveResult;
+	type Item = io::Result<ResolveResult>;
 
-	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
-		self.0.poll()
+	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+		self.stream().poll_next(cx)
 	}
 }
 
@@ -111,8 +118,8 @@ pub fn resolve(
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::CStr::from(&domain)?;
 
-	Ok(Resolve(CallbackStream::new(move |sender| {
-		raw::DNSService::resolve(
+	let stream = CallbackStream::new(move |sender| {
+		inner::OwnedService::resolve(
 			0, // no flags
 			interface.into_raw(),
 			&name,
@@ -121,5 +128,7 @@ pub fn resolve(
 			Some(resolve_callback),
 			sender,
 		)
-	})?))
+	})?;
+
+	Ok(Resolve { stream })
 }

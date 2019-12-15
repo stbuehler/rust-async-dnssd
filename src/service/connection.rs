@@ -1,13 +1,12 @@
-use bitflags::bitflags;
-use futures::{
-	self,
-	Async,
-	Future,
-};
+use futures::prelude::*;
 use std::{
 	io,
 	os::raw::c_void,
-	rc::Rc,
+	pin::Pin,
+	task::{
+		Context,
+		Poll,
+	},
 };
 
 use crate::{
@@ -16,16 +15,15 @@ use crate::{
 		Class,
 		Type,
 	},
-	evented::EventedDNSService,
 	ffi,
+	inner,
 	interface::Interface,
-	raw,
 };
 
-type CallbackFuture = crate::future::ServiceFutureSingle<RegisterRecordResult>;
+type CallbackFuture = crate::future::ServiceFuture<inner::SharedService, RegisterRecordResult>;
 
 /// Connection to register records with
-pub struct Connection(Rc<EventedDNSService>);
+pub struct Connection(inner::SharedService);
 
 /// Create [`Connection`](struct.Connection.html) to register records
 /// with
@@ -34,11 +32,10 @@ pub struct Connection(Rc<EventedDNSService>);
 pub fn connect() -> io::Result<Connection> {
 	crate::init();
 
-	let con = raw::DNSService::create_connection()?;
-	Ok(Connection(Rc::new(EventedDNSService::new(con)?)))
+	Ok(Connection(inner::SharedService::create_connection()?))
 }
 
-bitflags! {
+bitflags::bitflags! {
 	/// Flags used to register a record
 	#[derive(Default)]
 	pub struct RegisterRecordFlags: ffi::DNSServiceFlags {
@@ -61,18 +58,23 @@ bitflags! {
 // the future gets canceled by dropping the record; must
 // not drop the future without dropping the record.
 #[must_use = "futures do nothing unless polled"]
-pub struct RegisterRecord(CallbackFuture, Option<crate::Record>);
+pub struct RegisterRecord {
+	future: CallbackFuture,
+	record: Option<crate::Record>,
+}
+
+impl RegisterRecord {
+	pin_utils::unsafe_pinned!(future: CallbackFuture);
+
+	pin_utils::unsafe_unpinned!(record: Option<crate::Record>);
+}
 
 impl Future for RegisterRecord {
-	type Error = io::Error;
-	type Item = crate::Record;
+	type Output = io::Result<crate::Record>;
 
-	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
-		match self.0.poll() {
-			Ok(Async::Ready(RegisterRecordResult)) => Ok(Async::Ready(self.1.take().unwrap())),
-			Ok(Async::NotReady) => Ok(Async::NotReady),
-			Err(e) => Err(e),
-		}
+	fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+		futures::ready!(self.as_mut().future().poll(cx))?;
+		Poll::Ready(Ok(self.record().take().unwrap()))
 	}
 }
 
@@ -137,8 +139,8 @@ impl Connection {
 	) -> io::Result<RegisterRecord> {
 		let fullname = cstr::CStr::from(&fullname)?;
 
-		let (serv, record) = CallbackFuture::new(self.0.clone(), move |sender| {
-			self.0.service().register_record(
+		let (future, record) = CallbackFuture::new_with(self.0.clone(), move |sender| {
+			self.0.clone().register_record(
 				data.flags.bits(),
 				data.interface.into_raw(),
 				&fullname,
@@ -151,7 +153,10 @@ impl Connection {
 			)
 		})?;
 
-		Ok(RegisterRecord(serv, Some(record.into())))
+		Ok(RegisterRecord {
+			future,
+			record: Some(record.into()),
+		})
 	}
 
 	/// Register record on interface with given name, type, class, rdata
@@ -174,8 +179,8 @@ impl Connection {
 }
 
 impl RegisterRecord {
-	fn record(&self) -> &crate::Record {
-		self.1.as_ref().expect("RegisterRecord future is done")
+	fn inner_record(&self) -> &crate::Record {
+		self.record.as_ref().expect("RegisterRecord future is done")
 	}
 
 	/// Type of the record
@@ -185,7 +190,7 @@ impl RegisterRecord {
 	/// Panics after the future completed.  Use the returned
 	/// [`Record`](struct.Record.html) instead.
 	pub fn rr_type(&self) -> Type {
-		self.record().rr_type()
+		self.inner_record().rr_type()
 	}
 
 	/// Update record
@@ -199,7 +204,7 @@ impl RegisterRecord {
 	///
 	/// See [`DNSServiceUpdateRecord`](https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord).
 	pub fn update_record(&self, rdata: &[u8], ttl: u32) -> io::Result<()> {
-		self.record().update_record(rdata, ttl)
+		self.inner_record().update_record(rdata, ttl)
 	}
 
 	/// Keep record for as long as the underlying connection lives.
@@ -221,9 +226,12 @@ impl RegisterRecord {
 	//   underyling service, and drop it either when dropping the
 	//   service or the callback was called.
 	pub fn keep(self) {
-		let (fut, rec) = (self.0, self.1.expect("RegisterRecord future is done"));
+		let (fut, rec) = (
+			self.future,
+			self.record.expect("RegisterRecord future is done"),
+		);
 		// drive future to continuation, ignore errors
-		tokio::runtime::current_thread::spawn(fut.then(|_| Ok(())));
+		tokio::spawn(fut.map(|_| ()));
 		rec.keep();
 	}
 }

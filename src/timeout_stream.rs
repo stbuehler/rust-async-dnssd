@@ -1,21 +1,22 @@
-use futures::{
-	self,
-	Async,
-	Future,
-};
+use futures::prelude::*;
 use std::{
 	io,
+	pin::Pin,
+	task::{
+		Context,
+		Poll,
+	},
 	time::Duration,
 };
 
 /// `futures::Stream` extension to simplify building
 /// [`TimeoutStream`](struct.TimeoutStream.html)
-pub trait StreamTimeoutExt: futures::Stream + Sized {
+pub trait StreamTimeoutExt: Stream + Sized {
 	/// Create new [`TimeoutStream`](struct.TimeoutStream.html)
 	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>>;
 }
 
-impl<S: futures::Stream> StreamTimeoutExt for S {
+impl<S: Stream> StreamTimeoutExt for S {
 	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>> {
 		TimeoutStream::new(self, duration)
 	}
@@ -29,10 +30,14 @@ impl<S: futures::Stream> StreamTimeoutExt for S {
 pub struct TimeoutStream<S> {
 	stream: S,
 	duration: Duration,
-	timeout: tokio::timer::Delay,
+	timeout: tokio::time::Delay,
 }
 
-impl<S: futures::Stream> TimeoutStream<S> {
+impl<S: Stream> TimeoutStream<S> {
+	pin_utils::unsafe_pinned!(stream: S);
+
+	pin_utils::unsafe_unpinned!(timeout: tokio::time::Delay);
+
 	/// Create new `TimeoutStream`.
 	///
 	/// Also see [`StreamTimeoutExt::timeout`](trait.StreamTimeoutExt.html#method.timeout).
@@ -40,7 +45,7 @@ impl<S: futures::Stream> TimeoutStream<S> {
 		Ok(TimeoutStream {
 			stream,
 			duration,
-			timeout: tokio::timer::Delay::new(std::time::Instant::now() + duration),
+			timeout: tokio::time::delay_for(duration),
 		})
 	}
 }
@@ -54,7 +59,7 @@ pub enum TimeoutStreamError<E> {
 	/// An error occured in the underlying stream
 	StreamError(E),
 	/// Setting / checking the timeout failed
-	TimeoutError(tokio::timer::Error),
+	TimeoutError(tokio::time::Error),
 }
 
 impl<E: Into<io::Error>> TimeoutStreamError<E> {
@@ -67,40 +72,38 @@ impl<E: Into<io::Error>> TimeoutStreamError<E> {
 	}
 }
 
-impl<S: futures::Stream> TimeoutStream<S> {
-	fn reset_timer(&mut self) {
-		self.timeout
-			.reset(std::time::Instant::now() + self.duration);
+impl<S: Stream> TimeoutStream<S> {
+	fn reset_timer(self: Pin<&mut Self>) {
+		let next = tokio::time::Instant::now() + self.duration;
+		self.timeout().reset(next);
 	}
 }
 
-impl<S: futures::Stream> futures::Stream for TimeoutStream<S> {
-	type Error = TimeoutStreamError<S::Error>;
-	type Item = S::Item;
+impl<S: TryStream> Stream for TimeoutStream<S> {
+	type Item = Result<S::Ok, S::Error>;
 
-	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
-		match self.stream.poll() {
-			Ok(Async::Ready(None)) => Ok(Async::Ready(None)), // end of stream
-			Ok(Async::Ready(item)) => {
+	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+		match self.as_mut().stream().try_poll_next(cx) {
+			Poll::Ready(None) => Poll::Ready(None), // end of stream
+			Poll::Ready(Some(Ok(item))) => {
 				// not end of stream: reset timeout
 				self.reset_timer();
-				Ok(Async::Ready(item))
+				Poll::Ready(Some(Ok(item)))
 			},
-			Ok(Async::NotReady) => {
+			Poll::Ready(Some(Err(e))) => Poll::Ready(Some(Err(e))),
+			Poll::Pending => {
 				// check timeout
-				match self.timeout.poll() {
+				match self.timeout().poll_unpin(cx) {
 					// timed out?
-					Ok(Async::Ready(_)) => {
+					Poll::Ready(()) => {
 						// not an error
-						Ok(Async::Ready(None))
+						Poll::Ready(None)
 						// Err(TimeoutStreamError::Timeout)
 					},
 					// still time left
-					Ok(Async::NotReady) => Ok(Async::NotReady),
-					Err(e) => Err(TimeoutStreamError::TimeoutError(e)),
+					Poll::Pending => Poll::Pending,
 				}
 			},
-			Err(e) => Err(TimeoutStreamError::StreamError(e)),
 		}
 	}
 }

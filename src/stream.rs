@@ -1,18 +1,21 @@
 use futures::{
-	self,
-	sync::mpsc,
-	Async,
+	channel::mpsc,
+	prelude::*,
 };
 use std::{
 	io,
 	os::raw::c_void,
+	pin::Pin,
+	task::{
+		Context,
+		Poll,
+	},
 };
 
 use crate::{
 	error::Error,
-	evented::EventedDNSService,
 	ffi,
-	raw::DNSService,
+	inner::EventedService,
 };
 
 #[allow(clippy::borrowed_box)]
@@ -23,13 +26,13 @@ fn box_raw<T>(ptr: &mut Box<T>) -> *mut c_void {
 type CallbackContext<T> = mpsc::UnboundedSender<io::Result<T>>;
 
 #[must_use = "streams do nothing unless polled"]
-pub(crate) struct ServiceStream<T> {
-	service: EventedDNSService,
+pub(crate) struct ServiceStream<S: EventedService, T> {
+	service: S,
 	_sender: Box<CallbackContext<T>>,
 	receiver: mpsc::UnboundedReceiver<io::Result<T>>,
 }
 
-impl<T> ServiceStream<T> {
+impl<S: EventedService, T> ServiceStream<S, T> {
 	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
 	where
 		F: FnOnce() -> io::Result<T>,
@@ -49,13 +52,12 @@ impl<T> ServiceStream<T> {
 
 	pub(crate) fn new<F>(f: F) -> io::Result<Self>
 	where
-		F: FnOnce(*mut c_void) -> Result<DNSService, Error>,
+		F: FnOnce(*mut c_void) -> Result<S, Error>,
 	{
 		let (sender, receiver) = mpsc::unbounded::<io::Result<T>>();
 		let mut sender = Box::new(sender);
 
 		let service = f(box_raw(&mut sender))?;
-		let service = EventedDNSService::new(service)?;
 
 		Ok(ServiceStream {
 			service,
@@ -65,17 +67,11 @@ impl<T> ServiceStream<T> {
 	}
 }
 
-impl<T> futures::Stream for ServiceStream<T> {
-	type Error = io::Error;
-	type Item = T;
+impl<S: EventedService, T> Stream for ServiceStream<S, T> {
+	type Item = io::Result<T>;
 
-	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
-		self.service.poll()?;
-		match self.receiver.poll() {
-			Ok(Async::Ready(None)) => Ok(Async::Ready(None)),
-			Ok(Async::Ready(Some(item))) => Ok(Async::Ready(Some(item?))),
-			Ok(Async::NotReady) => Ok(Async::NotReady),
-			Err(()) => unreachable!(),
-		}
+	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+		self.service.poll(cx)?;
+		self.receiver.poll_next_unpin(cx)
 	}
 }

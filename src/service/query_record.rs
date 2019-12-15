@@ -1,13 +1,14 @@
-use bitflags::bitflags;
-use futures::{
-	self,
-	Async,
-};
+use futures::{self,};
 use std::{
 	io,
 	os::raw::{
 		c_char,
 		c_void,
+	},
+	pin::Pin,
+	task::{
+		Context,
+		Poll,
 	},
 };
 
@@ -18,24 +19,24 @@ use crate::{
 		Type,
 	},
 	ffi,
+	inner,
 	interface::Interface,
-	raw,
 };
 
-type CallbackStream = crate::stream::ServiceStream<QueryRecordResult>;
+type CallbackStream = crate::stream::ServiceStream<inner::OwnedService, QueryRecordResult>;
 
-bitflags! {
+bitflags::bitflags! {
 	/// Flags used to query for a record
 	#[derive(Default)]
-	pub struct QueryRecordFlags: ffi::DNSServiceFlags {
+	pub struct QueryRecordFlags: crate::ffi::DNSServiceFlags {
 		/// long-lived unicast query
 		///
 		/// See [`kDNSServiceFlagsLongLivedQuery`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagslonglivedquery).
-		const LONG_LIVED_QUERY = ffi::FLAGS_LONG_LIVED_QUERY;
+		const LONG_LIVED_QUERY = crate::ffi::FLAGS_LONG_LIVED_QUERY;
 	}
 }
 
-bitflags! {
+bitflags::bitflags! {
 	/// Flags for [`QueryRecordResult`](struct.QueryRecordResult.html)
 	#[derive(Default)]
 	pub struct QueriedRecordFlags: ffi::DNSServiceFlags {
@@ -55,14 +56,19 @@ bitflags! {
 
 /// Pending query
 #[must_use = "streams do nothing unless polled"]
-pub struct QueryRecord(CallbackStream);
+pub struct QueryRecord {
+	stream: CallbackStream,
+}
+
+impl QueryRecord {
+	pin_utils::unsafe_pinned!(stream: CallbackStream);
+}
 
 impl futures::Stream for QueryRecord {
-	type Error = io::Error;
-	type Item = QueryRecordResult;
+	type Item = io::Result<QueryRecordResult>;
 
-	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
-		self.0.poll()
+	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+		self.stream().poll_next(cx)
 	}
 }
 
@@ -159,8 +165,8 @@ pub fn query_record_extended(
 
 	let fullname = cstr::CStr::from(&fullname)?;
 
-	Ok(QueryRecord(CallbackStream::new(move |sender| {
-		raw::DNSService::query_record(
+	let stream = CallbackStream::new(move |sender| {
+		inner::OwnedService::query_record(
 			data.flags.bits(),
 			data.interface.into_raw(),
 			&fullname,
@@ -169,7 +175,9 @@ pub fn query_record_extended(
 			Some(query_record_callback),
 			sender,
 		)
-	})?))
+	})?;
+
+	Ok(QueryRecord { stream })
 }
 
 /// Query for an arbitrary DNS record

@@ -1,24 +1,25 @@
-use bitflags::bitflags;
-use futures::{
-	self,
-	Async,
-};
+use futures::{self,};
 use std::{
 	io,
 	os::raw::{
 		c_char,
 		c_void,
 	},
+	pin::Pin,
+	task::{
+		Context,
+		Poll,
+	},
 };
 
 use crate::{
 	cstr,
 	ffi,
+	inner,
 	interface::Interface,
-	raw,
 };
 
-type CallbackStream = crate::stream::ServiceStream<EnumerateResult>;
+type CallbackStream = crate::stream::ServiceStream<inner::OwnedService, EnumerateResult>;
 
 /// Whether to enumerate domains which are browsed or domains for which
 /// registrations can be made.
@@ -39,7 +40,7 @@ impl Into<ffi::DNSServiceFlags> for Enumerate {
 	}
 }
 
-bitflags! {
+bitflags::bitflags! {
 	/// Flags for [`EnumerateDomains`](struct.EnumerateDomains.html)
 	#[derive(Default)]
 	pub struct EnumeratedFlags: ffi::DNSServiceFlags {
@@ -64,14 +65,19 @@ bitflags! {
 
 /// Pending domain enumeration
 #[must_use = "streams do nothing unless polled"]
-pub struct EnumerateDomains(CallbackStream);
+pub struct EnumerateDomains {
+	stream: CallbackStream,
+}
+
+impl EnumerateDomains {
+	pin_utils::unsafe_pinned!(stream: CallbackStream);
+}
 
 impl futures::Stream for EnumerateDomains {
-	type Error = io::Error;
-	type Item = EnumerateResult;
+	type Item = io::Result<EnumerateResult>;
 
-	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
-		self.0.poll()
+	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+		self.stream().poll_next(cx)
 	}
 }
 
@@ -116,12 +122,14 @@ pub fn enumerate_domains(
 ) -> io::Result<EnumerateDomains> {
 	crate::init();
 
-	Ok(EnumerateDomains(CallbackStream::new(move |sender| {
-		raw::DNSService::enumerate_domains(
+	let stream = CallbackStream::new(move |sender| {
+		inner::OwnedService::enumerate_domains(
 			enumerate.into(),
 			interface.into_raw(),
 			Some(enumerate_callback),
 			sender,
 		)
-	})?))
+	})?;
+
+	Ok(EnumerateDomains { stream })
 }

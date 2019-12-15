@@ -2,7 +2,7 @@ use std::io;
 
 use crate::{
 	dns_consts::Type,
-	raw,
+	inner,
 };
 
 /// A successful record registration
@@ -17,7 +17,7 @@ use crate::{
 /// [`Register::get_default_txt_record`]: struct.Register.html#method.get_default_txt_record
 /// [`Registration`]: struct.Registration.html
 /// [`Connection`]: struct.Connection.html
-pub struct Record(raw::DNSRecord);
+pub struct Record(inner::DNSRecord);
 
 impl Record {
 	/// Type of the record
@@ -43,8 +43,8 @@ impl Record {
 	}
 }
 
-impl From<raw::DNSRecord> for Record {
-	fn from(r: raw::DNSRecord) -> Self {
+impl From<inner::DNSRecord> for Record {
+	fn from(r: inner::DNSRecord) -> Self {
 		Record(r)
 	}
 }

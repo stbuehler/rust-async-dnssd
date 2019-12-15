@@ -1,26 +1,27 @@
-use bitflags::bitflags;
-use futures::{
-	self,
-	Async,
-};
+use futures::{self,};
 use std::{
 	io,
 	os::raw::{
 		c_char,
 		c_void,
 	},
+	pin::Pin,
+	task::{
+		Context,
+		Poll,
+	},
 };
 
 use crate::{
 	cstr,
 	ffi,
+	inner,
 	interface::Interface,
-	raw,
 };
 
-type CallbackStream = crate::stream::ServiceStream<BrowseResult>;
+type CallbackStream = crate::stream::ServiceStream<inner::OwnedService, BrowseResult>;
 
-bitflags! {
+bitflags::bitflags! {
 	/// Flags for [`BrowseResult`](struct.BrowseResult.html)
 	#[derive(Default)]
 	pub struct BrowsedFlags: ffi::DNSServiceFlags {
@@ -42,14 +43,19 @@ bitflags! {
 ///
 /// Results are delivered through `futures::Stream`.
 #[must_use = "streams do nothing unless polled"]
-pub struct Browse(CallbackStream);
+pub struct Browse {
+	stream: CallbackStream,
+}
+
+impl Browse {
+	pin_utils::unsafe_pinned!(stream: CallbackStream);
+}
 
 impl futures::Stream for Browse {
-	type Error = io::Error;
-	type Item = BrowseResult;
+	type Item = io::Result<BrowseResult>;
 
-	fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
-		self.0.poll()
+	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+		self.stream().poll_next(cx)
 	}
 }
 
@@ -149,8 +155,8 @@ pub fn browse_extended(reg_type: &str, data: BrowseData<'_>) -> io::Result<Brows
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::NullableCStr::from(&data.domain)?;
 
-	Ok(Browse(CallbackStream::new(move |sender| {
-		raw::DNSService::browse(
+	let stream = CallbackStream::new(move |sender| {
+		inner::OwnedService::browse(
 			0, // no flags
 			data.interface.into_raw(),
 			&reg_type,
@@ -158,7 +164,9 @@ pub fn browse_extended(reg_type: &str, data: BrowseData<'_>) -> io::Result<Brows
 			Some(browse_callback),
 			sender,
 		)
-	})?))
+	})?;
+
+	Ok(Browse { stream })
 }
 
 /// Browse for available services

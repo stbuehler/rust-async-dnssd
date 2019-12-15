@@ -1,35 +1,34 @@
-use bitflags::bitflags;
-use futures::{
-	self,
-	Async,
-};
 use std::{
 	io,
 	os::raw::{
 		c_char,
 		c_void,
 	},
+	pin::Pin,
+	task::{
+		Context,
+		Poll,
+	},
 };
 
 use crate::{
 	cstr,
 	dns_consts::Type,
-	evented::EventedDNSService,
 	ffi,
+	inner,
 	interface::Interface,
-	raw,
 };
 
-type CallbackFuture = crate::future::ServiceFuture<RegisterResult>;
+type CallbackFuture = crate::future::ServiceFuture<inner::SharedService, RegisterResult>;
 
-bitflags! {
+bitflags::bitflags! {
 	/// Flags used to register service
 	#[derive(Default)]
-	pub struct RegisterFlags: ffi::DNSServiceFlags {
+	pub struct RegisterFlags: crate::ffi::DNSServiceFlags {
 		/// Indicates a name conflict should not get handled automatically.
 		///
 		/// See [`kDNSServiceFlagsNoAutoRename`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsnoautorename).
-		const NO_AUTO_RENAME = ffi::FLAGS_NO_AUTO_RENAME;
+		const NO_AUTO_RENAME = crate::ffi::FLAGS_NO_AUTO_RENAME;
 
 		/// Indicates there might me multiple records with the given name, type and class.
 		///
@@ -49,7 +48,7 @@ bitflags! {
 /// Registered [`Record`](struct.Record.html)s from this `Registration`
 /// or the originating [`Register`](struct.Register.html) future will
 /// keep the `Registration` alive.
-pub struct Registration(EventedDNSService);
+pub struct Registration(inner::SharedService);
 
 impl Registration {
 	/// Add a record to a registered service
@@ -58,7 +57,7 @@ impl Registration {
 	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
 		Ok(self
 			.0
-			.service()
+			.clone()
 			.add_record(0 /* no flags */, rr_type, rdata, ttl)?
 			.into())
 	}
@@ -69,7 +68,7 @@ impl Registration {
 	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
 	/// anything useful on that handle.
 	pub fn get_default_txt_record(&self) -> crate::Record {
-		self.0.service().get_default_txt_record().into()
+		self.0.clone().get_default_txt_record().into()
 	}
 }
 
@@ -78,16 +77,21 @@ impl Registration {
 /// Becomes invalid when the future completes; use the returned
 /// [`Registration`](struct.Registration.html) instead.
 #[must_use = "futures do nothing unless polled"]
-pub struct Register(CallbackFuture);
+pub struct Register {
+	future: CallbackFuture,
+}
 
 impl Register {
+	pin_utils::unsafe_pinned!(future: CallbackFuture);
+
 	/// Add a record to a registered service
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
 	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
 		Ok(self
-			.0
+			.future
 			.service()
+			.clone()
 			.add_record(0 /* no flags */, rr_type, rdata, ttl)?
 			.into())
 	}
@@ -98,20 +102,20 @@ impl Register {
 	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
 	/// anything useful on that handle.
 	pub fn get_default_txt_record(&self) -> crate::Record {
-		self.0.service().get_default_txt_record().into()
+		self.future
+			.service()
+			.clone()
+			.get_default_txt_record()
+			.into()
 	}
 }
 
 impl futures::Future for Register {
-	type Error = io::Error;
-	type Item = (Registration, RegisterResult);
+	type Output = io::Result<(Registration, RegisterResult)>;
 
-	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
-		match self.0.poll() {
-			Ok(Async::Ready((service, item))) => Ok(Async::Ready((Registration(service), item))),
-			Ok(Async::NotReady) => Ok(Async::NotReady),
-			Err(e) => Err(e),
-		}
+	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+		let (service, item) = futures::ready!(self.future().poll(cx))?;
+		Poll::Ready(Ok((Registration(service), item)))
 	}
 }
 
@@ -226,8 +230,8 @@ pub fn register_extended(
 	let domain = cstr::NullableCStr::from(&data.domain)?;
 	let host = cstr::NullableCStr::from(&data.host)?;
 
-	Ok(Register(CallbackFuture::new(move |sender| {
-		raw::DNSService::register(
+	let future = CallbackFuture::new(move |sender| {
+		inner::OwnedService::register(
 			data.flags.bits(),
 			data.interface.into_raw(),
 			&name,
@@ -239,7 +243,10 @@ pub fn register_extended(
 			Some(register_callback),
 			sender,
 		)
-	})?))
+		.map(|s| s.share())
+	})?;
+
+	Ok(Register { future })
 }
 
 /// Register a service
@@ -265,9 +272,9 @@ pub fn register_extended(
 /// ```no_run
 /// # use async_dnssd::register;
 /// # #[deny(unused_must_use)]
-/// # fn main() -> std::io::Result<()> {
-/// let mut rt = tokio::runtime::current_thread::Runtime::new()?;
-/// let registration = rt.block_on(register("_ssh._tcp", 22)?)?;
+/// # #[tokio::main(basic_scheduler)]
+/// # async fn main() -> std::io::Result<()> {
+/// let registration = register("_ssh._tcp", 22)?.await?;
 /// # Ok(())
 /// # }
 /// ```
