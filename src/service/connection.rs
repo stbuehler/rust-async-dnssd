@@ -63,7 +63,7 @@ bitflags! {
 #[must_use = "futures do nothing unless polled"]
 pub struct RegisterRecord(CallbackFuture, Option<crate::Record>);
 
-impl futures::Future for RegisterRecord {
+impl Future for RegisterRecord {
 	type Error = io::Error;
 	type Item = crate::Record;
 
