@@ -225,7 +225,7 @@ impl<'a> Default for RegisterData<'a> {
 pub fn register_extended(
 	reg_type: &str,
 	port: u16,
-	data: RegisterData,
+	data: RegisterData<'_>,
 ) -> io::Result<Register> {
 	crate::init();
 
