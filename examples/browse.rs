@@ -1,5 +1,5 @@
 use async_dnssd::{
-	TimeoutTrait,
+	StreamTimeoutExt,
 	TxtRecord,
 };
 use futures::{

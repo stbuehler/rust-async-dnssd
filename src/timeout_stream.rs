@@ -10,12 +10,12 @@ use std::{
 
 /// `futures::Stream` extension to simplify building
 /// [`TimeoutStream`](struct.TimeoutStream.html)
-pub trait TimeoutTrait: futures::Stream + Sized {
+pub trait StreamTimeoutExt: futures::Stream + Sized {
 	/// Create new [`TimeoutStream`](struct.TimeoutStream.html)
 	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>>;
 }
 
-impl<S: futures::Stream> TimeoutTrait for S {
+impl<S: futures::Stream> StreamTimeoutExt for S {
 	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>> {
 		TimeoutStream::new(self, duration)
 	}
@@ -35,7 +35,7 @@ pub struct TimeoutStream<S> {
 impl<S: futures::Stream> TimeoutStream<S> {
 	/// Create new `TimeoutStream`.
 	///
-	/// Also see [`TimeoutTrait::timeout`](trait.TimeoutTrait.html#method.timeout).
+	/// Also see [`StreamTimeoutExt::timeout`](trait.StreamTimeoutExt.html#method.timeout).
 	pub fn new(stream: S, duration: Duration) -> io::Result<Self> {
 		Ok(TimeoutStream {
 			stream,
