@@ -9,10 +9,10 @@ use std::{
 	rc::Rc,
 };
 
-use error::Error;
-use evented::EventedDNSService;
-use ffi;
-use raw::DNSService;
+use crate::error::Error;
+use crate::evented::EventedDNSService;
+use crate::ffi;
+use crate::raw::DNSService;
 
 #[allow(clippy::borrowed_box)]
 fn box_raw<T>(ptr: &mut Box<T>) -> *mut c_void {

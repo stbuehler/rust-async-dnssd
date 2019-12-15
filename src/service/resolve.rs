@@ -10,17 +10,17 @@ use std::{
 	},
 };
 
-use cstr;
-use ffi;
-use interface::Interface;
-use raw;
-use service::{
+use crate::cstr;
+use crate::ffi;
+use crate::interface::Interface;
+use crate::raw;
+use crate::service::{
 	ResolveHost,
 	ResolveHostData,
 	resolve_host_extended,
 };
 
-type CallbackStream = ::stream::ServiceStream<ResolveResult>;
+type CallbackStream = crate::stream::ServiceStream<ResolveResult>;
 
 /// Pending resolve request
 #[must_use = "streams do nothing unless polled"]
@@ -105,7 +105,7 @@ pub fn resolve(
 	reg_type: &str,
 	domain: &str,
 ) -> io::Result<Resolve> {
-	::init();
+	crate::init();
 
 	let name = cstr::CStr::from(&name)?;
 	let reg_type = cstr::CStr::from(&reg_type)?;

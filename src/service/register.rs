@@ -10,14 +10,14 @@ use std::{
 	},
 };
 
-use cstr;
-use dns_consts::Type;
-use evented::EventedDNSService;
-use ffi;
-use interface::Interface;
-use raw;
+use crate::cstr;
+use crate::dns_consts::Type;
+use crate::evented::EventedDNSService;
+use crate::ffi;
+use crate::interface::Interface;
+use crate::raw;
 
-type CallbackFuture = ::future::ServiceFuture<RegisterResult>;
+type CallbackFuture = crate::future::ServiceFuture<RegisterResult>;
 
 bitflags! {
 	/// Flags used to register service
@@ -57,7 +57,7 @@ impl Registration {
 		rr_type: Type,
 		rdata: &[u8],
 		ttl: u32,
-	) -> io::Result<::Record> {
+	) -> io::Result<crate::Record> {
 		Ok(self
 			.0
 			.service()
@@ -70,7 +70,7 @@ impl Registration {
 	///
 	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
 	/// anything useful on that handle.
-	pub fn get_default_txt_record(&self) -> ::Record {
+	pub fn get_default_txt_record(&self) -> crate::Record {
 		self.0.service().get_default_txt_record().into()
 	}
 }
@@ -91,7 +91,7 @@ impl Register {
 		rr_type: Type,
 		rdata: &[u8],
 		ttl: u32,
-	) -> io::Result<::Record> {
+	) -> io::Result<crate::Record> {
 		Ok(self
 			.0
 			.service()
@@ -104,7 +104,7 @@ impl Register {
 	///
 	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
 	/// anything useful on that handle.
-	pub fn get_default_txt_record(&self) -> ::Record {
+	pub fn get_default_txt_record(&self) -> crate::Record {
 		self.0.service().get_default_txt_record().into()
 	}
 }
@@ -227,7 +227,7 @@ pub fn register_extended(
 	port: u16,
 	data: RegisterData,
 ) -> io::Result<Register> {
-	::init();
+	crate::init();
 
 	let name = cstr::NullableCStr::from(&data.name)?;
 	let reg_type = cstr::CStr::from(&reg_type)?;

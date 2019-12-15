@@ -10,12 +10,12 @@ use std::{
 	},
 };
 
-use cstr;
-use ffi;
-use interface::Interface;
-use raw;
+use crate::cstr;
+use crate::ffi;
+use crate::interface::Interface;
+use crate::raw;
 
-type CallbackStream = ::stream::ServiceStream<BrowseResult>;
+type CallbackStream = crate::stream::ServiceStream<BrowseResult>;
 
 bitflags! {
 	/// Flags for [`BrowseResult`](struct.BrowseResult.html)
@@ -73,8 +73,8 @@ impl BrowseResult {
 	///
 	/// Should check before whether result has the `Add` flag, as
 	/// otherwise it probably won't find anything.
-	pub fn resolve(&self) -> io::Result<::Resolve> {
-		::resolve(
+	pub fn resolve(&self) -> io::Result<crate::Resolve> {
+		crate::resolve(
 			self.interface,
 			&self.service_name,
 			&self.reg_type,
@@ -144,7 +144,7 @@ pub fn browse_extended(
 	reg_type: &str,
 	data: BrowseData,
 ) -> io::Result<Browse> {
-	::init();
+	crate::init();
 
 	let reg_type = cstr::CStr::from(&reg_type)?;
 	let domain = cstr::NullableCStr::from(&data.domain)?;

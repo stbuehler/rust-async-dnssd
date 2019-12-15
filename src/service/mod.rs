@@ -18,7 +18,7 @@ mod register;
 mod resolve;
 mod resolve_host;
 
-use dns_consts::{
+use crate::dns_consts::{
 	Class,
 	Type,
 };
@@ -27,16 +27,16 @@ use dns_consts::{
 ///
 /// See [`DNSServiceReconfirmRecord`](https://developer.apple.com/documentation/dnssd/1804726-dnsservicereconfirmrecord).
 pub fn reconfirm_record(
-	interface: ::interface::Interface,
+	interface: crate::interface::Interface,
 	fullname: &str,
 	rr_type: Type,
 	rr_class: Class,
 	rdata: &[u8],
 ) -> ::std::io::Result<()> {
-	::init();
+	crate::init();
 
-	let fullname = ::cstr::CStr::from(&fullname)?;
-	::raw::reconfirm_record(
+	let fullname = crate::cstr::CStr::from(&fullname)?;
+	crate::raw::reconfirm_record(
 		0, // no flags
 		interface.into_raw(),
 		&fullname,
@@ -65,15 +65,15 @@ impl<'a> FullName<'a> {
 	pub fn construct(&self) -> ::std::io::Result<String> {
 		use std::io;
 
-		let service = ::cstr::NullableCStr::from(&self.service)?;
-		let reg_type = ::cstr::CStr::from(&self.reg_type)?;
-		let domain = ::cstr::CStr::from(&self.domain)?;
+		let service = crate::cstr::NullableCStr::from(&self.service)?;
+		let reg_type = crate::cstr::CStr::from(&self.reg_type)?;
+		let domain = crate::cstr::CStr::from(&self.domain)?;
 
-		const SIZE: usize = ::ffi::MAX_DOMAIN_NAME + 200;
+		const SIZE: usize = crate::ffi::MAX_DOMAIN_NAME + 200;
 		let mut buf: Vec<u8> = Vec::new();
 		buf.reserve(SIZE);
 		let len = unsafe {
-			::ffi::DNSServiceConstructFullName(
+			crate::ffi::DNSServiceConstructFullName(
 				buf.as_mut_ptr() as *mut i8,
 				service.as_ptr(),
 				reg_type.as_ptr(),

@@ -10,12 +10,12 @@ use std::{
 	},
 };
 
-use cstr;
-use ffi;
-use interface::Interface;
-use raw;
+use crate::cstr;
+use crate::ffi;
+use crate::interface::Interface;
+use crate::raw;
 
-type CallbackStream = ::stream::ServiceStream<EnumerateResult>;
+type CallbackStream = crate::stream::ServiceStream<EnumerateResult>;
 
 /// Whether to enumerate domains which are browsed or domains for which
 /// registrations can be made.
@@ -111,7 +111,7 @@ pub fn enumerate_domains(
 	enumerate: Enumerate,
 	interface: Interface,
 ) -> io::Result<EnumerateDomains> {
-	::init();
+	crate::init();
 
 	Ok(EnumerateDomains(CallbackStream::new(
 		move |sender| {

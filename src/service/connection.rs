@@ -9,17 +9,17 @@ use std::{
 	rc::Rc,
 };
 
-use cstr;
-use dns_consts::{
+use crate::cstr;
+use crate::dns_consts::{
 	Class,
 	Type,
 };
-use evented::EventedDNSService;
-use ffi;
-use interface::Interface;
-use raw;
+use crate::evented::EventedDNSService;
+use crate::ffi;
+use crate::interface::Interface;
+use crate::raw;
 
-type CallbackFuture = ::future::ServiceFutureSingle<RegisterRecordResult>;
+type CallbackFuture = crate::future::ServiceFutureSingle<RegisterRecordResult>;
 
 /// Connection to register records with
 pub struct Connection(Rc<EventedDNSService>);
@@ -29,7 +29,7 @@ pub struct Connection(Rc<EventedDNSService>);
 ///
 /// See [`DNSServiceCreateConnection`](https://developer.apple.com/documentation/dnssd/1804724-dnsservicecreateconnection).
 pub fn connect() -> io::Result<Connection> {
-	::init();
+	crate::init();
 
 	let con = raw::DNSService::create_connection()?;
 	Ok(Connection(Rc::new(EventedDNSService::new(con)?)))
@@ -58,11 +58,11 @@ bitflags! {
 // the future gets canceled by dropping the record; must
 // not drop the future without dropping the record.
 #[must_use = "futures do nothing unless polled"]
-pub struct RegisterRecord(CallbackFuture, Option<::Record>);
+pub struct RegisterRecord(CallbackFuture, Option<crate::Record>);
 
 impl futures::Future for RegisterRecord {
 	type Error = io::Error;
-	type Item = ::Record;
+	type Item = crate::Record;
 
 	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
 		match self.0.poll() {
@@ -181,7 +181,7 @@ impl Connection {
 }
 
 impl RegisterRecord {
-	fn record(&self) -> &::Record {
+	fn record(&self) -> &crate::Record {
 		self.1.as_ref().expect("RegisterRecord future is done")
 	}
 

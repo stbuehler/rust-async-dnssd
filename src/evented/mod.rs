@@ -11,7 +11,7 @@ mod windows;
 use futures;
 use std::io;
 
-use raw::DNSService;
+use crate::raw::DNSService;
 
 #[must_use = "EventedDNSService does nothing unless polled"]
 pub(crate) struct EventedDNSService {

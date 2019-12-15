@@ -10,16 +10,16 @@ use std::{
 	},
 };
 
-use cstr;
-use dns_consts::{
+use crate::cstr;
+use crate::dns_consts::{
 	Class,
 	Type,
 };
-use ffi;
-use interface::Interface;
-use raw;
+use crate::ffi;
+use crate::interface::Interface;
+use crate::raw;
 
-type CallbackStream = ::stream::ServiceStream<QueryRecordResult>;
+type CallbackStream = crate::stream::ServiceStream<QueryRecordResult>;
 
 bitflags! {
 	/// Flags used to query for a record
@@ -153,7 +153,7 @@ pub fn query_record_extended(
 	rr_type: Type,
 	data: QueryRecordData,
 ) -> io::Result<QueryRecord> {
-	::init();
+	crate::init();
 
 	let fullname = cstr::CStr::from(&fullname)?;
 

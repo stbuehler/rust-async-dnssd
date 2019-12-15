@@ -10,13 +10,13 @@ use std::{
 	rc::Rc,
 };
 
-use cstr;
-use dns_consts::{
+use crate::cstr;
+use crate::dns_consts::{
 	Class,
 	Type,
 };
-use error::Error;
-use ffi;
+use crate::error::Error;
+use crate::ffi;
 
 type FFIResult<R> = Result<R, Error>;
 
