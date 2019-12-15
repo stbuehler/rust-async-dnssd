@@ -210,8 +210,9 @@ impl<'a> Default for RegisterData<'a> {
 ///   accepts connections.  Pass 0 for a "placeholder" service.
 /// * `data`: additional service data
 ///
-/// See
-/// [`DNSServiceRegister`](https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister).
+/// See [`DNSServiceRegister`].
+///
+/// [`DNSServiceRegister`]: https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister
 #[allow(clippy::too_many_arguments)]
 pub fn register_extended(
 	reg_type: &str,
@@ -255,8 +256,9 @@ pub fn register_extended(
 /// [`register_extended`]: fn.register_extended.html
 /// [`RegisterData`]: struct.RegisterData.html
 ///
-/// See
-/// [`DNSServiceRegister`](https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister).
+/// See [`DNSServiceRegister`].
+///
+/// [`DNSServiceRegister`]: https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister
 ///
 /// # Example
 ///
