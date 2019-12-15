@@ -1,5 +1,5 @@
 # Maximum width of each line
-max_width = 80
+max_width = 100
 
 # Use tab characters for indentation, spaces for alignment
 hard_tabs = true
@@ -13,7 +13,7 @@ use_field_init_shorthand = true
 ### UNSTABLE FEATURES
 
 # Convert /* */ comments to // comments where possible
-normalize_comments = true
+normalize_comments = false
 
 # Put a trailing comma after a block based match arm (non-block arms are not affected)
 match_block_trailing_comma = true
