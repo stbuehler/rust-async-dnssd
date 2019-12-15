@@ -11,14 +11,16 @@ use std::{
 	},
 };
 
-use crate::cstr;
-use crate::dns_consts::{
-	Class,
-	Type,
+use crate::{
+	cstr,
+	dns_consts::{
+		Class,
+		Type,
+	},
+	ffi,
+	interface::Interface,
+	raw,
 };
-use crate::ffi;
-use crate::interface::Interface;
-use crate::raw;
 
 type CallbackStream = crate::stream::ServiceStream<QueryRecordResult>;
 
@@ -100,8 +102,7 @@ extern "C" fn query_record_callback(
 ) {
 	CallbackStream::run_callback(context, error_code, || {
 		let fullname = unsafe { cstr::from_cstr(fullname) }?;
-		let rdata =
-			unsafe { ::std::slice::from_raw_parts(rdata, rd_len as usize) };
+		let rdata = unsafe { ::std::slice::from_raw_parts(rdata, rd_len as usize) };
 
 		Ok(QueryRecordResult {
 			flags: QueriedRecordFlags::from_bits_truncate(flags),
@@ -179,9 +180,6 @@ pub fn query_record_extended(
 ///
 /// [`query_record_extended`]: fn.query_record_extended.html
 /// [`QueryRecordData`]: struct.QueryRecordData.html
-pub fn query_record(
-	fullname: &str,
-	rr_type: Type,
-) -> io::Result<QueryRecord> {
+pub fn query_record(fullname: &str, rr_type: Type) -> io::Result<QueryRecord> {
 	query_record_extended(fullname, rr_type, QueryRecordData::default())
 }

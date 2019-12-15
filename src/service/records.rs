@@ -1,7 +1,9 @@
 use std::io;
 
-use crate::dns_consts::Type;
-use crate::raw;
+use crate::{
+	dns_consts::Type,
+	raw,
+};
 
 /// A successful record registration
 ///

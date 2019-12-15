@@ -60,9 +60,9 @@ impl<'a, T: AsRef<str>> CStrFrom<'a, T> for CStr<'a> {
 impl<'a, T: AsRef<str>> CStrFrom<'a, Option<T>> for NullableCStr<'a> {
 	fn cstr_from(s: &'a Option<T>) -> Result<Self, ffi::NulError> {
 		match *s {
-			Some(ref s) => Ok(NullableCStr(Some(Cow::Owned(
-				ffi::CString::new(s.as_ref())?,
-			)))),
+			Some(ref s) => Ok(NullableCStr(Some(Cow::Owned(ffi::CString::new(
+				s.as_ref(),
+			)?)))),
 			None => Ok(NullableCStr(None)),
 		}
 	}

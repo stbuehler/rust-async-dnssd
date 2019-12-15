@@ -9,10 +9,12 @@ use std::{
 	rc::Rc,
 };
 
-use crate::error::Error;
-use crate::evented::EventedDNSService;
-use crate::ffi;
-use crate::raw::DNSService;
+use crate::{
+	error::Error,
+	evented::EventedDNSService,
+	ffi,
+	raw::DNSService,
+};
 
 #[allow(clippy::borrowed_box)]
 fn box_raw<T>(ptr: &mut Box<T>) -> *mut c_void {
@@ -31,11 +33,8 @@ struct Inner<T> {
 pub(crate) struct ServiceFuture<T>(Option<Inner<T>>);
 
 impl<T> ServiceFuture<T> {
-	pub(crate) fn run_callback<F>(
-		context: *mut c_void,
-		error_code: ffi::DNSServiceErrorType,
-		f: F,
-	) where
+	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
+	where
 		F: FnOnce() -> io::Result<T>,
 		T: ::std::fmt::Debug,
 	{
@@ -91,9 +90,7 @@ impl<T> futures::Future for ServiceFuture<T> {
 		}
 		self.inner_mut().service.poll()?;
 		match self.inner_mut().receiver.poll() {
-			Ok(Async::Ready(item)) => {
-				Ok(Async::Ready((self.0.take().unwrap().service, item?)))
-			},
+			Ok(Async::Ready(item)) => Ok(Async::Ready((self.0.take().unwrap().service, item?))),
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(futures::Canceled) => unreachable!(),
 		}
@@ -108,11 +105,8 @@ pub(crate) struct ServiceFutureSingle<T> {
 }
 
 impl<T> ServiceFutureSingle<T> {
-	pub(crate) fn run_callback<F>(
-		context: *mut c_void,
-		error_code: ffi::DNSServiceErrorType,
-		f: F,
-	) where
+	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
+	where
 		F: FnOnce() -> io::Result<T>,
 		T: ::std::fmt::Debug,
 	{
@@ -127,10 +121,7 @@ impl<T> ServiceFutureSingle<T> {
 		sender.send(data).expect("receiver must still be alive");
 	}
 
-	pub(crate) fn new<R, F>(
-		service: Rc<EventedDNSService>,
-		f: F,
-	) -> io::Result<(Self, R)>
+	pub(crate) fn new<R, F>(service: Rc<EventedDNSService>, f: F) -> io::Result<(Self, R)>
 	where
 		F: FnOnce(*mut c_void) -> Result<R, Error>,
 	{

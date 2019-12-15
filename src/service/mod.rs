@@ -82,17 +82,13 @@ impl<'a> FullName<'a> {
 		};
 
 		if len < 0 {
-			return Err(io::Error::new(
-				io::ErrorKind::InvalidInput,
-				"invalid input",
-			));
+			return Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid input"));
 		}
 
 		unsafe {
 			buf.set_len(len as usize);
 		}
 
-		String::from_utf8(buf)
-			.map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))
+		String::from_utf8(buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))
 	}
 }

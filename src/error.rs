@@ -39,9 +39,7 @@ impl From<Error> for io::Error {
 impl fmt::Debug for Error {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match *self {
-			Error::KnownError(ffi_err) => {
-				write!(f, "known error {:?}: {}", ffi_err, ffi_err)
-			},
+			Error::KnownError(ffi_err) => write!(f, "known error {:?}: {}", ffi_err, ffi_err),
 			Error::UnknownError(e) => write!(f, "unknown error code: {:?}", e),
 		}
 	}

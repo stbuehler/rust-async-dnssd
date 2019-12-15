@@ -10,14 +10,16 @@ use std::{
 	},
 };
 
-use crate::cstr;
-use crate::ffi;
-use crate::interface::Interface;
-use crate::raw;
-use crate::service::{
-	ResolveHost,
-	ResolveHostData,
-	resolve_host_extended,
+use crate::{
+	cstr,
+	ffi,
+	interface::Interface,
+	raw,
+	service::{
+		resolve_host_extended,
+		ResolveHost,
+		ResolveHostData,
+	},
 };
 
 type CallbackStream = crate::stream::ServiceStream<ResolveResult>;
@@ -57,7 +59,7 @@ impl ResolveResult {
 	pub fn resolve_socket_address(&self) -> io::Result<ResolveHost> {
 		let rhdata = ResolveHostData {
 			interface: self.interface,
-			.. Default::default()
+			..Default::default()
 		};
 		resolve_host_extended(&self.host_target, self.port, rhdata)
 	}
@@ -78,9 +80,7 @@ extern "C" fn resolve_callback(
 	CallbackStream::run_callback(context, error_code, || {
 		let fullname = unsafe { cstr::from_cstr(fullname) }?;
 		let host_target = unsafe { cstr::from_cstr(host_target) }?;
-		let txt = unsafe {
-			::std::slice::from_raw_parts(txt_record, txt_len as usize)
-		};
+		let txt = unsafe { ::std::slice::from_raw_parts(txt_record, txt_len as usize) };
 
 		Ok(ResolveResult {
 			interface: Interface::from_raw(interface_index),

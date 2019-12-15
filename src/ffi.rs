@@ -65,7 +65,7 @@ macro_rules! c_api_enum {
 }
 
 pub type DNSServiceErrorType = i32;
-c_api_enum!{DNSServiceNoError: i32 =>
+c_api_enum! {DNSServiceNoError: i32 =>
 	NoError               = 0,
 	// windows "TCP Connection Status"
 	ConnectionPending     = -65570,
@@ -76,7 +76,7 @@ c_api_enum!{DNSServiceNoError: i32 =>
 	ConfigChanged         = -65791,
 	MemFree               = -65792,
 }
-c_api_enum!{
+c_api_enum! {
 /// Known error codes
 ///
 /// See [`DNSServiceErrorType`](https://developer.apple.com/documentation/dnssd/1823426-anonymous)
@@ -178,9 +178,7 @@ pub type DNSServiceQueryRecordReply = Option<
 
 extern "C" {
 	pub fn DNSServiceRefSockFD(sd_ref: DNSServiceRef) -> c_int;
-	pub fn DNSServiceProcessResult(
-		sd_ref: DNSServiceRef,
-	) -> DNSServiceErrorType;
+	pub fn DNSServiceProcessResult(sd_ref: DNSServiceRef) -> DNSServiceErrorType;
 	pub fn DNSServiceRefDeallocate(sd_ref: DNSServiceRef);
 	pub fn DNSServiceEnumerateDomains(
 		sd_ref: *mut DNSServiceRef,
@@ -244,9 +242,7 @@ extern "C" {
 		callback: DNSServiceResolveReply,
 		context: *mut c_void,
 	) -> DNSServiceErrorType;
-	pub fn DNSServiceCreateConnection(
-		sd_ref: *mut DNSServiceRef,
-	) -> DNSServiceErrorType;
+	pub fn DNSServiceCreateConnection(sd_ref: *mut DNSServiceRef) -> DNSServiceErrorType;
 	pub fn DNSServiceRegisterRecord(
 		sd_ref: DNSServiceRef,
 		record_ref: *mut DNSRecordRef,

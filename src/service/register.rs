@@ -11,12 +11,14 @@ use std::{
 	},
 };
 
-use crate::cstr;
-use crate::dns_consts::Type;
-use crate::evented::EventedDNSService;
-use crate::ffi;
-use crate::interface::Interface;
-use crate::raw;
+use crate::{
+	cstr,
+	dns_consts::Type,
+	evented::EventedDNSService,
+	ffi,
+	interface::Interface,
+	raw,
+};
 
 type CallbackFuture = crate::future::ServiceFuture<RegisterResult>;
 
@@ -53,12 +55,7 @@ impl Registration {
 	/// Add a record to a registered service
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
-	pub fn add_record(
-		&self,
-		rr_type: Type,
-		rdata: &[u8],
-		ttl: u32,
-	) -> io::Result<crate::Record> {
+	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
 		Ok(self
 			.0
 			.service()
@@ -87,12 +84,7 @@ impl Register {
 	/// Add a record to a registered service
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
-	pub fn add_record(
-		&self,
-		rr_type: Type,
-		rdata: &[u8],
-		ttl: u32,
-	) -> io::Result<crate::Record> {
+	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
 		Ok(self
 			.0
 			.service()
@@ -116,9 +108,7 @@ impl futures::Future for Register {
 
 	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
 		match self.0.poll() {
-			Ok(Async::Ready((service, item))) => {
-				Ok(Async::Ready((Registration(service), item)))
-			},
+			Ok(Async::Ready((service, item))) => Ok(Async::Ready((Registration(service), item))),
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(e) => Err(e),
 		}
@@ -280,9 +270,6 @@ pub fn register_extended(
 /// # }
 /// ```
 #[allow(clippy::too_many_arguments)]
-pub fn register(
-	reg_type: &str,
-	port: u16,
-) -> io::Result<Register> {
+pub fn register(reg_type: &str, port: u16) -> io::Result<Register> {
 	register_extended(reg_type, port, RegisterData::default())
 }

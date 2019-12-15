@@ -1,12 +1,14 @@
-use futures::{Async, Poll, try_ready};
+use futures::{
+	try_ready,
+	Async,
+	Poll,
+};
 use mio;
 use std::{
 	io,
 	os::raw::c_int,
 };
-use tokio::reactor::{
-	PollEvented2 as PollEvented,
-};
+use tokio::reactor::PollEvented2 as PollEvented;
 
 pub fn is_readable(fd: c_int) -> io::Result<bool> {
 	let mut fds = libc::pollfd {
@@ -16,11 +18,15 @@ pub fn is_readable(fd: c_int) -> io::Result<bool> {
 	};
 	loop {
 		let r = unsafe { libc::poll(&mut fds, 1, 0) };
-		if r == 0 { return Ok(false); }
-		if r == 1 { return Ok(true); }
+		if r == 0 {
+			return Ok(false);
+		}
+		if r == 1 {
+			return Ok(true);
+		}
 		let e = io::Error::last_os_error();
 		if e.kind() == io::ErrorKind::Interrupted {
-			continue
+			continue;
 		}
 		return Ok(false);
 	}

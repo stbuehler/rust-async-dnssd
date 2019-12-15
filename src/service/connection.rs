@@ -10,15 +10,17 @@ use std::{
 	rc::Rc,
 };
 
-use crate::cstr;
-use crate::dns_consts::{
-	Class,
-	Type,
+use crate::{
+	cstr,
+	dns_consts::{
+		Class,
+		Type,
+	},
+	evented::EventedDNSService,
+	ffi,
+	interface::Interface,
+	raw,
 };
-use crate::evented::EventedDNSService;
-use crate::ffi;
-use crate::interface::Interface;
-use crate::raw;
 
 type CallbackFuture = crate::future::ServiceFutureSingle<RegisterRecordResult>;
 
@@ -67,9 +69,7 @@ impl futures::Future for RegisterRecord {
 
 	fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
 		match self.0.poll() {
-			Ok(Async::Ready(RegisterRecordResult)) => {
-				Ok(Async::Ready(self.1.take().unwrap()))
-			},
+			Ok(Async::Ready(RegisterRecordResult)) => Ok(Async::Ready(self.1.take().unwrap())),
 			Ok(Async::NotReady) => Ok(Async::NotReady),
 			Err(e) => Err(e),
 		}
@@ -86,9 +86,7 @@ extern "C" fn register_record_callback(
 	error_code: ffi::DNSServiceErrorType,
 	context: *mut c_void,
 ) {
-	CallbackFuture::run_callback(context, error_code, || {
-		Ok(RegisterRecordResult)
-	});
+	CallbackFuture::run_callback(context, error_code, || Ok(RegisterRecordResult));
 }
 
 /// Optional data when registering a record; either use its default
@@ -139,20 +137,19 @@ impl Connection {
 	) -> io::Result<RegisterRecord> {
 		let fullname = cstr::CStr::from(&fullname)?;
 
-		let (serv, record) =
-			CallbackFuture::new(self.0.clone(), move |sender| {
-				self.0.service().register_record(
-					data.flags.bits(),
-					data.interface.into_raw(),
-					&fullname,
-					rr_type,
-					data.rr_class,
-					rdata,
-					data.ttl,
-					Some(register_record_callback),
-					sender,
-				)
-			})?;
+		let (serv, record) = CallbackFuture::new(self.0.clone(), move |sender| {
+			self.0.service().register_record(
+				data.flags.bits(),
+				data.interface.into_raw(),
+				&fullname,
+				rr_type,
+				data.rr_class,
+				rdata,
+				data.ttl,
+				Some(register_record_callback),
+				sender,
+			)
+		})?;
 
 		Ok(RegisterRecord(serv, Some(record.into())))
 	}
@@ -172,12 +169,7 @@ impl Connection {
 		rr_type: Type,
 		rdata: &[u8],
 	) -> io::Result<RegisterRecord> {
-		self.register_record_extended(
-			fullname,
-			rr_type,
-			rdata,
-			RegisterRecordData::default(),
-		)
+		self.register_record_extended(fullname, rr_type, rdata, RegisterRecordData::default())
 	}
 }
 
@@ -229,8 +221,7 @@ impl RegisterRecord {
 	//   underyling service, and drop it either when dropping the
 	//   service or the callback was called.
 	pub fn keep(self) {
-		let (fut, rec) =
-			(self.0, self.1.expect("RegisterRecord future is done"));
+		let (fut, rec) = (self.0, self.1.expect("RegisterRecord future is done"));
 		// drive future to continuation, ignore errors
 		tokio::runtime::current_thread::spawn(fut.then(|_| Ok(())));
 		rec.keep();

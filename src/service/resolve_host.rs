@@ -1,43 +1,44 @@
-use std::fmt;
-use std::io;
-use std::net::{
-	Ipv4Addr,
-	Ipv6Addr,
-	IpAddr,
-	SocketAddr,
-	SocketAddrV4,
-	SocketAddrV6,
+use std::{
+	fmt,
+	io,
+	net::{
+		IpAddr,
+		Ipv4Addr,
+		Ipv6Addr,
+		SocketAddr,
+		SocketAddrV4,
+		SocketAddrV6,
+	},
 };
 
 use futures::{
+	stream,
+	try_ready,
 	Async,
 	Poll,
 	Stream,
-	stream,
-	try_ready,
 };
 
-use crate::dns_consts::{
-	Class,
-	Type,
+use crate::{
+	dns_consts::{
+		Class,
+		Type,
+	},
+	interface::Interface,
+	service::{
+		query_record_extended,
+		QueryRecord,
+		QueryRecordData,
+		QueryRecordFlags,
+		QueryRecordResult,
+	},
 };
-use crate::service::{
-	QueryRecord,
-	QueryRecordData,
-	QueryRecordFlags,
-	QueryRecordResult,
-	query_record_extended,
-};
-use crate::interface::Interface;
 
 fn decode_a(a: QueryRecordResult) -> Option<(IpAddr, Interface)> {
 	if a.rr_class == Class::IN && a.rr_type == Type::A && a.rdata.len() == 4 {
 		let mut octets = [0u8; 4];
 		octets.clone_from_slice(&a.rdata);
-		Some((
-			IpAddr::V4(Ipv4Addr::from(octets)),
-			a.interface,
-		))
+		Some((IpAddr::V4(Ipv4Addr::from(octets)), a.interface))
 	} else {
 		println!("Invalid A response: {:?}", a);
 		None
@@ -48,10 +49,7 @@ fn decode_aaaa(a: QueryRecordResult) -> Option<(IpAddr, Interface)> {
 	if a.rr_class == Class::IN && a.rr_type == Type::AAAA && a.rdata.len() == 16 {
 		let mut octets = [0u8; 16];
 		octets.clone_from_slice(&a.rdata);
-		Some((
-			IpAddr::V6(Ipv6Addr::from(octets)),
-			a.interface,
-		))
+		Some((IpAddr::V6(Ipv6Addr::from(octets)), a.interface))
 	} else {
 		println!("Invalid AAAA response: {:?}", a);
 		None
@@ -88,12 +86,12 @@ pub struct ResolveHost {
 }
 
 impl Stream for ResolveHost {
-	type Item = ScopedSocketAddr;
 	type Error = io::Error;
+	type Item = ScopedSocketAddr;
 
 	fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-		Ok(Async::Ready(try_ready!(self.inner.poll()).map(|(ip, iface)|
-			ScopedSocketAddr::new(ip, self.port, iface.scope_id())
+		Ok(Async::Ready(try_ready!(self.inner.poll()).map(
+			|(ip, iface)| ScopedSocketAddr::new(ip, self.port, iface.scope_id()),
 		)))
 	}
 }
@@ -127,8 +125,16 @@ impl ScopedSocketAddr {
 	/// Create new `ScopedSocketAddr`
 	pub fn new(address: IpAddr, port: u16, scope_id: u32) -> Self {
 		match address {
-			IpAddr::V4(address) => ScopedSocketAddr::V4 { address, port, scope_id },
-			IpAddr::V6(address) => ScopedSocketAddr::V6 { address, port, scope_id },
+			IpAddr::V4(address) => ScopedSocketAddr::V4 {
+				address,
+				port,
+				scope_id,
+			},
+			IpAddr::V6(address) => ScopedSocketAddr::V6 {
+				address,
+				port,
+				scope_id,
+			},
 		}
 	}
 }
@@ -140,9 +146,11 @@ impl Into<SocketAddr> for ScopedSocketAddr {
 				// doesn't use scope_id
 				SocketAddr::V4(SocketAddrV4::new(address, port))
 			},
-			ScopedSocketAddr::V6 { address, port, scope_id } => {
-				SocketAddr::V6(SocketAddrV6::new(address, port, 0, scope_id))
-			},
+			ScopedSocketAddr::V6 {
+				address,
+				port,
+				scope_id,
+			} => SocketAddr::V6(SocketAddrV6::new(address, port, 0, scope_id)),
 		}
 	}
 }
@@ -150,12 +158,16 @@ impl Into<SocketAddr> for ScopedSocketAddr {
 impl Into<SocketAddrV6> for ScopedSocketAddr {
 	fn into(self) -> SocketAddrV6 {
 		match self {
-			ScopedSocketAddr::V4 { address, port, scope_id } => {
-				SocketAddrV6::new(address.to_ipv6_mapped(), port, 0, scope_id)
-			},
-			ScopedSocketAddr::V6 { address, port, scope_id } => {
-				SocketAddrV6::new(address, port, 0, scope_id)
-			},
+			ScopedSocketAddr::V4 {
+				address,
+				port,
+				scope_id,
+			} => SocketAddrV6::new(address.to_ipv6_mapped(), port, 0, scope_id),
+			ScopedSocketAddr::V6 {
+				address,
+				port,
+				scope_id,
+			} => SocketAddrV6::new(address, port, 0, scope_id),
 		}
 	}
 }
@@ -163,18 +175,26 @@ impl Into<SocketAddrV6> for ScopedSocketAddr {
 impl fmt::Display for ScopedSocketAddr {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
-			ScopedSocketAddr::V4 { address, port, scope_id: 0 } => {
-				write!(f, "{}:{}", address, port)
-			},
-			ScopedSocketAddr::V4 { address, port, scope_id } => {
-				write!(f, "[{}%{}]:{}", address, scope_id, port)
-			},
-			ScopedSocketAddr::V6 { address, port, scope_id: 0 } => {
-				write!(f, "[{}]:{}", address, port)
-			},
-			ScopedSocketAddr::V6 { address, port, scope_id } => {
-				write!(f, "[{}%{}]:{}", address, scope_id, port)
-			},
+			ScopedSocketAddr::V4 {
+				address,
+				port,
+				scope_id: 0,
+			} => write!(f, "{}:{}", address, port),
+			ScopedSocketAddr::V4 {
+				address,
+				port,
+				scope_id,
+			} => write!(f, "[{}%{}]:{}", address, scope_id, port),
+			ScopedSocketAddr::V6 {
+				address,
+				port,
+				scope_id: 0,
+			} => write!(f, "[{}]:{}", address, port),
+			ScopedSocketAddr::V6 {
+				address,
+				port,
+				scope_id,
+			} => write!(f, "[{}%{}]:{}", address, scope_id, port),
 		}
 	}
 }
@@ -190,7 +210,11 @@ impl fmt::Debug for ScopedSocketAddr {
 /// Uses
 /// [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord)
 /// to query for `A` and `AAAA` records (in the `IN` class).
-pub fn resolve_host_extended(host: &str, port: u16, data: ResolveHostData) -> io::Result<ResolveHost> {
+pub fn resolve_host_extended(
+	host: &str,
+	port: u16,
+	data: ResolveHostData,
+) -> io::Result<ResolveHost> {
 	let qrdata = QueryRecordData {
 		flags: data.flags,
 		interface: data.interface,
@@ -199,11 +223,7 @@ pub fn resolve_host_extended(host: &str, port: u16, data: ResolveHostData) -> io
 
 	let inner = query_record_extended(host, Type::AAAA, qrdata)?
 		.filter_map(decode_aaaa as DecodeFn)
-		.select(
-			query_record_extended(host, Type::A, qrdata)?
-			.filter_map(decode_a as DecodeFn)
-		);
-
+		.select(query_record_extended(host, Type::A, qrdata)?.filter_map(decode_a as DecodeFn));
 
 	Ok(ResolveHost { inner, port })
 }

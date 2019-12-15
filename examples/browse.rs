@@ -83,45 +83,36 @@ fn main() {
 				.expect("failed timeout")
 				.map_err(|e| e.into_io_error())
 				.for_each(move |r| {
-					let txt = TxtRecord::parse(&r.txt).map(|rdata|
+					let txt = TxtRecord::parse(&r.txt).map(|rdata| {
 						rdata
-						.iter()
-						.map(|(key, value)| (
-							String::from(String::from_utf8_lossy(key)),
-							value.map(|value| String::from(String::from_utf8_lossy(value))),
-						))
-						.collect::<Vec<_>>()
-					);
+							.iter()
+							.map(|(key, value)| {
+								(
+									String::from(String::from_utf8_lossy(key)),
+									value.map(|value| String::from(String::from_utf8_lossy(value))),
+								)
+							})
+							.collect::<Vec<_>>()
+					});
 					println!(
 						"Resolved {:?} on {:?}: {:?}:{} (txt {:?})\t\t[{:?}]",
-						service.service_name,
-						r.interface,
-						r.host_target,
-						r.port,
-						txt,
-						r
+						service.service_name, r.interface, r.host_target, r.port, txt, r
 					);
 					let fullname = r.fullname.clone();
 					let host_target_e = r.host_target.clone();
 					tokio::runtime::current_thread::spawn(
 						// Query IPv4 + IPv6
 						r.resolve_socket_address()?
-						.timeout(address_timeout)?
-						.map_err(|e| e.into_io_error())
-						.for_each(move |addr| {
-							println!(
-								"Address for {}: {}",
-								fullname, addr
-							);
-							Ok(())
-						})
-						.or_else(move |e| {
-							println!(
-								"query_record {} failed: {}",
-								host_target_e, e
-							);
-							Ok(())
-						}),
+							.timeout(address_timeout)?
+							.map_err(|e| e.into_io_error())
+							.for_each(move |addr| {
+								println!("Address for {}: {}", fullname, addr);
+								Ok(())
+							})
+							.or_else(move |e| {
+								println!("query_record {} failed: {}", host_target_e, e);
+								Ok(())
+							}),
 					);
 					Ok(())
 				})

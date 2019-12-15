@@ -142,11 +142,7 @@ impl TxtRecord {
 	}
 
 	/// Insert or update the entry with `key` to have the given value or on value
-	pub fn set(
-		&mut self,
-		key: &[u8],
-		value: Option<&[u8]>,
-	) -> Result<(), TxtRecordError> {
+	pub fn set(&mut self, key: &[u8], value: Option<&[u8]>) -> Result<(), TxtRecordError> {
 		for &k in key {
 			if k == b'=' || k < 0x20 || k > 0x7e {
 				return Err(TxtRecordError::InvalidKey);
@@ -174,11 +170,7 @@ impl TxtRecord {
 	}
 
 	/// Insert or update the entry with `key` to have the given value
-	pub fn set_value(
-		&mut self,
-		key: &[u8],
-		value: &[u8],
-	) -> Result<(), TxtRecordError> {
+	pub fn set_value(&mut self, key: &[u8], value: &[u8]) -> Result<(), TxtRecordError> {
 		self.set(key, Some(value))
 	}
 }

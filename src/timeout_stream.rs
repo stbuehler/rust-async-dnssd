@@ -69,7 +69,8 @@ impl<E: Into<io::Error>> TimeoutStreamError<E> {
 
 impl<S: futures::Stream> TimeoutStream<S> {
 	fn reset_timer(&mut self) {
-		self.timeout.reset(std::time::Instant::now() + self.duration);
+		self.timeout
+			.reset(std::time::Instant::now() + self.duration);
 	}
 }
 

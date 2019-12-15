@@ -10,13 +10,15 @@ use std::{
 	rc::Rc,
 };
 
-use crate::cstr;
-use crate::dns_consts::{
-	Class,
-	Type,
+use crate::{
+	cstr,
+	dns_consts::{
+		Class,
+		Type,
+	},
+	error::Error,
+	ffi,
 };
-use crate::error::Error;
-use crate::ffi;
 
 type FFIResult<R> = Result<R, Error>;
 
@@ -47,13 +49,7 @@ impl InnerDNSService {
 	) -> FFIResult<InnerDNSService> {
 		let mut sd_ref: ffi::DNSServiceRef = null_mut();
 		Error::from(unsafe {
-			ffi::DNSServiceEnumerateDomains(
-				&mut sd_ref,
-				flags,
-				interface_index,
-				callback,
-				context,
-			)
+			ffi::DNSServiceEnumerateDomains(&mut sd_ref, flags, interface_index, callback, context)
 		})?;
 		Ok(InnerDNSService(sd_ref))
 	}
@@ -432,26 +428,14 @@ impl InnerDNSRecord {
 		Ok(InnerDNSRecord(service.clone(), record_ref, rr_type))
 	}
 
-	fn update_record(
-		&self,
-		flags: ffi::DNSServiceFlags,
-		rdata: &[u8],
-		ttl: u32,
-	) -> FFIResult<()> {
+	fn update_record(&self, flags: ffi::DNSServiceFlags, rdata: &[u8], ttl: u32) -> FFIResult<()> {
 		let rd_len = rdata.len();
 		assert!(rd_len < (1 << 16));
 		let rd_len = rd_len as u16;
 		let rdata = rdata.as_ptr();
 
 		Error::from(unsafe {
-			ffi::DNSServiceUpdateRecord(
-				self.get_service().0,
-				self.1,
-				flags,
-				rd_len,
-				rdata,
-				ttl,
-			)
+			ffi::DNSServiceUpdateRecord(self.get_service().0, self.1, flags, rd_len, rdata, ttl)
 		})
 	}
 

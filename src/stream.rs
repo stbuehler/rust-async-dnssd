@@ -8,10 +8,12 @@ use std::{
 	os::raw::c_void,
 };
 
-use crate::error::Error;
-use crate::evented::EventedDNSService;
-use crate::ffi;
-use crate::raw::DNSService;
+use crate::{
+	error::Error,
+	evented::EventedDNSService,
+	ffi,
+	raw::DNSService,
+};
 
 #[allow(clippy::borrowed_box)]
 fn box_raw<T>(ptr: &mut Box<T>) -> *mut c_void {
@@ -28,11 +30,8 @@ pub(crate) struct ServiceStream<T> {
 }
 
 impl<T> ServiceStream<T> {
-	pub(crate) fn run_callback<F>(
-		context: *mut c_void,
-		error_code: ffi::DNSServiceErrorType,
-		f: F,
-	) where
+	pub(crate) fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
+	where
 		F: FnOnce() -> io::Result<T>,
 		T: ::std::fmt::Debug,
 	{

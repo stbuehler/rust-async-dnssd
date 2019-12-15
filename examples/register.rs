@@ -4,8 +4,7 @@ fn main() -> std::io::Result<()> {
 	// Use `cargo run --example register`
 	let mut rt = tokio::runtime::current_thread::Runtime::new()?;
 
-	let (_registration, result) =
-		rt.block_on(register("_ssh._tcp", 2022)?)?;
+	let (_registration, result) = rt.block_on(register("_ssh._tcp", 2022)?)?;
 	println!("Registered: {:?}", result);
 
 	// wait until killed
