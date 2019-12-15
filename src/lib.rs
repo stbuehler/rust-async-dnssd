@@ -1,5 +1,6 @@
 #![doc(html_root_url = "https://docs.rs/async-dnssd/0.4.0")]
 #![warn(missing_docs)]
+#![warn(rust_2018_idioms)]
 //! # Asynchronous wrapper for DNS-SD C libraries
 //!
 //! Interesting entry points:
