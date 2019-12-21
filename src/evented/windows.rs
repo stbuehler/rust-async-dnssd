@@ -47,7 +47,10 @@ struct SelectFdRead {
 }
 impl SelectFdRead {
 	pub fn new(fd: c_int) -> Self {
-		SelectFdRead { fd, read_fds: FdSet::new() }
+		SelectFdRead {
+			fd,
+			read_fds: FdSet::new(),
+		}
 	}
 
 	pub fn select(&mut self, timeout: Option<Duration>) -> bool {
@@ -228,15 +231,20 @@ impl Drop for PollReadFd {
 }
 
 mod fd_set {
-	use libc::{c_int, c_uint};
+	use libc::{
+		c_int,
+		c_uint,
+	};
+	use std::{
+		mem::MaybeUninit,
+		ptr,
+	};
 	use winapi::um::winsock2::{
-		u_int,
 		fd_set,
+		u_int,
 		FD_SETSIZE,
 		SOCKET,
 	};
-	use std::mem::MaybeUninit;
-	use std::ptr;
 
 	/// Layout compatible struct of `fd_set`, but it holds maybe uninitialized `fd_array`.
 	///
@@ -289,7 +297,10 @@ mod fd_set {
 	#[cfg(test)]
 	mod tests {
 		use super::*;
-		use std::mem::{needs_drop, transmute};
+		use std::mem::{
+			needs_drop,
+			transmute,
+		};
 
 		// Check that `FdSet` is layout compatible with `fd_set`.
 		#[test]
