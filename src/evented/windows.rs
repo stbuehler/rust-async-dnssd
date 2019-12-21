@@ -171,7 +171,7 @@ pub fn is_readable(fd: c_int) -> io::Result<bool> {
 pub struct PollReadFd(Mutex<Inner>);
 impl PollReadFd {
 	/// does not take overship of fd
-	pub fn new(fd: c_int) -> Self {
+	pub fn new(fd: c_int) -> io::Result<Self> {
 		// buffer one request for "Close"
 		let (send_request, recv_request) = std_mpsc::sync_channel(1);
 		// buffer one notification
@@ -203,14 +203,14 @@ impl PollReadFd {
 			}
 		});
 
-		PollReadFd(Mutex::new(Inner {
+		Ok(PollReadFd(Mutex::new(Inner {
 			fd,
 			_thread: thread,
 			pending_request: false,
 			send_request,
 			send_response: outer_send_response,
 			recv_response,
-		}))
+		})))
 	}
 
 	pub fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {

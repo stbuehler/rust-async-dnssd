@@ -73,11 +73,11 @@ pub(crate) struct OwnedService {
 }
 
 impl OwnedService {
-	fn new(raw: ffi::DNSServiceRef) -> Self {
+	fn new(raw: ffi::DNSServiceRef) -> io::Result<Self> {
 		let fd = unsafe { ffi::DNSServiceRefSockFD(raw) };
 		let handle = ServiceHandle::new(raw);
-		let processing = crate::evented::ReadProcessor::new(fd);
-		Self { handle, processing }
+		let processing = crate::evented::ReadProcessor::new(fd)?;
+		Ok(Self { handle, processing })
 	}
 
 	pub(crate) fn share(self) -> SharedService {
@@ -100,7 +100,7 @@ impl OwnedService {
 		Error::from(unsafe {
 			ffi::DNSServiceEnumerateDomains(&mut sd_ref, flags, interface_index, callback, context)
 		})?;
-		Ok(Self::new(sd_ref))
+		Ok(Self::new(sd_ref)?)
 	}
 
 	pub(crate) fn register(
@@ -137,7 +137,7 @@ impl OwnedService {
 				context,
 			)
 		})?;
-		Ok(Self::new(sd_ref))
+		Ok(Self::new(sd_ref)?)
 	}
 
 	pub(crate) fn browse(
@@ -160,7 +160,7 @@ impl OwnedService {
 				context,
 			)
 		})?;
-		Ok(Self::new(sd_ref))
+		Ok(Self::new(sd_ref)?)
 	}
 
 	pub(crate) fn resolve(
@@ -185,7 +185,7 @@ impl OwnedService {
 				context,
 			)
 		})?;
-		Ok(Self::new(sd_ref))
+		Ok(Self::new(sd_ref)?)
 	}
 
 	pub(crate) fn query_record(
@@ -210,7 +210,7 @@ impl OwnedService {
 				context,
 			)
 		})?;
-		Ok(Self::new(sd_ref))
+		Ok(Self::new(sd_ref)?)
 	}
 }
 
@@ -323,7 +323,7 @@ impl SharedService {
 	pub(crate) fn create_connection() -> Result<Self, Error> {
 		let mut sd_ref: ffi::DNSServiceRef = null_mut();
 		Error::from(unsafe { ffi::DNSServiceCreateConnection(&mut sd_ref) })?;
-		Ok(OwnedService::new(sd_ref).share())
+		Ok(OwnedService::new(sd_ref)?.share())
 	}
 
 	// only valid when `service` was created through "create_connection"

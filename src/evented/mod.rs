@@ -22,11 +22,11 @@ pub(crate) struct ReadProcessor {
 }
 
 impl ReadProcessor {
-	pub(crate) fn new(fd: libc::c_int) -> Self {
-		Self {
+	pub(crate) fn new(fd: libc::c_int) -> io::Result<Self> {
+		Ok(Self {
 			fd,
-			poll: platform::PollReadFd::new(fd),
-		}
+			poll: platform::PollReadFd::new(fd)?,
+		})
 	}
 
 	/// call "p" until fd is no longer readable

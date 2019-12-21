@@ -7,13 +7,15 @@ use std::{
 use crate::ffi;
 
 /// API Error
-#[derive(Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Error {
 	/// If error code used some recognized name
 	KnownError(ffi::DNSServiceError),
 	/// Unrecognized error codes
 	UnknownError(i32),
+	/// IO error
+	IoError(io::Error),
 }
+
 impl Error {
 	/// Check if a raw error code represents an error, and convert it
 	/// accordingly.  (Not all codes are treated as an error, including
@@ -30,32 +32,40 @@ impl Error {
 	}
 }
 
+impl From<io::Error> for Error {
+	fn from(e: io::Error) -> Self {
+		Self::IoError(e)
+	}
+}
+
 impl From<Error> for io::Error {
 	fn from(e: Error) -> Self {
-		io::Error::new(io::ErrorKind::Other, e)
+		match e {
+			Error::IoError(e) => e,
+			e => io::Error::new(io::ErrorKind::Other, e)
+		}
 	}
 }
 
 impl fmt::Debug for Error {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match *self {
-			Error::KnownError(ffi_err) => write!(f, "known error {:?}: {}", ffi_err, ffi_err),
-			Error::UnknownError(e) => write!(f, "unknown error code: {:?}", e),
+		match self {
+			Self::KnownError(ffi_err) => write!(f, "known error {:?}: {}", ffi_err, ffi_err),
+			Self::UnknownError(e) => write!(f, "unknown error code: {:?}", e),
+			Self::IoError(e) => write!(f, "io error: {:?}", e),
 		}
 	}
 }
 impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match *self {
-			Error::KnownError(ffi_err) => write!(f, "{}", ffi_err),
-			Error::UnknownError(e) => write!(f, "unknown error code: {:?}", e),
+		match self {
+			Self::KnownError(ffi_err) => write!(f, "{}", ffi_err),
+			Self::UnknownError(e) => write!(f, "unknown error code: {:?}", e),
+			Self::IoError(e) => write!(f, "io error: {}", e),
 		}
 	}
 }
 impl error::Error for Error {
-	fn description(&self) -> &str {
-		""
-	}
 }
 
 impl fmt::Display for ffi::DNSServiceError {

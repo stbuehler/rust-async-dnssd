@@ -34,8 +34,8 @@ pub fn is_readable(fd: c_int) -> io::Result<bool> {
 pub struct PollReadFd(PollEvented<EventedFd>);
 
 impl PollReadFd {
-	pub fn new(fd: c_int) -> Self {
-		PollReadFd(PollEvented::new(EventedFd(fd)).unwrap())
+	pub fn new(fd: c_int) -> io::Result<Self> {
+		Ok(PollReadFd(PollEvented::new(EventedFd(fd))?))
 	}
 
 	pub fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
