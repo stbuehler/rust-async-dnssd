@@ -105,7 +105,7 @@ DNSServiceError: i32 =>
 }
 
 pub type DNSServiceDomainEnumReply = Option<
-	extern "C" fn(
+	unsafe extern "C" fn(
 		sd_ref: DNSServiceRef,
 		flags: DNSServiceFlags,
 		interface_index: u32,
@@ -115,7 +115,7 @@ pub type DNSServiceDomainEnumReply = Option<
 	),
 >;
 pub type DNSServiceRegisterReply = Option<
-	extern "C" fn(
+	unsafe extern "C" fn(
 		sd_ref: DNSServiceRef,
 		flags: DNSServiceFlags,
 		error_code: DNSServiceErrorType,
@@ -126,7 +126,7 @@ pub type DNSServiceRegisterReply = Option<
 	),
 >;
 pub type DNSServiceBrowseReply = Option<
-	extern "C" fn(
+	unsafe extern "C" fn(
 		sd_ref: DNSServiceRef,
 		flags: DNSServiceFlags,
 		interface_index: u32,
@@ -138,7 +138,7 @@ pub type DNSServiceBrowseReply = Option<
 	),
 >;
 pub type DNSServiceResolveReply = Option<
-	extern "C" fn(
+	unsafe extern "C" fn(
 		sd_ref: DNSServiceRef,
 		flags: DNSServiceFlags,
 		interface_index: u32,
@@ -152,7 +152,7 @@ pub type DNSServiceResolveReply = Option<
 	),
 >;
 pub type DNSServiceRegisterRecordReply = Option<
-	extern "C" fn(
+	unsafe extern "C" fn(
 		sd_ref: DNSServiceRef,
 		record_ref: DNSRecordRef,
 		flags: DNSServiceFlags,
@@ -161,7 +161,7 @@ pub type DNSServiceRegisterRecordReply = Option<
 	),
 >;
 pub type DNSServiceQueryRecordReply = Option<
-	extern "C" fn(
+	unsafe extern "C" fn(
 		sd_ref: DNSServiceRef,
 		flags: DNSServiceFlags,
 		interface_index: u32,
