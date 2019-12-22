@@ -214,17 +214,17 @@ impl PollReadFd {
 	}
 
 	pub fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-		self.0.lock().expect("lock failed").poll_read_ready(cx)
+		self.0.lock().expect("mutex poisoned").poll_read_ready(cx)
 	}
 
 	pub fn clear_read_ready(&self, cx: &mut Context<'_>) -> io::Result<()> {
-		self.0.lock().expect("lock failed").clear_read_ready(cx)
+		self.0.lock().expect("mutex poisoned").clear_read_ready(cx)
 	}
 }
 
 impl Drop for PollReadFd {
 	fn drop(&mut self) {
-		let _ = self.0.lock().expect("lock failed").send_request.send(PollRequest::Close);
+		let _ = self.0.get_mut().expect("mutex poisoned").send_request.send(PollRequest::Close);
 	}
 }
 
