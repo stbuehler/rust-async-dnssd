@@ -27,6 +27,7 @@ use crate::{
 		Class,
 		Type,
 	},
+	ffi,
 	interface::Interface,
 	service::{
 		query_record_extended,
@@ -36,25 +37,49 @@ use crate::{
 	},
 };
 
-fn decode_a(a: QueryRecordResult) -> Option<(IpAddr, Interface)> {
+fn decode_a(a: QueryRecordResult, port: u16) -> Option<ResolveHostResult> {
 	if a.rr_class == Class::IN && a.rr_type == Type::A && a.rdata.len() == 4 {
 		let mut octets = [0u8; 4];
 		octets.clone_from_slice(&a.rdata);
-		Some((IpAddr::V4(Ipv4Addr::from(octets)), a.interface))
+		let ip = IpAddr::V4(Ipv4Addr::from(octets));
+		let addr = ScopedSocketAddr::new(ip, port, a.interface.scope_id());
+		Some(ResolveHostResult {
+			flags: ResolvedHostFlags::from_bits_truncate(a.flags.bits()),
+			address: addr,
+		})
 	} else {
 		println!("Invalid A response: {:?}", a);
 		None
 	}
 }
 
-fn decode_aaaa(a: QueryRecordResult) -> Option<(IpAddr, Interface)> {
+fn decode_aaaa(a: QueryRecordResult, port: u16) -> Option<ResolveHostResult> {
 	if a.rr_class == Class::IN && a.rr_type == Type::AAAA && a.rdata.len() == 16 {
 		let mut octets = [0u8; 16];
 		octets.clone_from_slice(&a.rdata);
-		Some((IpAddr::V6(Ipv6Addr::from(octets)), a.interface))
+		let ip = IpAddr::V6(Ipv6Addr::from(octets));
+		let addr = ScopedSocketAddr::new(ip, port, a.interface.scope_id());
+		Some(ResolveHostResult {
+			flags: ResolvedHostFlags::from_bits_truncate(a.flags.bits()),
+			address: addr,
+		})
 	} else {
 		println!("Invalid AAAA response: {:?}", a);
 		None
+	}
+}
+
+bitflags::bitflags! {
+	/// Flags for [`ResolveHostResult`](struct.ResolveHostResult.html)
+	///
+	/// Doesn't include `MORE_COMING` as there are two underlying streams.
+	#[derive(Default)]
+	pub struct ResolvedHostFlags: ffi::DNSServiceFlags {
+		/// Indicates the result is new.  If not set indicates the result
+		/// was removed.
+		///
+		/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
+		const ADD = ffi::FLAGS_ADD;
 	}
 }
 
@@ -80,26 +105,33 @@ pub struct ResolveHostData {
 /// Pending resolve
 #[must_use = "streams do nothing unless polled"]
 pub struct ResolveHost {
-	// inner: stream::BoxStream<'static, io::Result<(IpAddr, Interface)>>,
-	inner: Pin<Box<dyn Stream<Item = io::Result<(IpAddr, Interface)>> + 'static + Send + Sync>>,
-	port: u16,
+	inner: Pin<Box<dyn Stream<Item = io::Result<ResolveHostResult>> + 'static + Send + Sync>>,
 }
 
 impl Stream for ResolveHost {
-	type Item = io::Result<ScopedSocketAddr>;
+	type Item = io::Result<ResolveHostResult>;
 
 	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-		Poll::Ready(
-			futures::ready!(self.inner.poll_next_unpin(cx)?)
-				.map(|(ip, iface)| Ok(ScopedSocketAddr::new(ip, self.port, iface.scope_id()))),
-		)
+		self.inner.poll_next_unpin(cx)
 	}
+}
+
+/// Resolve host result
+///
+/// See [`DNSServiceResolveReply`](https://developer.apple.com/documentation/dnssd/dnsserviceresolvereply).
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct ResolveHostResult {
+	/// flags
+	pub flags: ResolvedHostFlags,
+	/// address
+	pub address: ScopedSocketAddr,
 }
 
 /// IP address with port and "scope id" (even for IPv4)
 ///
 /// When converting to `SocketAddr` the "scope id" is lost for IPv4; when converting to
 /// `SocketAddrV6` it uses `to_ipv6_mapped()` for IPv4 addresses.
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ScopedSocketAddr {
 	/// IPv4 target
 	V4 {
@@ -222,10 +254,10 @@ pub fn resolve_host_extended(
 	};
 
 	let inner_v6 = query_record_extended(host, Type::AAAA, qrdata)?
-		.try_filter_map(|addr| async { Ok(decode_aaaa(addr)) });
+		.try_filter_map(move |addr| async move { Ok(decode_aaaa(addr, port)) });
 	let inner_v4 = query_record_extended(host, Type::A, qrdata)?
-		.try_filter_map(|addr| async { Ok(decode_a(addr)) });
+		.try_filter_map(move |addr| async move { Ok(decode_a(addr, port)) });
 	let inner = Box::pin(stream::select(inner_v6, inner_v4));
 
-	Ok(ResolveHost { inner, port })
+	Ok(ResolveHost { inner })
 }

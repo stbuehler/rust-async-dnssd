@@ -26,6 +26,18 @@ use crate::{
 
 type CallbackStream = crate::stream::ServiceStream<inner::OwnedService, ResolveResult>;
 
+bitflags::bitflags! {
+	/// Flags for [`ResolveResult`](struct.ResolveResult.html)
+	#[derive(Default)]
+	pub struct ResolvedFlags: ffi::DNSServiceFlags {
+		/// Indicates at least one more result is pending in the queue.  If
+		/// not set there still might be more results coming in the future.
+		///
+		/// See [`kDNSServiceFlagsMoreComing`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsmorecoming).
+		const MORE_COMING = ffi::FLAGS_MORE_COMING;
+	}
+}
+
 /// Pending resolve request
 #[must_use = "streams do nothing unless polled"]
 pub struct Resolve {
@@ -49,6 +61,8 @@ impl futures::Stream for Resolve {
 /// See [`DNSServiceResolveReply`](https://developer.apple.com/documentation/dnssd/dnsserviceresolvereply).
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct ResolveResult {
+	/// flags
+	pub flags: ResolvedFlags,
 	/// interface service was resolved on
 	pub interface: Interface,
 	/// full name of service
@@ -74,7 +88,7 @@ impl ResolveResult {
 
 unsafe extern "C" fn resolve_callback(
 	_sd_ref: ffi::DNSServiceRef,
-	_flags: ffi::DNSServiceFlags,
+	flags: ffi::DNSServiceFlags,
 	interface_index: u32,
 	error_code: ffi::DNSServiceErrorType,
 	fullname: *const c_char,
@@ -90,6 +104,7 @@ unsafe extern "C" fn resolve_callback(
 		let txt = ::std::slice::from_raw_parts(txt_record, txt_len as usize);
 
 		Ok(ResolveResult {
+			flags: ResolvedFlags::from_bits_truncate(flags),
 			interface: Interface::from_raw(interface_index),
 			fullname: fullname.to_string(),
 			host_target: host_target.to_string(),
