@@ -190,6 +190,8 @@ pub struct RegisterData<'a> {
 	/// [`TxtRecord::data`]: struct.TxtRecord.html#method.data
 	/// [`TxtRecord::rdata`]: struct.TxtRecord.html#method.rdata
 	pub txt: &'a [u8],
+	#[doc(hidden)]
+	pub _non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
 }
 
 impl<'a> Default for RegisterData<'a> {
@@ -201,6 +203,7 @@ impl<'a> Default for RegisterData<'a> {
 			domain: None,
 			host: None,
 			txt: b"",
+			_non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
 		}
 	}
 }

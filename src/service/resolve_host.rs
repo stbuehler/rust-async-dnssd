@@ -100,6 +100,8 @@ pub struct ResolveHostData {
 	pub flags: QueryRecordFlags,
 	/// interface to query records on
 	pub interface: Interface,
+	#[doc(hidden)]
+	pub _non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
 }
 
 /// Pending resolve
@@ -251,6 +253,7 @@ pub fn resolve_host_extended(
 		flags: data.flags,
 		interface: data.interface,
 		rr_class: Class::IN,
+		..Default::default()
 	};
 
 	let inner_v6 = query_record_extended(host, Type::AAAA, qrdata)?

@@ -65,7 +65,10 @@ macro_rules! c_api_enum {
 }
 
 pub type DNSServiceErrorType = i32;
-c_api_enum! {DNSServiceNoError: i32 =>
+
+c_api_enum! {
+#[non_exhaustive]
+DNSServiceNoError: i32 =>
 	NoError               = 0,
 	// windows "TCP Connection Status"
 	ConnectionPending     = -65570,
@@ -76,10 +79,12 @@ c_api_enum! {DNSServiceNoError: i32 =>
 	ConfigChanged         = -65791,
 	MemFree               = -65792,
 }
+
 c_api_enum! {
 /// Known error codes
 ///
 /// See [`DNSServiceErrorType`](https://developer.apple.com/documentation/dnssd/1823426-anonymous)
+#[non_exhaustive]
 DNSServiceError: i32 =>
 	Unknown               = -65537,
 	NoSuchName            = -65538,

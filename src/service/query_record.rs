@@ -141,6 +141,8 @@ pub struct QueryRecordData {
 	pub interface: Interface,
 	/// class of the resource record (default: `IN`)
 	pub rr_class: Class,
+	#[doc(hidden)]
+	pub _non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
 }
 
 impl Default for QueryRecordData {
@@ -149,6 +151,7 @@ impl Default for QueryRecordData {
 			flags: QueryRecordFlags::default(),
 			interface: Interface::default(),
 			rr_class: Class::IN,
+			_non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
 		}
 	}
 }

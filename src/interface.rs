@@ -10,7 +10,7 @@ pub struct InterfaceIndex(u32);
 
 impl InterfaceIndex {
 	/// Construct new `InterfaceIndex` from raw index and makes sure
-	/// not to use the special reserved values (`0` and `!0`).
+	/// not to use the special reserved values.
 	pub fn from_raw(ndx: u32) -> Option<Self> {
 		match ndx {
 			ffi::INTERFACE_INDEX_ANY => None,
@@ -44,6 +44,7 @@ impl fmt::Debug for InterfaceIndex {
 /// Either identifies a single interface (by index) or the special "Any"
 /// or "LocalOnly" interfaces.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[non_exhaustive]
 pub enum Interface {
 	/// Any interface; depending on domain name this means either
 	/// multicast or unicast

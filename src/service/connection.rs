@@ -112,6 +112,8 @@ pub struct RegisterRecordData {
 	/// time to live of the resource record in seconds (passing 0 will
 	/// select a sensible default)
 	pub ttl: u32,
+	#[doc(hidden)]
+	pub _non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
 }
 
 impl Default for RegisterRecordData {
@@ -121,6 +123,7 @@ impl Default for RegisterRecordData {
 			interface: Interface::default(),
 			rr_class: Class::IN,
 			ttl: 0,
+			_non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
 		}
 	}
 }

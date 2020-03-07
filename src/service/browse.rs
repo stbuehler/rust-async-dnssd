@@ -133,6 +133,8 @@ pub struct BrowseData<'a> {
 	pub interface: Interface,
 	/// domain on which to search for the service
 	pub domain: Option<&'a str>,
+	#[doc(hidden)]
+	pub _non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
 }
 
 impl<'a> Default for BrowseData<'a> {
@@ -140,6 +142,7 @@ impl<'a> Default for BrowseData<'a> {
 		BrowseData {
 			interface: Interface::default(),
 			domain: None,
+			_non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
 		}
 	}
 }
