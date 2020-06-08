@@ -199,7 +199,8 @@ impl PollReadFd {
 
 				debug!("[select thread] read event");
 
-				futures::executor::block_on(send_response.send(())).unwrap();
+                                // Can only fail if the other end is dropped
+				let _ = futures::executor::block_on(send_response.send(()));
 			}
 		});
 
