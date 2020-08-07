@@ -1,4 +1,3 @@
-use mio;
 use std::{
 	io,
 	os::raw::c_int,
