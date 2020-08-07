@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/async-dnssd/0.4.0")]
+#![doc(html_root_url = "https://docs.rs/async-dnssd/0.4.1")]
 #![warn(missing_docs)]
 //! # Asynchronous wrapper for DNS-SD C libraries
 //!
