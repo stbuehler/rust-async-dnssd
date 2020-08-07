@@ -66,6 +66,13 @@ impl fmt::Display for Error {
 	}
 }
 impl error::Error for Error {
+	fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+		match self {
+			Self::KnownError(ffi_err) => Some(ffi_err),
+			Self::UnknownError(_) => None,
+			Self::IoError(e) => Some(e),
+		}
+	}
 }
 
 impl ffi::DNSServiceError {
