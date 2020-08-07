@@ -68,13 +68,8 @@ impl fmt::Display for Error {
 impl error::Error for Error {
 }
 
-impl fmt::Display for ffi::DNSServiceError {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", error::Error::description(self))
-	}
-}
-impl error::Error for ffi::DNSServiceError {
-	fn description(&self) -> &str {
+impl ffi::DNSServiceError {
+	pub fn description(&self) -> &str {
 		use ffi::DNSServiceError::*;
 		match *self {
 			Unknown => "unknown error",
@@ -99,5 +94,29 @@ impl error::Error for ffi::DNSServiceError {
 			NoValue => "no value",
 			BufferTooSmall => "buffer too small",
 		}
+	}
+}
+
+impl fmt::Display for ffi::DNSServiceError {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.description())
+	}
+}
+impl error::Error for ffi::DNSServiceError {
+	fn description(&self) -> &str {
+		self.description()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	#[allow(deprecated)]
+	fn test_ffi_err_description() {
+		// make sure Error::description still works, although we now provide a
+		// (non-trait) description method
+		assert_eq!(error::Error::description(&ffi::DNSServiceError::NoAuth), "no auth");
 	}
 }
