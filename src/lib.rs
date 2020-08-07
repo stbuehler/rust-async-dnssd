@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/async-dnssd/0.4.1")]
+#![doc(html_root_url = "https://docs.rs/async-dnssd/0.5.0-rc.1")]
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]
 #![warn(unused_extern_crates, unused_qualifications)]
