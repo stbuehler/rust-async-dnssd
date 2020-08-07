@@ -33,8 +33,11 @@ pub(crate) struct ServiceStream<S: EventedService, T> {
 }
 
 impl<S: EventedService, T> ServiceStream<S, T> {
-	pub(crate) unsafe fn run_callback<F>(context: *mut c_void, error_code: ffi::DNSServiceErrorType, f: F)
-	where
+	pub(crate) unsafe fn run_callback<F>(
+		context: *mut c_void,
+		error_code: ffi::DNSServiceErrorType,
+		f: F,
+	) where
 		F: FnOnce() -> io::Result<T>,
 		T: ::std::fmt::Debug,
 	{

@@ -42,7 +42,7 @@ impl From<Error> for io::Error {
 	fn from(e: Error) -> Self {
 		match e {
 			Error::IoError(e) => e,
-			e => io::Error::new(io::ErrorKind::Other, e)
+			e => io::Error::new(io::ErrorKind::Other, e),
 		}
 	}
 }
@@ -124,6 +124,9 @@ mod tests {
 	fn test_ffi_err_description() {
 		// make sure Error::description still works, although we now provide a
 		// (non-trait) description method
-		assert_eq!(error::Error::description(&ffi::DNSServiceError::NoAuth), "no auth");
+		assert_eq!(
+			error::Error::description(&ffi::DNSServiceError::NoAuth),
+			"no auth"
+		);
 	}
 }

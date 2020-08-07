@@ -1,7 +1,7 @@
 use async_dnssd::{
+	ResolvedHostFlags,
 	StreamTimeoutExt,
 	TxtRecord,
-	ResolvedHostFlags,
 };
 use futures::prelude::*;
 use std::{
@@ -112,7 +112,10 @@ async fn main() {
 										.timeout(address_timeout)?
 										.try_for_each(move |result| {
 											if result.flags.intersects(ResolvedHostFlags::ADD) {
-												println!("Address for {}: {}", fullname, result.address);
+												println!(
+													"Address for {}: {}",
+													fullname, result.address
+												);
 											}
 											futures::future::ok(())
 										})

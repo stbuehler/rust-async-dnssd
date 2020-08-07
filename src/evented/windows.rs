@@ -22,8 +22,10 @@ use log::debug;
 use std::{
 	io,
 	os::raw::c_int,
-	sync::Mutex,
-	sync::mpsc as std_mpsc,
+	sync::{
+		mpsc as std_mpsc,
+		Mutex,
+	},
 	task::{
 		Context,
 		Poll,
@@ -131,12 +133,14 @@ impl Inner {
 				assert!(self.pending_request);
 				// try again - can't be ready again, but register context
 				match self.recv_response.poll_next_unpin(cx) {
-					Poll::Ready(None) => unreachable!(), // can't be disconnected
+					Poll::Ready(None) => unreachable!(),     // can't be disconnected
 					Poll::Ready(Some(())) => unreachable!(), // no one could have sent this
 					Poll::Pending => (),
 				}
 				// now send a response - it was ready after all
-				self.send_response.try_send(()).expect("channel can't be full or disconnected");
+				self.send_response
+					.try_send(())
+					.expect("channel can't be full or disconnected");
 			},
 			Poll::Pending => {
 				// yay!
@@ -149,7 +153,9 @@ impl Inner {
 					if read_fds.select(Some(Duration::from_millis(0))) {
 						debug!("poll need read: local ready");
 						// ready, send a response
-						self.send_response.try_send(()).expect("channel can't be full or disconnected");
+						self.send_response
+							.try_send(())
+							.expect("channel can't be full or disconnected");
 					} else {
 						debug!("poll need read: not ready, start thread");
 						self.send_request
@@ -199,7 +205,7 @@ impl PollReadFd {
 
 				debug!("[select thread] read event");
 
-                                // Can only fail if the other end is dropped
+				// Can only fail if the other end is dropped
 				let _ = futures::executor::block_on(send_response.send(()));
 			}
 		});
@@ -225,7 +231,12 @@ impl PollReadFd {
 
 impl Drop for PollReadFd {
 	fn drop(&mut self) {
-		let _ = self.0.get_mut().expect("mutex poisoned").send_request.send(PollRequest::Close);
+		let _ = self
+			.0
+			.get_mut()
+			.expect("mutex poisoned")
+			.send_request
+			.send(PollRequest::Close);
 	}
 }
 
