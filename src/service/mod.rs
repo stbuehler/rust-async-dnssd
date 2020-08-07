@@ -22,6 +22,7 @@ use crate::dns_consts::{
 	Class,
 	Type,
 };
+use std::os::raw::c_char;
 
 /// Purge record from cache
 ///
@@ -74,7 +75,7 @@ impl<'a> FullName<'a> {
 		buf.reserve(SIZE);
 		let len = unsafe {
 			crate::ffi::DNSServiceConstructFullName(
-				buf.as_mut_ptr() as *mut i8,
+				buf.as_mut_ptr() as *mut c_char,
 				service.as_ptr(),
 				reg_type.as_ptr(),
 				domain.as_ptr(),
