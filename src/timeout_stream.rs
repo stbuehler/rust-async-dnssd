@@ -50,30 +50,6 @@ impl<S: Stream> TimeoutStream<S> {
 	}
 }
 
-/// Error produces by [`TimeoutStream`](struct.TimeoutStream.html)
-///
-/// A timeout itself doesn't produce an error, it will just end the
-/// stream.
-#[derive(Debug)]
-pub enum TimeoutStreamError<E> {
-	/// An error occured in the underlying stream
-	StreamError(E),
-	/// Setting / checking the timeout failed
-	TimeoutError,
-}
-
-impl<E: Into<io::Error>> TimeoutStreamError<E> {
-	/// Combine to an `std::io::Error`.
-	pub fn into_io_error(self) -> io::Error {
-		match self {
-			TimeoutStreamError::StreamError(e) => e.into(),
-			TimeoutStreamError::TimeoutError => {
-				io::Error::new(io::ErrorKind::TimedOut, "stream timed out")
-			},
-		}
-	}
-}
-
 impl<S: Stream> TimeoutStream<S> {
 	fn reset_timer(self: Pin<&mut Self>) {
 		let next = tokio::time::Instant::now() + self.duration;
@@ -100,7 +76,6 @@ impl<S: TryStream> Stream for TimeoutStream<S> {
 					Poll::Ready(()) => {
 						// not an error
 						Poll::Ready(None)
-						// Err(TimeoutStreamError::Timeout)
 					},
 					// still time left
 					Poll::Pending => Poll::Pending,

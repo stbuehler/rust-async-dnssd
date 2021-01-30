@@ -93,7 +93,6 @@ pub use self::{
 	timeout_stream::{
 		StreamTimeoutExt,
 		TimeoutStream,
-		TimeoutStreamError,
 	},
 	txt_record::{
 		TxtRecord,
