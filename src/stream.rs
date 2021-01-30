@@ -62,7 +62,7 @@ impl<S: EventedService, T> ServiceStream<S, T> {
 
 		let service = f(box_raw(&mut sender))?;
 
-		Ok(ServiceStream {
+		Ok(Self {
 			service,
 			_sender: sender,
 			receiver,

@@ -80,7 +80,7 @@ struct SelectFdRead {
 }
 impl SelectFdRead {
 	pub fn new(fd: c_int) -> Self {
-		SelectFdRead {
+		Self {
 			fd,
 			read_fds: FdSet::new(),
 		}
@@ -241,7 +241,7 @@ impl PollReadFd {
 			}
 		});
 
-		Ok(PollReadFd(Mutex::new(Inner {
+		Ok(Self(Mutex::new(Inner {
 			fd,
 			_thread: thread,
 			pending_request: false,
@@ -300,7 +300,7 @@ mod fd_set {
 
 	impl FdSet {
 		pub fn new() -> Self {
-			FdSet {
+			Self {
 				fd_count: 0,
 				// safe according to:
 				// https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
@@ -309,7 +309,7 @@ mod fd_set {
 		}
 
 		pub fn inner(&mut self) -> *mut fd_set {
-			self as *mut FdSet as *mut _
+			self as *mut Self as *mut _
 		}
 
 		pub fn set(&mut self, fd: c_int) {

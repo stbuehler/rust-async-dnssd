@@ -118,7 +118,7 @@ pub struct RegisterRecordData {
 
 impl Default for RegisterRecordData {
 	fn default() -> Self {
-		RegisterRecordData {
+		Self {
 			flags: RegisterRecordFlags::default(),
 			interface: Interface::default(),
 			rr_class: Class::IN,

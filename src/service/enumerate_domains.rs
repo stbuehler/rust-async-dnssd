@@ -34,8 +34,8 @@ pub enum Enumerate {
 impl Into<ffi::DNSServiceFlags> for Enumerate {
 	fn into(self) -> ffi::DNSServiceFlags {
 		match self {
-			Enumerate::BrowseDomains => ffi::FLAGS_BROWSE_DOMAINS,
-			Enumerate::RegistrationDomains => ffi::FLAGS_REGISTRATION_DOMAINS,
+			Self::BrowseDomains => ffi::FLAGS_BROWSE_DOMAINS,
+			Self::RegistrationDomains => ffi::FLAGS_REGISTRATION_DOMAINS,
 		}
 	}
 }

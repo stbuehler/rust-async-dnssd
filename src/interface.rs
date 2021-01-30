@@ -17,7 +17,7 @@ impl InterfaceIndex {
 			ffi::INTERFACE_INDEX_LOCAL_ONLY => None,
 			ffi::INTERFACE_INDEX_UNICAST => None,
 			ffi::INTERFACE_INDEX_P2P => None,
-			_ => Some(InterfaceIndex(ndx)),
+			_ => Some(Self(ndx)),
 		}
 	}
 
@@ -61,7 +61,7 @@ pub enum Interface {
 
 impl Default for Interface {
 	fn default() -> Self {
-		Interface::Any
+		Self::Any
 	}
 }
 
@@ -69,22 +69,22 @@ impl Interface {
 	/// Construct from raw value
 	pub fn from_raw(raw: u32) -> Self {
 		match raw {
-			ffi::INTERFACE_INDEX_ANY => Interface::Any,
-			ffi::INTERFACE_INDEX_LOCAL_ONLY => Interface::LocalOnly,
-			ffi::INTERFACE_INDEX_UNICAST => Interface::Unicast,
-			ffi::INTERFACE_INDEX_P2P => Interface::PeerToPeer,
-			_ => Interface::Index(InterfaceIndex(raw)),
+			ffi::INTERFACE_INDEX_ANY => Self::Any,
+			ffi::INTERFACE_INDEX_LOCAL_ONLY => Self::LocalOnly,
+			ffi::INTERFACE_INDEX_UNICAST => Self::Unicast,
+			ffi::INTERFACE_INDEX_P2P => Self::PeerToPeer,
+			_ => Self::Index(InterfaceIndex(raw)),
 		}
 	}
 
 	/// Convert to raw value
 	pub fn into_raw(self) -> u32 {
 		match self {
-			Interface::Any => ffi::INTERFACE_INDEX_ANY,
-			Interface::Index(InterfaceIndex(raw)) => raw,
-			Interface::LocalOnly => ffi::INTERFACE_INDEX_LOCAL_ONLY,
-			Interface::Unicast => ffi::INTERFACE_INDEX_UNICAST,
-			Interface::PeerToPeer => ffi::INTERFACE_INDEX_P2P,
+			Self::Any => ffi::INTERFACE_INDEX_ANY,
+			Self::Index(InterfaceIndex(raw)) => raw,
+			Self::LocalOnly => ffi::INTERFACE_INDEX_LOCAL_ONLY,
+			Self::Unicast => ffi::INTERFACE_INDEX_UNICAST,
+			Self::PeerToPeer => ffi::INTERFACE_INDEX_P2P,
 		}
 	}
 
@@ -93,7 +93,7 @@ impl Interface {
 	/// Returns the interface index (or zero if not a single interface is selected)
 	pub fn scope_id(self) -> u32 {
 		match self {
-			Interface::Index(InterfaceIndex(scope_id)) => scope_id,
+			Self::Index(InterfaceIndex(scope_id)) => scope_id,
 			_ => 0,
 		}
 	}

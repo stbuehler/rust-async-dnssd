@@ -27,7 +27,7 @@ pub struct TxtRecord(Vec<u8>);
 impl TxtRecord {
 	/// Constructs a new, empty `TxtRecord`.
 	pub fn new() -> Self {
-		TxtRecord(Vec::new())
+		Self(Vec::new())
 	}
 
 	/// Parse binary blob as TXT RDATA
@@ -39,7 +39,7 @@ impl TxtRecord {
 		if data.len() == 1 && data[0] == 0 {
 			let mut data = data;
 			data.clear();
-			return Some(TxtRecord(data));
+			return Some(Self(data));
 		}
 		let mut pos = 0;
 		while pos < data.len() {
@@ -50,7 +50,7 @@ impl TxtRecord {
 			}
 			pos = new_pos;
 		}
-		Some(TxtRecord(data))
+		Some(Self(data))
 	}
 
 	/// Parse some binary blob as TXT RDATA
@@ -68,7 +68,7 @@ impl TxtRecord {
 	///
 	/// The inserting operations will still reallocate if necessary.
 	pub fn with_capacity(capacity: usize) -> Self {
-		TxtRecord(Vec::with_capacity(capacity))
+		Self(Vec::with_capacity(capacity))
 	}
 
 	/// Reserves capacity for at least `additional` more bytes to be
@@ -177,7 +177,7 @@ impl TxtRecord {
 
 impl Default for TxtRecord {
 	fn default() -> Self {
-		TxtRecord::new()
+		Self::new()
 	}
 }
 

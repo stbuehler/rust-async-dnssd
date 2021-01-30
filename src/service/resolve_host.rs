@@ -159,12 +159,12 @@ impl ScopedSocketAddr {
 	/// Create new `ScopedSocketAddr`
 	pub fn new(address: IpAddr, port: u16, scope_id: u32) -> Self {
 		match address {
-			IpAddr::V4(address) => ScopedSocketAddr::V4 {
+			IpAddr::V4(address) => Self::V4 {
 				address,
 				port,
 				scope_id,
 			},
-			IpAddr::V6(address) => ScopedSocketAddr::V6 {
+			IpAddr::V6(address) => Self::V6 {
 				address,
 				port,
 				scope_id,
@@ -176,11 +176,11 @@ impl ScopedSocketAddr {
 impl Into<SocketAddr> for ScopedSocketAddr {
 	fn into(self) -> SocketAddr {
 		match self {
-			ScopedSocketAddr::V4 { address, port, .. } => {
+			Self::V4 { address, port, .. } => {
 				// doesn't use scope_id
 				SocketAddr::V4(SocketAddrV4::new(address, port))
 			},
-			ScopedSocketAddr::V6 {
+			Self::V6 {
 				address,
 				port,
 				scope_id,
@@ -192,12 +192,12 @@ impl Into<SocketAddr> for ScopedSocketAddr {
 impl Into<SocketAddrV6> for ScopedSocketAddr {
 	fn into(self) -> SocketAddrV6 {
 		match self {
-			ScopedSocketAddr::V4 {
+			Self::V4 {
 				address,
 				port,
 				scope_id,
 			} => SocketAddrV6::new(address.to_ipv6_mapped(), port, 0, scope_id),
-			ScopedSocketAddr::V6 {
+			Self::V6 {
 				address,
 				port,
 				scope_id,
@@ -209,22 +209,22 @@ impl Into<SocketAddrV6> for ScopedSocketAddr {
 impl fmt::Display for ScopedSocketAddr {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
-			ScopedSocketAddr::V4 {
+			Self::V4 {
 				address,
 				port,
 				scope_id: 0,
 			} => write!(f, "{}:{}", address, port),
-			ScopedSocketAddr::V4 {
+			Self::V4 {
 				address,
 				port,
 				scope_id,
 			} => write!(f, "[{}%{}]:{}", address, scope_id, port),
-			ScopedSocketAddr::V6 {
+			Self::V6 {
 				address,
 				port,
 				scope_id: 0,
 			} => write!(f, "[{}]:{}", address, port),
-			ScopedSocketAddr::V6 {
+			Self::V6 {
 				address,
 				port,
 				scope_id,

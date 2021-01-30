@@ -139,7 +139,7 @@ pub struct BrowseData<'a> {
 
 impl<'a> Default for BrowseData<'a> {
 	fn default() -> Self {
-		BrowseData {
+		Self {
 			interface: Interface::default(),
 			domain: None,
 			_non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,

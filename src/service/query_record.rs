@@ -147,7 +147,7 @@ pub struct QueryRecordData {
 
 impl Default for QueryRecordData {
 	fn default() -> Self {
-		QueryRecordData {
+		Self {
 			flags: QueryRecordFlags::default(),
 			interface: Interface::default(),
 			rr_class: Class::IN,

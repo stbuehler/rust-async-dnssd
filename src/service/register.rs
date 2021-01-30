@@ -196,7 +196,7 @@ pub struct RegisterData<'a> {
 
 impl<'a> Default for RegisterData<'a> {
 	fn default() -> Self {
-		RegisterData {
+		Self {
 			flags: RegisterFlags::default(),
 			interface: Interface::default(),
 			name: None,

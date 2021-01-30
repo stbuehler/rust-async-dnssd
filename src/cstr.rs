@@ -53,17 +53,15 @@ pub trait CStrFrom<'a, T>: Sized {
 
 impl<'a, T: AsRef<str>> CStrFrom<'a, T> for CStr<'a> {
 	fn cstr_from(s: &'a T) -> Result<Self, ffi::NulError> {
-		Ok(CStr(Cow::Owned(ffi::CString::new(s.as_ref())?)))
+		Ok(Self(Cow::Owned(ffi::CString::new(s.as_ref())?)))
 	}
 }
 
 impl<'a, T: AsRef<str>> CStrFrom<'a, Option<T>> for NullableCStr<'a> {
 	fn cstr_from(s: &'a Option<T>) -> Result<Self, ffi::NulError> {
 		match *s {
-			Some(ref s) => Ok(NullableCStr(Some(Cow::Owned(ffi::CString::new(
-				s.as_ref(),
-			)?)))),
-			None => Ok(NullableCStr(None)),
+			Some(ref s) => Ok(Self(Some(Cow::Owned(ffi::CString::new(s.as_ref())?)))),
+			None => Ok(Self(None)),
 		}
 	}
 }

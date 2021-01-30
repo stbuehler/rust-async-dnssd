@@ -45,6 +45,6 @@ impl Record {
 
 impl From<inner::DNSRecord> for Record {
 	fn from(r: inner::DNSRecord) -> Self {
-		Record(r)
+		Self(r)
 	}
 }

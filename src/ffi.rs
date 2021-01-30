@@ -53,9 +53,9 @@ macro_rules! c_api_enum {
 			$($case = $val,)*
 		}
 		impl $name {
-			pub fn try_from(value: $ty) -> Option<$name> {
+			pub fn try_from(value: $ty) -> Option<Self> {
 				$(if value == $val {
-					Some($name::$case)
+					Some(Self::$case)
 				} else)* {
 					None
 				}

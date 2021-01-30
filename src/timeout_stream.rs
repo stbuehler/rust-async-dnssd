@@ -42,7 +42,7 @@ impl<S: Stream> TimeoutStream<S> {
 	///
 	/// Also see [`StreamTimeoutExt::timeout`](trait.StreamTimeoutExt.html#method.timeout).
 	pub fn new(stream: S, duration: Duration) -> io::Result<Self> {
-		Ok(TimeoutStream {
+		Ok(Self {
 			stream,
 			duration,
 			timeout: tokio::time::sleep(duration),

@@ -20,13 +20,13 @@ impl Error {
 	/// Check if a raw error code represents an error, and convert it
 	/// accordingly.  (Not all codes are treated as an error, including
 	/// `0`).
-	pub fn from(value: ffi::DNSServiceErrorType) -> Result<(), Error> {
+	pub fn from(value: ffi::DNSServiceErrorType) -> Result<(), Self> {
 		if ffi::DNSServiceNoError::try_from(value).is_some() {
 			Ok(())
 		} else {
 			match ffi::DNSServiceError::try_from(value) {
-				Some(e) => Err(Error::KnownError(e)),
-				None => Err(Error::UnknownError(value)),
+				Some(e) => Err(Self::KnownError(e)),
+				None => Err(Self::UnknownError(value)),
 			}
 		}
 	}
@@ -42,7 +42,7 @@ impl From<Error> for io::Error {
 	fn from(e: Error) -> Self {
 		match e {
 			Error::IoError(e) => e,
-			e => io::Error::new(io::ErrorKind::Other, e),
+			e => Self::new(io::ErrorKind::Other, e),
 		}
 	}
 }
