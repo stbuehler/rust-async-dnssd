@@ -110,6 +110,7 @@ mod future;
 mod inner;
 mod interface;
 mod non_exhaustive_struct;
+mod notify;
 mod service;
 mod stream;
 mod timeout_stream;

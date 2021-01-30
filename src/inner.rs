@@ -1,13 +1,9 @@
 #![allow(clippy::too_many_arguments)]
 
-use futures::{
-	lock,
-	prelude::*,
-};
+use futures::prelude::*;
 use libc::c_void;
 use std::{
 	io,
-	pin::Pin,
 	ptr::null_mut,
 	sync::{
 		Arc,
@@ -27,6 +23,10 @@ use crate::{
 	},
 	error::Error,
 	ffi,
+	notify::{
+		Notified,
+		Notify,
+	},
 };
 
 // More typesafe than raw "ffi", but still not quite done
@@ -63,6 +63,12 @@ impl ServiceHandle {
 }
 
 pub(crate) trait EventedService: Unpin {
+	// in various places we need to drive the underlying (possibly shared)
+	// state machine, which will set other readiness events we then check.
+	//
+	// this underlying state machine will never complete, so there is
+	// no need to return a Poll<..> result; but we do need a context to
+	// drive the underlying service.
 	fn poll_service(&mut self, cx: &mut Context<'_>) -> io::Result<()>;
 }
 
@@ -81,10 +87,38 @@ impl OwnedService {
 	}
 
 	pub(crate) fn share(self) -> SharedService {
+		let bg_fail_notify = Notify::new();
+		let bg_fail_notified = bg_fail_notify.notified();
+		let inner = Arc::new(Mutex::new(SharedInner {
+			handle: self.handle,
+			bg_error_buf: None,
+			bg_failed: false,
+			bg_fail_notify,
+		}));
+		let bg_inner = inner.clone();
+		let mut processing = self.processing;
+
+		let bg_task = futures::future::poll_fn(move |cx| {
+			let mut inner = bg_inner.lock().unwrap();
+			let raw = inner.handle.as_raw();
+			let r = processing.process(cx, || {
+				Error::from(unsafe { ffi::DNSServiceProcessResult(raw) })?;
+				Ok(())
+			});
+			match r {
+				Ok(()) => Poll::Pending, // run "forever"
+				Err(e) => {
+					inner.bg_error_buf = Some(e);
+					inner.bg_failed = true;
+					inner.bg_fail_notify.notify_waiters();
+					Poll::Ready(()) // stop on errors
+				},
+			}
+		});
 		SharedService {
-			handle: Arc::new(Mutex::new(self.handle.clone())),
-			service: Arc::new(lock::Mutex::new(self)),
-			lock_state: SharedLockState::Clear,
+			inner,
+			bg_task_handle: Arc::new(AbortHandle(tokio::spawn(bg_task))),
+			bg_fail_notified,
 		}
 	}
 
@@ -224,51 +258,47 @@ impl EventedService for OwnedService {
 	}
 }
 
-enum SharedLockState {
-	Clear,
-	Wait(lock::MutexLockFuture<'static, OwnedService>),
-	Locked(lock::MutexGuard<'static, OwnedService>),
+struct AbortHandle(tokio::task::JoinHandle<()>);
+
+impl Drop for AbortHandle {
+	fn drop(&mut self) {
+		self.0.abort();
+	}
 }
 
+struct SharedInner {
+	// protect ffi calls
+	handle: ServiceHandle,
+	// forward error from background task
+	bg_error_buf: Option<io::Error>,
+	// but we can extract error only once, so remember it failed
+	bg_failed: bool,
+	//
+	bg_fail_notify: Notify,
+}
+
+#[derive(Clone)]
 pub(crate) struct SharedService {
-	handle: Arc<Mutex<ServiceHandle>>,       // protecting ffi calls
-	service: Arc<lock::Mutex<OwnedService>>, // coordinate which "task" polls
-	lock_state: SharedLockState,
+	inner: Arc<Mutex<SharedInner>>,
+	// make sure we kill the background task once all users are gone
+	bg_task_handle: Arc<AbortHandle>,
+	bg_fail_notified: Notified,
 }
 
 impl EventedService for SharedService {
 	fn poll_service(&mut self, cx: &mut Context<'_>) -> io::Result<()> {
-		if let SharedLockState::Clear = self.lock_state {
-			let lf: lock::MutexLockFuture<'_, OwnedService> = self.service.lock();
-			// we'll clear the lock state before releasing the mutex
-			let lf: lock::MutexLockFuture<'static, OwnedService> =
-				unsafe { std::mem::transmute(lf) };
-			self.lock_state = SharedLockState::Wait(lf);
+		// service is run in background task; just make sure there wasn't
+		// an error yet and to get notified of future errors.
+		let mut inner = self.inner.lock().unwrap();
+		if let Some(e) = inner.bg_error_buf.take() {
+			return Err(e);
 		}
-		if let SharedLockState::Wait(wait) = &mut self.lock_state {
-			match Pin::new(wait).poll(cx) {
-				Poll::Pending => return Ok(()),
-				Poll::Ready(g) => {
-					self.lock_state = SharedLockState::Locked(g);
-				},
-			}
+		if inner.bg_failed {
+			return Err(io::Error::new(io::ErrorKind::NotConnected, "service gone"));
 		}
-		if let SharedLockState::Locked(guard) = &mut self.lock_state {
-			let _guard = self.handle.lock().unwrap();
-			guard.poll_service(cx)?;
-		}
-
+		// should be pending, because we just checked for errors:
+		let _ = self.bg_fail_notified.poll_unpin(cx);
 		Ok(())
-	}
-}
-
-impl Clone for SharedService {
-	fn clone(&self) -> Self {
-		Self {
-			handle: self.handle.clone(),
-			service: self.service.clone(),
-			lock_state: SharedLockState::Clear,
-		}
 	}
 }
 
@@ -296,12 +326,12 @@ impl SharedService {
 		let rd_len = rd_len as u16;
 		let rdata = rdata.as_ptr();
 
-		let handle = self.handle.lock().unwrap();
+		let inner = self.inner.lock().unwrap();
 
 		let mut record_ref: ffi::DNSRecordRef = null_mut();
 		Error::from(unsafe {
 			ffi::DNSServiceAddRecord(
-				handle.as_raw(),
+				inner.handle.as_raw(),
 				&mut record_ref,
 				flags,
 				rr_type.0,
@@ -311,7 +341,7 @@ impl SharedService {
 			)
 		})?;
 
-		drop(handle);
+		drop(inner);
 
 		Ok(DNSRecord {
 			service: self,
@@ -344,12 +374,12 @@ impl SharedService {
 		let rd_len = rd_len as u16;
 		let rdata = rdata.as_ptr();
 
-		let handle = self.handle.lock().unwrap();
+		let inner = self.inner.lock().unwrap();
 
 		let mut record_ref: ffi::DNSRecordRef = null_mut();
 		Error::from(unsafe {
 			ffi::DNSServiceRegisterRecord(
-				handle.as_raw(),
+				inner.handle.as_raw(),
 				&mut record_ref,
 				flags,
 				interface_index,
@@ -364,20 +394,13 @@ impl SharedService {
 			)
 		})?;
 
-		drop(handle);
+		drop(inner);
 
 		Ok(DNSRecord {
 			service: self,
 			raw: DNSRecordRef(record_ref),
 			rr_type,
 		})
-	}
-}
-
-impl Drop for SharedService {
-	fn drop(&mut self) {
-		// first release lock before potentially freeing the mutex
-		self.lock_state = SharedLockState::Clear;
 	}
 }
 
@@ -398,10 +421,10 @@ pub(crate) struct DNSRecord {
 impl Drop for DNSRecord {
 	fn drop(&mut self) {
 		if !self.raw.0.is_null() {
-			let handle = self.service.handle.lock().unwrap();
+			let inner = self.service.inner.lock().unwrap();
 			unsafe {
 				ffi::DNSServiceRemoveRecord(
-					handle.as_raw(),
+					inner.handle.as_raw(),
 					self.raw.0,
 					0, // no flags
 				);
@@ -422,10 +445,17 @@ impl DNSRecord {
 		let rd_len = rd_len as u16;
 		let rdata = rdata.as_ptr();
 
-		let handle = self.service.handle.lock().unwrap();
+		let inner = self.service.inner.lock().unwrap();
 
 		Error::from(unsafe {
-			ffi::DNSServiceUpdateRecord(handle.as_raw(), self.raw.0, flags, rd_len, rdata, ttl)
+			ffi::DNSServiceUpdateRecord(
+				inner.handle.as_raw(),
+				self.raw.0,
+				flags,
+				rd_len,
+				rdata,
+				ttl,
+			)
 		})
 	}
 
