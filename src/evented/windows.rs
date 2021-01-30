@@ -37,6 +37,37 @@ use winapi::um::winsock2;
 
 use self::fd_set::FdSet;
 
+pub(crate) struct ReadProcessor {
+	fd: libc::c_int,
+	poll: PollReadFd,
+}
+
+impl ReadProcessor {
+	pub(crate) fn new(fd: libc::c_int) -> io::Result<Self> {
+		Ok(Self {
+			fd,
+			poll: PollReadFd::new(fd)?,
+		})
+	}
+
+	/// call "p" until fd is no longer readable
+	pub(crate) fn process<P>(&mut self, cx: &mut Context<'_>, mut p: P) -> io::Result<()>
+	where
+		P: FnMut() -> io::Result<()>,
+	{
+		match self.poll.poll_read_ready(cx)? {
+			Poll::Ready(()) => {
+				while is_readable(self.fd)? {
+					p()?;
+				}
+				self.poll.clear_read_ready(cx)?;
+			},
+			Poll::Pending => (),
+		}
+		Ok(())
+	}
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum PollRequest {
 	Poll,
@@ -169,15 +200,15 @@ impl Inner {
 	}
 }
 
-pub fn is_readable(fd: c_int) -> io::Result<bool> {
+fn is_readable(fd: c_int) -> io::Result<bool> {
 	let mut read_fds = SelectFdRead::new(fd);
 	Ok(read_fds.select(Some(Duration::from_millis(0))))
 }
 
-pub struct PollReadFd(Mutex<Inner>);
+struct PollReadFd(Mutex<Inner>);
 impl PollReadFd {
 	/// does not take overship of fd
-	pub fn new(fd: c_int) -> io::Result<Self> {
+	fn new(fd: c_int) -> io::Result<Self> {
 		// buffer one request for "Close"
 		let (send_request, recv_request) = std_mpsc::sync_channel(1);
 		// buffer one notification
@@ -220,11 +251,11 @@ impl PollReadFd {
 		})))
 	}
 
-	pub fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+	fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
 		self.0.lock().expect("mutex poisoned").poll_read_ready(cx)
 	}
 
-	pub fn clear_read_ready(&self, cx: &mut Context<'_>) -> io::Result<()> {
+	fn clear_read_ready(&self, cx: &mut Context<'_>) -> io::Result<()> {
 		self.0.lock().expect("mutex poisoned").clear_read_ready(cx)
 	}
 }

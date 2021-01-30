@@ -74,7 +74,7 @@ impl<S: EventedService, T> Stream for ServiceStream<S, T> {
 	type Item = io::Result<T>;
 
 	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-		self.service.poll(cx)?;
+		self.service.poll_service(cx)?;
 		self.receiver.poll_next_unpin(cx)
 	}
 }

@@ -10,7 +10,7 @@ use std::{
 };
 use tokio::spawn;
 
-#[tokio::main(basic_scheduler)]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
 	let search_timeout = Duration::from_secs(10);
 	let resolve_timeout = Duration::from_secs(3);

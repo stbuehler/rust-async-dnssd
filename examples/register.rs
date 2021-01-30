@@ -1,4 +1,4 @@
-#[tokio::main(basic_scheduler)]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> std::io::Result<()> {
 	// Use `cargo run --example register`
 

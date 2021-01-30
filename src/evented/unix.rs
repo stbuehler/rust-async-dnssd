@@ -6,9 +6,9 @@ use std::{
 		Poll,
 	},
 };
-use tokio::io::PollEvented;
+use tokio::io::unix::AsyncFd;
 
-pub fn is_readable(fd: c_int) -> io::Result<bool> {
+fn is_readable(fd: c_int) -> io::Result<bool> {
 	let mut fds = libc::pollfd {
 		fd,
 		events: libc::POLLIN | libc::POLLHUP | libc::POLLERR,
@@ -30,53 +30,31 @@ pub fn is_readable(fd: c_int) -> io::Result<bool> {
 	}
 }
 
-pub struct PollReadFd(PollEvented<EventedFd>);
+pub(crate) struct ReadProcessor(AsyncFd<c_int>);
 
-impl PollReadFd {
-	pub fn new(fd: c_int) -> io::Result<Self> {
-		Ok(PollReadFd(PollEvented::new(EventedFd(fd))?))
+impl ReadProcessor {
+	pub(crate) fn new(fd: c_int) -> io::Result<Self> {
+		Ok(Self(AsyncFd::with_interest(
+			fd,
+			tokio::io::Interest::READABLE,
+		)?))
 	}
 
-	pub fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-		if futures::ready!(self.0.poll_read_ready(cx, mio::Ready::readable()))?.is_readable() {
-			Poll::Ready(Ok(()))
-		} else {
-			Poll::Pending
+	/// call "p" until fd is no longer readable
+	pub(crate) fn process<P>(&mut self, cx: &mut Context<'_>, mut p: P) -> io::Result<()>
+	where
+		P: FnMut() -> io::Result<()>,
+	{
+		loop {
+			let mut ready_guard = match self.0.poll_read_ready(cx) {
+				Poll::Pending => return Ok(()),
+				Poll::Ready(r) => r?,
+			};
+			while is_readable(*self.0.get_ref())? {
+				p()?;
+			}
+			ready_guard.clear_ready();
+			// after clear we need to poll again to be registered!
 		}
-	}
-
-	pub fn clear_read_ready(&self, cx: &mut Context<'_>) -> io::Result<()> {
-		self.0.clear_read_ready(cx, mio::Ready::readable())
-	}
-}
-
-struct EventedFd(c_int);
-
-impl mio::Evented for EventedFd {
-	fn register(
-		&self,
-		poll: &mio::Poll,
-		token: mio::Token,
-		interest: mio::Ready,
-		opts: mio::PollOpt,
-	) -> io::Result<()> {
-		let efd = mio::unix::EventedFd(&self.0);
-		mio::Evented::register(&efd, poll, token, interest, opts)
-	}
-
-	fn reregister(
-		&self,
-		poll: &mio::Poll,
-		token: mio::Token,
-		interest: mio::Ready,
-		opts: mio::PollOpt,
-	) -> io::Result<()> {
-		let efd = mio::unix::EventedFd(&self.0);
-		mio::Evented::reregister(&efd, poll, token, interest, opts)
-	}
-
-	fn deregister(&self, poll: &mio::Poll) -> io::Result<()> {
-		let efd = mio::unix::EventedFd(&self.0);
-		mio::Evented::deregister(&efd, poll)
 	}
 }

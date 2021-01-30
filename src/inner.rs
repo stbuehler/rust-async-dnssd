@@ -63,7 +63,7 @@ impl ServiceHandle {
 }
 
 pub(crate) trait EventedService: Unpin {
-	fn poll(&mut self, cx: &mut Context<'_>) -> io::Result<()>;
+	fn poll_service(&mut self, cx: &mut Context<'_>) -> io::Result<()>;
 }
 
 /// Many places can keep the service alive, but a single active user
@@ -215,7 +215,7 @@ impl OwnedService {
 }
 
 impl EventedService for OwnedService {
-	fn poll(&mut self, cx: &mut Context<'_>) -> io::Result<()> {
+	fn poll_service(&mut self, cx: &mut Context<'_>) -> io::Result<()> {
 		let raw = self.handle.as_raw();
 		self.processing.process(cx, || {
 			Error::from(unsafe { ffi::DNSServiceProcessResult(raw) })?;
@@ -237,7 +237,7 @@ pub(crate) struct SharedService {
 }
 
 impl EventedService for SharedService {
-	fn poll(&mut self, cx: &mut Context<'_>) -> io::Result<()> {
+	fn poll_service(&mut self, cx: &mut Context<'_>) -> io::Result<()> {
 		if let SharedLockState::Clear = self.lock_state {
 			let lf: lock::MutexLockFuture<'_, OwnedService> = self.service.lock();
 			// we'll clear the lock state before releasing the mutex
@@ -255,7 +255,7 @@ impl EventedService for SharedService {
 		}
 		if let SharedLockState::Locked(guard) = &mut self.lock_state {
 			let _guard = self.handle.lock().unwrap();
-			guard.poll(cx)?;
+			guard.poll_service(cx)?;
 		}
 
 		Ok(())

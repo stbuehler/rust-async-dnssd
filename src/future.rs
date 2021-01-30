@@ -110,7 +110,7 @@ impl<S: EventedService, T> Future for ServiceFuture<S, T> {
 			// can only get ready once.
 			return Poll::Pending;
 		}
-		self.inner_mut().service.poll(cx)?;
+		self.inner_mut().service.poll_service(cx)?;
 		let item =
 			futures::ready!(self.inner_mut().receiver.poll_unpin(cx)).expect("send can't die")?;
 		Poll::Ready(Ok((self.0.take().unwrap().service, item)))

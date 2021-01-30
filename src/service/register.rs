@@ -275,7 +275,7 @@ pub fn register_extended(
 /// ```no_run
 /// # use async_dnssd::register;
 /// # #[deny(unused_must_use)]
-/// # #[tokio::main(basic_scheduler)]
+/// # #[tokio::main(flavor = "current_thread")]
 /// # async fn main() -> std::io::Result<()> {
 /// let registration = register("_ssh._tcp", 22)?.await?;
 /// # Ok(())

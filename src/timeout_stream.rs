@@ -30,13 +30,13 @@ impl<S: Stream> StreamTimeoutExt for S {
 pub struct TimeoutStream<S> {
 	stream: S,
 	duration: Duration,
-	timeout: tokio::time::Delay,
+	timeout: tokio::time::Sleep,
 }
 
 impl<S: Stream> TimeoutStream<S> {
 	pin_utils::unsafe_pinned!(stream: S);
 
-	pin_utils::unsafe_unpinned!(timeout: tokio::time::Delay);
+	pin_utils::unsafe_pinned!(timeout: tokio::time::Sleep);
 
 	/// Create new `TimeoutStream`.
 	///
@@ -45,7 +45,7 @@ impl<S: Stream> TimeoutStream<S> {
 		Ok(TimeoutStream {
 			stream,
 			duration,
-			timeout: tokio::time::delay_for(duration),
+			timeout: tokio::time::sleep(duration),
 		})
 	}
 }
@@ -59,7 +59,7 @@ pub enum TimeoutStreamError<E> {
 	/// An error occured in the underlying stream
 	StreamError(E),
 	/// Setting / checking the timeout failed
-	TimeoutError(tokio::time::Error),
+	TimeoutError,
 }
 
 impl<E: Into<io::Error>> TimeoutStreamError<E> {
@@ -67,7 +67,9 @@ impl<E: Into<io::Error>> TimeoutStreamError<E> {
 	pub fn into_io_error(self) -> io::Error {
 		match self {
 			TimeoutStreamError::StreamError(e) => e.into(),
-			TimeoutStreamError::TimeoutError(e) => io::Error::new(io::ErrorKind::Other, e),
+			TimeoutStreamError::TimeoutError => {
+				io::Error::new(io::ErrorKind::TimedOut, "stream timed out")
+			},
 		}
 	}
 }
@@ -93,7 +95,7 @@ impl<S: TryStream> Stream for TimeoutStream<S> {
 			Poll::Ready(Some(Err(e))) => Poll::Ready(Some(Err(e))),
 			Poll::Pending => {
 				// check timeout
-				match self.timeout().poll_unpin(cx) {
+				match self.timeout().poll(cx) {
 					// timed out?
 					Poll::Ready(()) => {
 						// not an error
