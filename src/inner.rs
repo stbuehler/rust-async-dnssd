@@ -1,11 +1,9 @@
 #![allow(clippy::too_many_arguments)]
 
-use futures::{
-	lock,
-	prelude::*,
-};
+use futures_util::lock;
 use libc::c_void;
 use std::{
+	future::Future,
 	io,
 	pin::Pin,
 	ptr::null_mut,

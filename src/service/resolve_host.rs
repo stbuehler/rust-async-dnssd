@@ -16,10 +16,11 @@ use std::{
 	},
 };
 
-use futures::{
-	prelude::*,
+use futures_core::Stream;
+use futures_util::{
 	stream,
-	Stream,
+	StreamExt,
+	TryStreamExt,
 };
 
 use crate::{

@@ -1,3 +1,4 @@
+use futures_core::ready;
 use std::{
 	io,
 	os::raw::c_int,
@@ -38,7 +39,7 @@ impl PollReadFd {
 	}
 
 	pub fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-		if futures::ready!(self.0.poll_read_ready(cx, mio::Ready::readable()))?.is_readable() {
+		if ready!(self.0.poll_read_ready(cx, mio::Ready::readable()))?.is_readable() {
 			Poll::Ready(Ok(()))
 		} else {
 			Poll::Pending

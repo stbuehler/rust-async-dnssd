@@ -1,7 +1,6 @@
-use futures::{
-	channel::mpsc,
-	prelude::*,
-};
+use futures_channel::mpsc;
+use futures_core::Stream;
+use futures_util::StreamExt;
 use std::{
 	io,
 	os::raw::c_void,

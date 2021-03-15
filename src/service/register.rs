@@ -1,4 +1,6 @@
+use futures_core::ready;
 use std::{
+	future::Future,
 	io,
 	os::raw::{
 		c_char,
@@ -110,11 +112,11 @@ impl Register {
 	}
 }
 
-impl futures::Future for Register {
+impl Future for Register {
 	type Output = io::Result<(Registration, RegisterResult)>;
 
 	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-		let (service, item) = futures::ready!(self.future().poll(cx))?;
+		let (service, item) = ready!(self.future().poll(cx))?;
 		Poll::Ready(Ok((Registration(service), item)))
 	}
 }

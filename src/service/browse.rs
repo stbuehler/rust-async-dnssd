@@ -1,4 +1,4 @@
-use futures::{self,};
+use futures_core::Stream;
 use std::{
 	io,
 	os::raw::{
@@ -51,7 +51,7 @@ impl Browse {
 	pin_utils::unsafe_pinned!(stream: CallbackStream);
 }
 
-impl futures::Stream for Browse {
+impl Stream for Browse {
 	type Item = io::Result<BrowseResult>;
 
 	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {

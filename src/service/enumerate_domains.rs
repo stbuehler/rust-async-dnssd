@@ -1,4 +1,4 @@
-use futures::{self,};
+use futures_core::Stream;
 use std::{
 	io,
 	os::raw::{
@@ -73,7 +73,7 @@ impl EnumerateDomains {
 	pin_utils::unsafe_pinned!(stream: CallbackStream);
 }
 
-impl futures::Stream for EnumerateDomains {
+impl Stream for EnumerateDomains {
 	type Item = io::Result<EnumerateResult>;
 
 	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {

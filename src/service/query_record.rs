@@ -1,4 +1,4 @@
-use futures::{self,};
+use futures_core::Stream;
 use std::{
 	io,
 	os::raw::{
@@ -64,7 +64,7 @@ impl QueryRecord {
 	pin_utils::unsafe_pinned!(stream: CallbackStream);
 }
 
-impl futures::Stream for QueryRecord {
+impl Stream for QueryRecord {
 	type Item = io::Result<QueryRecordResult>;
 
 	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
