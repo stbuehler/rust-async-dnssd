@@ -1,5 +1,6 @@
-use futures::prelude::*;
+use futures_core::Stream;
 use std::{
+	future::Future,
 	pin::Pin,
 	task::{
 		Context,
@@ -8,7 +9,7 @@ use std::{
 	time::Duration,
 };
 
-/// `futures::Stream` extension to simplify building
+/// `Stream` extension to simplify building
 /// [`TimeoutStream`](struct.TimeoutStream.html)
 pub trait StreamTimeoutExt: Stream + Sized {
 	/// Create new [`TimeoutStream`](struct.TimeoutStream.html)
@@ -56,7 +57,7 @@ impl<S: Stream> TimeoutStream<S> {
 	}
 }
 
-impl<S: TryStream> Stream for TimeoutStream<S> {
+impl<S: futures_core::TryStream> Stream for TimeoutStream<S> {
 	type Item = Result<S::Ok, S::Error>;
 
 	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {

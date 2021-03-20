@@ -1,3 +1,7 @@
+use futures_util::{
+	StreamExt,
+	TryStreamExt,
+};
 use std::{
 	fmt,
 	io,
@@ -14,12 +18,6 @@ use std::{
 		Context,
 		Poll,
 	},
-};
-
-use futures::{
-	prelude::*,
-	stream,
-	Stream,
 };
 
 use crate::{
@@ -107,10 +105,12 @@ pub struct ResolveHostData {
 /// Pending resolve
 #[must_use = "streams do nothing unless polled"]
 pub struct ResolveHost {
-	inner: Pin<Box<dyn Stream<Item = io::Result<ResolveHostResult>> + 'static + Send + Sync>>,
+	inner: Pin<
+		Box<dyn futures_core::Stream<Item = io::Result<ResolveHostResult>> + 'static + Send + Sync>,
+	>,
 }
 
-impl Stream for ResolveHost {
+impl futures_core::Stream for ResolveHost {
 	type Item = io::Result<ResolveHostResult>;
 
 	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -256,7 +256,7 @@ pub fn resolve_host_extended(host: &str, port: u16, data: ResolveHostData) -> Re
 		.try_filter_map(move |addr| async move { Ok(decode_aaaa(addr, port)) });
 	let inner_v4 = query_record_extended(host, Type::A, qrdata)
 		.try_filter_map(move |addr| async move { Ok(decode_a(addr, port)) });
-	let inner = Box::pin(stream::select(inner_v6, inner_v4));
+	let inner = Box::pin(futures_util::stream::select(inner_v6, inner_v4));
 
 	ResolveHost { inner }
 }

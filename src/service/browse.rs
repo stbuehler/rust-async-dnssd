@@ -1,4 +1,3 @@
-use futures::{self,};
 use std::{
 	io,
 	os::raw::{
@@ -41,7 +40,7 @@ bitflags::bitflags! {
 
 /// Pending browse request
 ///
-/// Results are delivered through `futures::Stream`.
+/// Results are delivered through `Stream`.
 #[must_use = "streams do nothing unless polled"]
 pub struct Browse {
 	stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>,
@@ -51,7 +50,7 @@ impl Browse {
 	pin_utils::unsafe_pinned!(stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>);
 }
 
-impl futures::Stream for Browse {
+impl futures_core::Stream for Browse {
 	type Item = io::Result<BrowseResult>;
 
 	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {

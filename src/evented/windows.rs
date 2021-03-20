@@ -14,10 +14,8 @@
 //! we'd have to try the loopback TCP connection to wake it and fall
 //! back to a smaller timeout.
 
-use futures::{
-	channel::mpsc as futures_mpsc,
-	prelude::*,
-};
+use futures_channel::mpsc as futures_mpsc;
+use futures_util::StreamExt;
 use log::debug;
 use std::{
 	io,
@@ -237,7 +235,7 @@ impl PollReadFd {
 				debug!("[select thread] read event");
 
 				// Can only fail if the other end is dropped
-				let _ = futures::executor::block_on(send_response.send(()));
+				let _ = futures_executor::block_on(send_response.send(()));
 			}
 		});
 

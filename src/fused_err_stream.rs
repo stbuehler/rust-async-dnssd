@@ -1,4 +1,7 @@
-use futures::prelude::*;
+use futures_core::{
+	Stream,
+	TryStream,
+};
 use std::{
 	pin::Pin,
 	task::{

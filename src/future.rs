@@ -1,8 +1,7 @@
-use futures::{
-	channel::oneshot,
-	prelude::*,
-};
+use futures_channel::oneshot;
+use futures_util::FutureExt;
 use std::{
+	future::Future,
 	io,
 	os::raw::c_void,
 	pin::Pin,
@@ -111,8 +110,8 @@ impl<S: EventedService, T> Future for ServiceFuture<S, T> {
 			return Poll::Pending;
 		}
 		self.inner_mut().service.poll_service(cx)?;
-		let item =
-			futures::ready!(self.inner_mut().receiver.poll_unpin(cx)).expect("send can't die")?;
+		let item = futures_core::ready!(self.inner_mut().receiver.poll_unpin(cx))
+			.expect("send can't die")?;
 		Poll::Ready(Ok((self.0.take().unwrap().service, item)))
 	}
 }

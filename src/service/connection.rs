@@ -1,5 +1,6 @@
-use futures::prelude::*;
+use futures_util::FutureExt;
 use std::{
+	future::Future,
 	io,
 	os::raw::c_void,
 	pin::Pin,
@@ -73,7 +74,7 @@ impl Future for RegisterRecord {
 	type Output = io::Result<crate::Record>;
 
 	fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-		futures::ready!(self.as_mut().future().poll(cx))?;
+		futures_core::ready!(self.as_mut().future().poll(cx))?;
 		Poll::Ready(Ok(self.record().take().unwrap()))
 	}
 }

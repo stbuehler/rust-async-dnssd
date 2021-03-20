@@ -1,6 +1,5 @@
 #![allow(clippy::too_many_arguments)]
-
-use futures::prelude::*;
+use futures_util::FutureExt;
 use libc::c_void;
 use std::{
 	io,
@@ -98,7 +97,7 @@ impl OwnedService {
 		let bg_inner = inner.clone();
 		let mut processing = self.processing;
 
-		let bg_task = futures::future::poll_fn(move |cx| {
+		let bg_task = futures_util::future::poll_fn(move |cx| {
 			let mut inner = bg_inner.lock().unwrap();
 			let raw = inner.handle.as_raw();
 			let r = processing.process(cx, || {

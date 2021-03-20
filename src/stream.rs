@@ -1,7 +1,5 @@
-use futures::{
-	channel::mpsc,
-	prelude::*,
-};
+use futures_channel::mpsc;
+use futures_util::StreamExt;
 use std::{
 	io,
 	os::raw::c_void,
@@ -70,7 +68,7 @@ impl<S: EventedService, T> ServiceStream<S, T> {
 	}
 }
 
-impl<S: EventedService, T> Stream for ServiceStream<S, T> {
+impl<S: EventedService, T> futures_core::Stream for ServiceStream<S, T> {
 	type Item = io::Result<T>;
 
 	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
