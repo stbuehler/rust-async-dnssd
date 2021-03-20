@@ -24,8 +24,8 @@ imports_layout = "Vertical"
 # Error if unable to get all lines within max_width
 error_on_line_overflow = false
 
-# Merge multiple imports into a single nested import.
-merge_imports = true
+# Merge together related imports based on their paths.
+imports_granularity = "Crate"
 
 # Reorder impl items. type and const are put first, then macros and methods.
 reorder_impl_items = true
