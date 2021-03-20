@@ -106,6 +106,7 @@ mod dns_consts;
 mod error;
 mod evented;
 mod ffi;
+mod fused_err_stream;
 mod future;
 mod inner;
 mod interface;

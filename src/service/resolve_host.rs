@@ -244,11 +244,7 @@ impl fmt::Debug for ScopedSocketAddr {
 /// Uses
 /// [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord)
 /// to query for `A` and `AAAA` records (in the `IN` class).
-pub fn resolve_host_extended(
-	host: &str,
-	port: u16,
-	data: ResolveHostData,
-) -> io::Result<ResolveHost> {
+pub fn resolve_host_extended(host: &str, port: u16, data: ResolveHostData) -> ResolveHost {
 	let qrdata = QueryRecordData {
 		flags: data.flags,
 		interface: data.interface,
@@ -256,11 +252,11 @@ pub fn resolve_host_extended(
 		..Default::default()
 	};
 
-	let inner_v6 = query_record_extended(host, Type::AAAA, qrdata)?
+	let inner_v6 = query_record_extended(host, Type::AAAA, qrdata)
 		.try_filter_map(move |addr| async move { Ok(decode_aaaa(addr, port)) });
-	let inner_v4 = query_record_extended(host, Type::A, qrdata)?
+	let inner_v4 = query_record_extended(host, Type::A, qrdata)
 		.try_filter_map(move |addr| async move { Ok(decode_a(addr, port)) });
 	let inner = Box::pin(stream::select(inner_v6, inner_v4));
 
-	Ok(ResolveHost { inner })
+	ResolveHost { inner }
 }

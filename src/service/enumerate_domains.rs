@@ -66,11 +66,11 @@ bitflags::bitflags! {
 /// Pending domain enumeration
 #[must_use = "streams do nothing unless polled"]
 pub struct EnumerateDomains {
-	stream: CallbackStream,
+	stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>,
 }
 
 impl EnumerateDomains {
-	pin_utils::unsafe_pinned!(stream: CallbackStream);
+	pin_utils::unsafe_pinned!(stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>);
 }
 
 impl futures::Stream for EnumerateDomains {
@@ -116,10 +116,7 @@ unsafe extern "C" fn enumerate_callback(
 /// Enumerate domains that are recommended for registration or browsing
 ///
 /// See [`DNSServiceEnumerateDomains`](https://developer.apple.com/documentation/dnssd/1804754-dnsserviceenumeratedomains).
-pub fn enumerate_domains(
-	enumerate: Enumerate,
-	interface: Interface,
-) -> io::Result<EnumerateDomains> {
+pub fn enumerate_domains(enumerate: Enumerate, interface: Interface) -> EnumerateDomains {
 	crate::init();
 
 	let stream = CallbackStream::new(move |sender| {
@@ -129,7 +126,8 @@ pub fn enumerate_domains(
 			Some(enumerate_callback),
 			sender,
 		)
-	})?;
+	})
+	.into();
 
-	Ok(EnumerateDomains { stream })
+	EnumerateDomains { stream }
 }

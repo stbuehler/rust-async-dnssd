@@ -26,10 +26,7 @@ async fn main() {
 		.unwrap_or_else(|| list_all_services.to_string());
 	println!("Browse: {}", query);
 
-	let query_result = async_dnssd::browse(&query)
-		.expect("failed browse")
-		.timeout(search_timeout)
-		.expect("failed timeout");
+	let query_result = async_dnssd::browse(&query).timeout(search_timeout);
 	query_result
 		.try_for_each(move |service| {
 			async move {
@@ -69,15 +66,7 @@ async fn main() {
 				}
 
 				spawn(async move {
-					let resolve = match service.resolve() {
-						Ok(r) => r,
-						Err(e) => {
-							println!("resolve failed: {:?}", e);
-							return;
-						},
-					}
-					.timeout(resolve_timeout)
-					.expect("failed timeout");
+					let resolve = service.resolve().timeout(resolve_timeout);
 					let service = &service;
 					if let Err(e) = resolve
 						.try_for_each(move |r| {
@@ -108,8 +97,8 @@ async fn main() {
 								let host_target_e = r.host_target.clone();
 								spawn(
 									// Query IPv4 + IPv6
-									r.resolve_socket_address()?
-										.timeout(address_timeout)?
+									r.resolve_socket_address()
+										.timeout(address_timeout)
 										.try_for_each(move |result| {
 											if result.flags.intersects(ResolvedHostFlags::ADD) {
 												println!(

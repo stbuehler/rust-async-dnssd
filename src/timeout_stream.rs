@@ -1,6 +1,5 @@
 use futures::prelude::*;
 use std::{
-	io,
 	pin::Pin,
 	task::{
 		Context,
@@ -13,11 +12,11 @@ use std::{
 /// [`TimeoutStream`](struct.TimeoutStream.html)
 pub trait StreamTimeoutExt: Stream + Sized {
 	/// Create new [`TimeoutStream`](struct.TimeoutStream.html)
-	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>>;
+	fn timeout(self, duration: Duration) -> TimeoutStream<Self>;
 }
 
 impl<S: Stream> StreamTimeoutExt for S {
-	fn timeout(self, duration: Duration) -> io::Result<TimeoutStream<Self>> {
+	fn timeout(self, duration: Duration) -> TimeoutStream<Self> {
 		TimeoutStream::new(self, duration)
 	}
 }
@@ -41,12 +40,12 @@ impl<S: Stream> TimeoutStream<S> {
 	/// Create new `TimeoutStream`.
 	///
 	/// Also see [`StreamTimeoutExt::timeout`](trait.StreamTimeoutExt.html#method.timeout).
-	pub fn new(stream: S, duration: Duration) -> io::Result<Self> {
-		Ok(Self {
+	pub fn new(stream: S, duration: Duration) -> Self {
+		Self {
 			stream,
 			duration,
 			timeout: tokio::time::sleep(duration),
-		})
+		}
 	}
 }
 

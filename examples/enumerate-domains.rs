@@ -7,7 +7,7 @@ async fn main() -> std::io::Result<()> {
 	async_dnssd::enumerate_domains(
 		async_dnssd::Enumerate::BrowseDomains,
 		async_dnssd::Interface::Any,
-	)?
+	)
 	.for_each(|e| async move {
 		println!("Domain: {:?}", e);
 	})

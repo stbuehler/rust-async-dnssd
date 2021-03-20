@@ -41,11 +41,11 @@ bitflags::bitflags! {
 /// Pending resolve request
 #[must_use = "streams do nothing unless polled"]
 pub struct Resolve {
-	stream: CallbackStream,
+	stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>,
 }
 
 impl Resolve {
-	pin_utils::unsafe_pinned!(stream: CallbackStream);
+	pin_utils::unsafe_pinned!(stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>);
 }
 
 impl futures::Stream for Resolve {
@@ -77,7 +77,7 @@ pub struct ResolveResult {
 
 impl ResolveResult {
 	/// Lookup socket addresses for resolved service
-	pub fn resolve_socket_address(&self) -> io::Result<ResolveHost> {
+	pub fn resolve_socket_address(&self) -> ResolveHost {
 		let rhdata = ResolveHostData {
 			interface: self.interface,
 			..Default::default()
@@ -114,19 +114,7 @@ unsafe extern "C" fn resolve_callback(
 	});
 }
 
-/// Find hostname and port (and more) for a service
-///
-/// You probably want to use [`BrowseResult::resolve`] instead.
-///
-/// See [`DNSServiceResolve`](https://developer.apple.com/documentation/dnssd/1804744-dnsserviceresolve).
-///
-/// [`BrowseResult::resolve`]: struct.BrowseResult.html#method.resolve
-pub fn resolve(
-	interface: Interface,
-	name: &str,
-	reg_type: &str,
-	domain: &str,
-) -> io::Result<Resolve> {
+fn _resolve(interface: Interface, name: &str, reg_type: &str, domain: &str) -> io::Result<Resolve> {
 	crate::init();
 
 	let name = cstr::CStr::from(&name)?;
@@ -143,7 +131,24 @@ pub fn resolve(
 			Some(resolve_callback),
 			sender,
 		)
-	})?;
+	})
+	.into();
 
 	Ok(Resolve { stream })
+}
+
+/// Find hostname and port (and more) for a service
+///
+/// You probably want to use [`BrowseResult::resolve`] instead.
+///
+/// See [`DNSServiceResolve`](https://developer.apple.com/documentation/dnssd/1804744-dnsserviceresolve).
+///
+/// [`BrowseResult::resolve`]: struct.BrowseResult.html#method.resolve
+pub fn resolve(interface: Interface, name: &str, reg_type: &str, domain: &str) -> Resolve {
+	match _resolve(interface, name, reg_type, domain) {
+		Ok(r) => r,
+		Err(e) => Resolve {
+			stream: Err(e).into(),
+		},
+	}
 }

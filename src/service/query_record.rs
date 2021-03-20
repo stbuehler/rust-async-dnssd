@@ -57,11 +57,11 @@ bitflags::bitflags! {
 /// Pending query
 #[must_use = "streams do nothing unless polled"]
 pub struct QueryRecord {
-	stream: CallbackStream,
+	stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>,
 }
 
 impl QueryRecord {
-	pin_utils::unsafe_pinned!(stream: CallbackStream);
+	pin_utils::unsafe_pinned!(stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>);
 }
 
 impl futures::Stream for QueryRecord {
@@ -156,10 +156,7 @@ impl Default for QueryRecordData {
 	}
 }
 
-/// Query for an arbitrary DNS record
-///
-/// See [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord).
-pub fn query_record_extended(
+fn _query_record_extended(
 	fullname: &str,
 	rr_type: Type,
 	data: QueryRecordData,
@@ -178,9 +175,22 @@ pub fn query_record_extended(
 			Some(query_record_callback),
 			sender,
 		)
-	})?;
+	})
+	.into();
 
 	Ok(QueryRecord { stream })
+}
+
+/// Query for an arbitrary DNS record
+///
+/// See [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord).
+pub fn query_record_extended(fullname: &str, rr_type: Type, data: QueryRecordData) -> QueryRecord {
+	match _query_record_extended(fullname, rr_type, data) {
+		Ok(qr) => qr,
+		Err(e) => QueryRecord {
+			stream: Err(e).into(),
+		},
+	}
 }
 
 /// Query for an arbitrary DNS record
@@ -191,6 +201,6 @@ pub fn query_record_extended(
 ///
 /// [`query_record_extended`]: fn.query_record_extended.html
 /// [`QueryRecordData`]: struct.QueryRecordData.html
-pub fn query_record(fullname: &str, rr_type: Type) -> io::Result<QueryRecord> {
+pub fn query_record(fullname: &str, rr_type: Type) -> QueryRecord {
 	query_record_extended(fullname, rr_type, QueryRecordData::default())
 }

@@ -44,11 +44,11 @@ bitflags::bitflags! {
 /// Results are delivered through `futures::Stream`.
 #[must_use = "streams do nothing unless polled"]
 pub struct Browse {
-	stream: CallbackStream,
+	stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>,
 }
 
 impl Browse {
-	pin_utils::unsafe_pinned!(stream: CallbackStream);
+	pin_utils::unsafe_pinned!(stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>);
 }
 
 impl futures::Stream for Browse {
@@ -82,7 +82,7 @@ impl BrowseResult {
 	///
 	/// Should check before whether result has the `Add` flag, as
 	/// otherwise it probably won't find anything.
-	pub fn resolve(&self) -> io::Result<crate::Resolve> {
+	pub fn resolve(&self) -> crate::Resolve {
 		crate::resolve(
 			self.interface,
 			&self.service_name,
@@ -147,12 +147,7 @@ impl<'a> Default for BrowseData<'a> {
 	}
 }
 
-/// Browse for available services
-///
-/// `reg_type` specifies the service type to search, e.g. `"_ssh._tcp"`.
-///
-/// See [`DNSServiceBrowse`](https://developer.apple.com/documentation/dnssd/1804742-dnsservicebrowse).
-pub fn browse_extended(reg_type: &str, data: BrowseData<'_>) -> io::Result<Browse> {
+fn _browse_extended(reg_type: &str, data: BrowseData<'_>) -> io::Result<Browse> {
 	crate::init();
 
 	let reg_type = cstr::CStr::from(&reg_type)?;
@@ -167,9 +162,24 @@ pub fn browse_extended(reg_type: &str, data: BrowseData<'_>) -> io::Result<Brows
 			Some(browse_callback),
 			sender,
 		)
-	})?;
+	})
+	.into();
 
 	Ok(Browse { stream })
+}
+
+/// Browse for available services
+///
+/// `reg_type` specifies the service type to search, e.g. `"_ssh._tcp"`.
+///
+/// See [`DNSServiceBrowse`](https://developer.apple.com/documentation/dnssd/1804742-dnsservicebrowse).
+pub fn browse_extended(reg_type: &str, data: BrowseData<'_>) -> Browse {
+	match _browse_extended(reg_type, data) {
+		Ok(r) => r,
+		Err(e) => Browse {
+			stream: Err(e).into(),
+		},
+	}
 }
 
 /// Browse for available services
@@ -182,6 +192,6 @@ pub fn browse_extended(reg_type: &str, data: BrowseData<'_>) -> io::Result<Brows
 ///
 /// [`browse_extended`]: fn.browse_extended.html
 /// [`BrowseData`]: struct.BrowseData.html
-pub fn browse(reg_type: &str) -> io::Result<Browse> {
+pub fn browse(reg_type: &str) -> Browse {
 	browse_extended(reg_type, BrowseData::default())
 }
