@@ -1,4 +1,3 @@
-[![Travis Build Status](https://travis-ci.org/stbuehler/rust-async-dnssd.svg?branch=master)](https://travis-ci.org/stbuehler/rust-async-dnssd)
 [![crates.io](https://img.shields.io/crates/v/async-dnssd.svg)](https://crates.io/crates/async-dnssd)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
