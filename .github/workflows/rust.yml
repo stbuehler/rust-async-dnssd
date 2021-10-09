@@ -104,6 +104,8 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
+    # don't run on release-0.4 branch
+    if: ${{ github.event_name != 'push' || !startsWith(github.ref, 'refs/heads/release-0.4') }}
     needs: build
     steps:
       # --- install build dependencies
