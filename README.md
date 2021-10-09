@@ -1,3 +1,4 @@
+[![Rust CI](https://github.com/stbuehler/rust-async-dnssd/actions/workflows/rust.yml/badge.svg?branch=master&event=push)](https://github.com/stbuehler/rust-async-dnssd/actions/workflows/rust.yml)
 [![crates.io](https://img.shields.io/crates/v/async-dnssd.svg)](https://crates.io/crates/async-dnssd)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
