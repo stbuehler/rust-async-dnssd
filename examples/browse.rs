@@ -26,7 +26,7 @@ async fn main() {
 		.unwrap_or_else(|| list_all_services.to_string());
 	println!("Browse: {}", query);
 
-	let query_result = async_dnssd::browse(&query).timeout(search_timeout);
+	let query_result = async_dnssd::browse(query).timeout(search_timeout);
 	query_result
 		.try_for_each(move |service| {
 			async move {

@@ -173,35 +173,35 @@ impl ScopedSocketAddr {
 	}
 }
 
-impl Into<SocketAddr> for ScopedSocketAddr {
-	fn into(self) -> SocketAddr {
-		match self {
-			Self::V4 { address, port, .. } => {
+impl From<ScopedSocketAddr> for SocketAddr {
+	fn from(scoped_addr: ScopedSocketAddr) -> Self {
+		match scoped_addr {
+			ScopedSocketAddr::V4 { address, port, .. } => {
 				// doesn't use scope_id
-				SocketAddr::V4(SocketAddrV4::new(address, port))
+				Self::V4(SocketAddrV4::new(address, port))
 			},
-			Self::V6 {
+			ScopedSocketAddr::V6 {
 				address,
 				port,
 				scope_id,
-			} => SocketAddr::V6(SocketAddrV6::new(address, port, 0, scope_id)),
+			} => Self::V6(SocketAddrV6::new(address, port, 0, scope_id)),
 		}
 	}
 }
 
-impl Into<SocketAddrV6> for ScopedSocketAddr {
-	fn into(self) -> SocketAddrV6 {
-		match self {
-			Self::V4 {
+impl From<ScopedSocketAddr> for SocketAddrV6 {
+	fn from(scoped_addr: ScopedSocketAddr) -> Self {
+		match scoped_addr {
+			ScopedSocketAddr::V4 {
 				address,
 				port,
 				scope_id,
-			} => SocketAddrV6::new(address.to_ipv6_mapped(), port, 0, scope_id),
-			Self::V6 {
+			} => Self::new(address.to_ipv6_mapped(), port, 0, scope_id),
+			ScopedSocketAddr::V6 {
 				address,
 				port,
 				scope_id,
-			} => SocketAddrV6::new(address, port, 0, scope_id),
+			} => Self::new(address, port, 0, scope_id),
 		}
 	}
 }

@@ -27,9 +27,9 @@ impl InterfaceIndex {
 	}
 }
 
-impl Into<u32> for InterfaceIndex {
-	fn into(self) -> u32 {
-		self.into_raw()
+impl From<InterfaceIndex> for u32 {
+	fn from(ndx: InterfaceIndex) -> Self {
+		ndx.into_raw()
 	}
 }
 
@@ -99,8 +99,8 @@ impl Interface {
 	}
 }
 
-impl Into<u32> for Interface {
-	fn into(self) -> u32 {
-		self.into_raw()
+impl From<Interface> for u32 {
+	fn from(i: Interface) -> u32 {
+		i.into_raw()
 	}
 }

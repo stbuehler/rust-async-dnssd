@@ -30,11 +30,11 @@ pub enum Enumerate {
 	RegistrationDomains,
 }
 
-impl Into<ffi::DNSServiceFlags> for Enumerate {
-	fn into(self) -> ffi::DNSServiceFlags {
-		match self {
-			Self::BrowseDomains => ffi::FLAGS_BROWSE_DOMAINS,
-			Self::RegistrationDomains => ffi::FLAGS_REGISTRATION_DOMAINS,
+impl From<Enumerate> for ffi::DNSServiceFlags {
+	fn from(e: Enumerate) -> Self {
+		match e {
+			Enumerate::BrowseDomains => ffi::FLAGS_BROWSE_DOMAINS,
+			Enumerate::RegistrationDomains => ffi::FLAGS_REGISTRATION_DOMAINS,
 		}
 	}
 }
