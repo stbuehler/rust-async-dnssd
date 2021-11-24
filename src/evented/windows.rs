@@ -15,7 +15,10 @@
 //! back to a smaller timeout.
 
 use futures_channel::mpsc as futures_mpsc;
-use futures_util::StreamExt;
+use futures_util::{
+	SinkExt,
+	StreamExt,
+};
 use log::debug;
 use std::{
 	io,
