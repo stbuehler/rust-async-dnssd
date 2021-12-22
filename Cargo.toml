@@ -2,7 +2,7 @@
 name = "async-dnssd"
 build = "build.rs"
 # also bump version in src/lib.rs
-version = "0.5.0-rc.1"
+version = "0.5.0"
 authors = ["Stefan Bühler <stbuehler@web.de>"]
 description = "Asynchronous wrapper for DNS-SD C libraries"
 documentation = "https://stbuehler.github.io/rustdocs/async-dnssd/async_dnssd/"
