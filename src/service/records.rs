@@ -30,6 +30,7 @@ impl Record {
 	/// Cannot change type or class of record.
 	///
 	/// See [`DNSServiceUpdateRecord`](https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord).
+	#[doc(alias = "DNSServiceUpdateRecord")]
 	pub fn update_record(&self, rdata: &[u8], ttl: u32) -> io::Result<()> {
 		self.0.update_record(0 /* no flags */, rdata, ttl)?;
 		Ok(())

@@ -183,6 +183,7 @@ fn _query_record_extended(
 /// Query for an arbitrary DNS record
 ///
 /// See [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord).
+#[doc(alias = "DNSServiceQueryRecord")]
 pub fn query_record_extended(fullname: &str, rr_type: Type, data: QueryRecordData) -> QueryRecord {
 	match _query_record_extended(fullname, rr_type, data) {
 		Ok(qr) => qr,
@@ -200,6 +201,7 @@ pub fn query_record_extended(fullname: &str, rr_type: Type, data: QueryRecordDat
 ///
 /// [`query_record_extended`]: fn.query_record_extended.html
 /// [`QueryRecordData`]: struct.QueryRecordData.html
+#[doc(alias = "DNSServiceQueryRecord")]
 pub fn query_record(fullname: &str, rr_type: Type) -> QueryRecord {
 	query_record_extended(fullname, rr_type, QueryRecordData::default())
 }

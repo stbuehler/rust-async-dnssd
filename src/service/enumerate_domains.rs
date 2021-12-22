@@ -115,6 +115,7 @@ unsafe extern "C" fn enumerate_callback(
 /// Enumerate domains that are recommended for registration or browsing
 ///
 /// See [`DNSServiceEnumerateDomains`](https://developer.apple.com/documentation/dnssd/1804754-dnsserviceenumeratedomains).
+#[doc(alias = "DNSServiceEnumerateDomains")]
 pub fn enumerate_domains(enumerate: Enumerate, interface: Interface) -> EnumerateDomains {
 	crate::init();
 

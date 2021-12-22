@@ -143,6 +143,7 @@ fn _resolve(interface: Interface, name: &str, reg_type: &str, domain: &str) -> i
 /// See [`DNSServiceResolve`](https://developer.apple.com/documentation/dnssd/1804744-dnsserviceresolve).
 ///
 /// [`BrowseResult::resolve`]: struct.BrowseResult.html#method.resolve
+#[doc(alias = "DNSServiceResolve")]
 pub fn resolve(interface: Interface, name: &str, reg_type: &str, domain: &str) -> Resolve {
 	match _resolve(interface, name, reg_type, domain) {
 		Ok(r) => r,

@@ -27,6 +27,7 @@ use std::os::raw::c_char;
 /// Purge record from cache
 ///
 /// See [`DNSServiceReconfirmRecord`](https://developer.apple.com/documentation/dnssd/1804726-dnsservicereconfirmrecord).
+#[doc(alias = "DNSServiceReconfirmRecord")]
 pub fn reconfirm_record(
 	interface: crate::interface::Interface,
 	fullname: &str,
@@ -63,6 +64,7 @@ impl<'a> FullName<'a> {
 	/// Escape and concatenate all three parts to a full name
 	///
 	/// See [`DNSServiceConstructFullName`](https://developer.apple.com/documentation/dnssd/1804753-dnsserviceconstructfullname)
+	#[doc(alias = "DNSServiceConstructFullName")]
 	pub fn construct(&self) -> ::std::io::Result<String> {
 		use std::io;
 

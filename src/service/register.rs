@@ -55,6 +55,7 @@ impl Registration {
 	/// Add a record to a registered service
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
+	#[doc(alias = "DNSServiceAddRecord")]
 	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
 		Ok(self
 			.0
@@ -88,6 +89,7 @@ impl Register {
 	/// Add a record to a registered service
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
+	#[doc(alias = "DNSServiceAddRecord")]
 	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
 		Ok(self
 			.future
@@ -221,6 +223,7 @@ impl<'a> Default for RegisterData<'a> {
 /// See [`DNSServiceRegister`].
 ///
 /// [`DNSServiceRegister`]: https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister
+#[doc(alias = "DNSServiceRegister")]
 #[allow(clippy::too_many_arguments)]
 pub fn register_extended(
 	reg_type: &str,
@@ -282,6 +285,7 @@ pub fn register_extended(
 /// # Ok(())
 /// # }
 /// ```
+#[doc(alias = "DNSServiceRegister")]
 #[allow(clippy::too_many_arguments)]
 pub fn register(reg_type: &str, port: u16) -> io::Result<Register> {
 	register_extended(reg_type, port, RegisterData::default())

@@ -172,6 +172,7 @@ fn _browse_extended(reg_type: &str, data: BrowseData<'_>) -> io::Result<Browse> 
 /// `reg_type` specifies the service type to search, e.g. `"_ssh._tcp"`.
 ///
 /// See [`DNSServiceBrowse`](https://developer.apple.com/documentation/dnssd/1804742-dnsservicebrowse).
+#[doc(alias = "DNSServiceBrowse")]
 pub fn browse_extended(reg_type: &str, data: BrowseData<'_>) -> Browse {
 	match _browse_extended(reg_type, data) {
 		Ok(r) => r,
@@ -191,6 +192,7 @@ pub fn browse_extended(reg_type: &str, data: BrowseData<'_>) -> Browse {
 ///
 /// [`browse_extended`]: fn.browse_extended.html
 /// [`BrowseData`]: struct.BrowseData.html
+#[doc(alias = "DNSServiceBrowse")]
 pub fn browse(reg_type: &str) -> Browse {
 	browse_extended(reg_type, BrowseData::default())
 }

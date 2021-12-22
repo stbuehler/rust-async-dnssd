@@ -244,6 +244,7 @@ impl fmt::Debug for ScopedSocketAddr {
 /// Uses
 /// [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord)
 /// to query for `A` and `AAAA` records (in the `IN` class).
+#[doc(alias = "DNSServiceQueryRecord")]
 pub fn resolve_host_extended(host: &str, port: u16, data: ResolveHostData) -> ResolveHost {
 	let qrdata = QueryRecordData {
 		flags: data.flags,

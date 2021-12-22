@@ -30,6 +30,7 @@ pub struct Connection(inner::SharedService);
 /// with
 ///
 /// See [`DNSServiceCreateConnection`](https://developer.apple.com/documentation/dnssd/1804724-dnsservicecreateconnection).
+#[doc(alias = "DNSServiceCreateConnection")]
 pub fn connect() -> io::Result<Connection> {
 	crate::init();
 
@@ -134,6 +135,7 @@ impl Connection {
 	/// and ttl
 	///
 	/// See [`DNSServiceRegisterRecord`](https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord).
+	#[doc(alias = "DNSServiceRegisterRecord")]
 	pub fn register_record_extended(
 		&self,
 		fullname: &str,
@@ -172,6 +174,7 @@ impl Connection {
 	///
 	/// [`register_record_extended`]: fn.register_record_extended.html
 	/// [`RegisterRecordData`]: struct.RegisterRecordData.html
+	#[doc(alias = "DNSServiceRegisterRecord")]
 	pub fn register_record(
 		&self,
 		fullname: &str,
@@ -207,6 +210,7 @@ impl RegisterRecord {
 	/// [`Record`](struct.Record.html) instead.
 	///
 	/// See [`DNSServiceUpdateRecord`](https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord).
+	#[doc(alias = "DNSServiceUpdateRecord")]
 	pub fn update_record(&self, rdata: &[u8], ttl: u32) -> io::Result<()> {
 		self.inner_record().update_record(rdata, ttl)
 	}
