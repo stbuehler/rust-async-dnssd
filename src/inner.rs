@@ -116,7 +116,7 @@ impl OwnedService {
 		});
 		SharedService {
 			inner,
-			bg_task_handle: Arc::new(AbortHandle(tokio::spawn(bg_task))),
+			_bg_task_handle: Arc::new(AbortHandle(tokio::spawn(bg_task))),
 			bg_fail_notified,
 		}
 	}
@@ -280,7 +280,7 @@ struct SharedInner {
 pub(crate) struct SharedService {
 	inner: Arc<Mutex<SharedInner>>,
 	// make sure we kill the background task once all users are gone
-	bg_task_handle: Arc<AbortHandle>,
+	_bg_task_handle: Arc<AbortHandle>,
 	bg_fail_notified: Notified,
 }
 
