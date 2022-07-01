@@ -72,10 +72,10 @@ impl<'a> FullName<'a> {
 		let reg_type = crate::cstr::CStr::from(&self.reg_type)?;
 		let domain = crate::cstr::CStr::from(&self.domain)?;
 
-		const SIZE: usize = crate::ffi::MAX_DOMAIN_NAME + 200;
+		const SIZE: usize = crate::ffi::MAX_DOMAIN_NAME;
 		let mut buf: Vec<u8> = Vec::new();
-		buf.reserve(SIZE);
-		let len = unsafe {
+		buf.resize(SIZE, 0);
+		let result = unsafe {
 			crate::ffi::DNSServiceConstructFullName(
 				buf.as_mut_ptr() as *mut c_char,
 				service.as_ptr(),
@@ -84,12 +84,8 @@ impl<'a> FullName<'a> {
 			)
 		};
 
-		if len < 0 {
+		if result != 0 {
 			return Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid input"));
-		}
-
-		unsafe {
-			buf.set_len(len as usize);
 		}
 
 		String::from_utf8(buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))
