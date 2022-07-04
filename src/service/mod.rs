@@ -8,6 +8,10 @@ pub use self::{
 	resolve::*,
 	resolve_host::*,
 };
+use std::ffi::{
+	CStr,
+	CString,
+};
 
 mod browse;
 mod connection;
@@ -88,6 +92,19 @@ impl<'a> FullName<'a> {
 			return Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid input"));
 		}
 
-		String::from_utf8(buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))
+		let nul_pos = buf.iter().position(|&x| x == 0);
+		match nul_pos {
+			Some(nul_pos) => {
+				let subslice = &buf[..nul_pos + 1];
+				// SAFETY: We know there is a nul byte at nul_pos, so this slice
+				// (ending at the nul byte) is a well-formed C string.
+				unsafe {
+					CString::from(CStr::from_bytes_with_nul_unchecked(subslice))
+						.into_string()
+						.map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+				}
+			},
+			None => Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid input")),
+		}
 	}
 }
