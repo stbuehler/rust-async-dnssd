@@ -72,10 +72,10 @@ impl<'a> FullName<'a> {
 		let reg_type = crate::cstr::CStr::from(&self.reg_type)?;
 		let domain = crate::cstr::CStr::from(&self.domain)?;
 
-		const SIZE: usize = crate::ffi::MAX_DOMAIN_NAME + 200;
+		const SIZE: usize = crate::ffi::MAX_DOMAIN_NAME;
 		let mut buf: Vec<u8> = Vec::new();
 		buf.reserve(SIZE);
-		let len = unsafe {
+		let result = unsafe {
 			crate::ffi::DNSServiceConstructFullName(
 				buf.as_mut_ptr() as *mut c_char,
 				service.as_ptr(),
@@ -84,13 +84,17 @@ impl<'a> FullName<'a> {
 			)
 		};
 
-		if len < 0 {
-			return Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid input"));
+		if result != 0 {
+			// manual only mentions a single possible error (kDNSServiceErr_BadParam), so we use a static io::Error here for now
+			// TODO: convert to our normal `Error` type?
+			return Err(io::Error::new(io::ErrorKind::InvalidInput, "BadParam"));
 		}
 
 		unsafe {
-			buf.set_len(len as usize);
-		}
+			// ensure NUL termination (MAX_DOMAIN_NAME includes space for trailing NUL, so content must fit)
+			buf.as_mut_ptr().wrapping_add(SIZE).write(0);
+			buf.set_len(libc::strlen(buf.as_ptr() as *const libc::c_char));
+		};
 
 		String::from_utf8(buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))
 	}
