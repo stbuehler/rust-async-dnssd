@@ -90,9 +90,9 @@ impl<'a> FullName<'a> {
 			return Err(io::Error::new(io::ErrorKind::InvalidInput, "BadParam"));
 		}
 
+		// ensure NUL termination (MAX_DOMAIN_NAME includes space for trailing NUL, so content must fit)
+		buf.spare_capacity_mut()[SIZE - 1].write(0);
 		unsafe {
-			// ensure NUL termination (MAX_DOMAIN_NAME includes space for trailing NUL, so content must fit)
-			buf.as_mut_ptr().wrapping_add(SIZE).write(0);
 			buf.set_len(libc::strlen(buf.as_ptr() as *const libc::c_char));
 		};
 
