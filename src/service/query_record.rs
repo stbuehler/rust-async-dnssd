@@ -27,11 +27,11 @@ type CallbackStream = crate::stream::ServiceStream<inner::OwnedService, QueryRec
 bitflags::bitflags! {
 	/// Flags used to query for a record
 	#[derive(Default)]
-	pub struct QueryRecordFlags: crate::ffi::DNSServiceFlags {
+	pub struct QueryRecordFlags: ffi::DNSServiceFlags {
 		/// long-lived unicast query
 		///
 		/// See [`kDNSServiceFlagsLongLivedQuery`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagslonglivedquery).
-		const LONG_LIVED_QUERY = crate::ffi::FLAGS_LONG_LIVED_QUERY;
+		const LONG_LIVED_QUERY = ffi::FLAGS_LONG_LIVED_QUERY;
 	}
 }
 

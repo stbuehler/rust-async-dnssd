@@ -73,8 +73,7 @@ impl<'a> FullName<'a> {
 		let domain = crate::cstr::CStr::from(&self.domain)?;
 
 		const SIZE: usize = crate::ffi::MAX_DOMAIN_NAME;
-		let mut buf: Vec<u8> = Vec::new();
-		buf.reserve(SIZE);
+		let mut buf: Vec<u8> = Vec::with_capacity(SIZE);
 		let result = unsafe {
 			crate::ffi::DNSServiceConstructFullName(
 				buf.as_mut_ptr() as *mut c_char,

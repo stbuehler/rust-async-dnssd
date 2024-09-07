@@ -25,11 +25,11 @@ type CallbackFuture = crate::future::ServiceFuture<inner::SharedService, Registe
 bitflags::bitflags! {
 	/// Flags used to register service
 	#[derive(Default)]
-	pub struct RegisterFlags: crate::ffi::DNSServiceFlags {
+	pub struct RegisterFlags: ffi::DNSServiceFlags {
 		/// Indicates a name conflict should not get handled automatically.
 		///
 		/// See [`kDNSServiceFlagsNoAutoRename`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsnoautorename).
-		const NO_AUTO_RENAME = crate::ffi::FLAGS_NO_AUTO_RENAME;
+		const NO_AUTO_RENAME = ffi::FLAGS_NO_AUTO_RENAME;
 
 		/// Indicates there might me multiple records with the given name, type and class.
 		///

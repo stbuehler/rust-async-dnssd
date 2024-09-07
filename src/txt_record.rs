@@ -144,7 +144,7 @@ impl TxtRecord {
 	/// Insert or update the entry with `key` to have the given value or on value
 	pub fn set(&mut self, key: &[u8], value: Option<&[u8]>) -> Result<(), TxtRecordError> {
 		for &k in key {
-			if k == b'=' || k < 0x20 || k > 0x7e {
+			if k == b'=' || !(0x20..=0x7e).contains(&k) {
 				return Err(TxtRecordError::InvalidKey);
 			}
 		}
