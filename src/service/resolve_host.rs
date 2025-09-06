@@ -113,8 +113,9 @@ pub struct ResolveHost {
 impl futures_core::Stream for ResolveHost {
 	type Item = io::Result<ResolveHostResult>;
 
-	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-		self.inner.poll_next_unpin(cx)
+	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+		let this = self.get_mut();
+		this.inner.poll_next_unpin(cx)
 	}
 }
 

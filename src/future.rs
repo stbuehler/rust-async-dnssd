@@ -92,10 +92,6 @@ impl<S: EventedService, T> ServiceFuture<S, T> {
 		self.0.as_ref().expect("can only get ready once")
 	}
 
-	fn inner_mut(&mut self) -> &mut Inner<S, T> {
-		self.0.as_mut().expect("can only get ready once")
-	}
-
 	pub(crate) fn service(&self) -> &S {
 		&self.inner().service
 	}
@@ -104,14 +100,16 @@ impl<S: EventedService, T> ServiceFuture<S, T> {
 impl<S: EventedService, T> Future for ServiceFuture<S, T> {
 	type Output = io::Result<(S, T)>;
 
-	fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-		if self.0.is_none() {
-			// can only get ready once.
-			return Poll::Pending;
+	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+		let this = self.get_mut();
+		match &mut this.0 {
+			None => Poll::Pending, // can only get ready once.
+			Some(inner) => {
+				inner.service.poll_service(cx)?;
+				let item =
+					futures_core::ready!(inner.receiver.poll_unpin(cx)).expect("send can't die")?;
+				Poll::Ready(Ok((this.0.take().unwrap().service, item)))
+			},
 		}
-		self.inner_mut().service.poll_service(cx)?;
-		let item = futures_core::ready!(self.inner_mut().receiver.poll_unpin(cx))
-			.expect("send can't die")?;
-		Poll::Ready(Ok((self.0.take().unwrap().service, item)))
 	}
 }

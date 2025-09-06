@@ -1,3 +1,4 @@
+use futures_util::StreamExt;
 use std::{
 	io,
 	os::raw::{
@@ -59,15 +60,12 @@ pub struct QueryRecord {
 	stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>,
 }
 
-impl QueryRecord {
-	pin_utils::unsafe_pinned!(stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>);
-}
-
 impl futures_core::Stream for QueryRecord {
 	type Item = io::Result<QueryRecordResult>;
 
 	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-		self.stream().poll_next(cx)
+		let this = self.get_mut();
+		this.stream.poll_next_unpin(cx)
 	}
 }
 

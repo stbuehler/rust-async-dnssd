@@ -1,3 +1,4 @@
+use futures_util::FutureExt;
 use std::{
 	future::Future,
 	io,
@@ -84,8 +85,6 @@ pub struct Register {
 }
 
 impl Register {
-	pin_utils::unsafe_pinned!(future: CallbackFuture);
-
 	/// Add a record to a registered service
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
@@ -117,7 +116,8 @@ impl Future for Register {
 	type Output = io::Result<(Registration, RegisterResult)>;
 
 	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-		let (service, item) = futures_core::ready!(self.future().poll(cx))?;
+		let this = self.get_mut();
+		let (service, item) = futures_core::ready!(this.future.poll_unpin(cx))?;
 		Poll::Ready(Ok((Registration(service), item)))
 	}
 }

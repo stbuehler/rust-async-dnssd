@@ -60,8 +60,8 @@ impl Clone for Notified {
 impl Future for Notified {
 	type Output = ();
 
-	fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-		let this: &mut Self = &mut self;
+	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+		let this = self.get_mut();
 		if this.notified.is_none() {
 			let notified: NotifiedBox<'_> = Box::pin(this.notify.notified());
 			// convert to static lifetime: we make sure to keep the Arc<Notify> alive

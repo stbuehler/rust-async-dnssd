@@ -71,8 +71,9 @@ impl<S: EventedService, T> ServiceStream<S, T> {
 impl<S: EventedService, T> futures_core::Stream for ServiceStream<S, T> {
 	type Item = io::Result<T>;
 
-	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-		self.service.poll_service(cx)?;
-		self.receiver.poll_next_unpin(cx)
+	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+		let this = self.get_mut();
+		this.service.poll_service(cx)?;
+		this.receiver.poll_next_unpin(cx)
 	}
 }

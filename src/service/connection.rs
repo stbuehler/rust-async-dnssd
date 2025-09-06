@@ -65,18 +65,13 @@ pub struct RegisterRecord {
 	record: Option<crate::Record>,
 }
 
-impl RegisterRecord {
-	pin_utils::unsafe_pinned!(future: CallbackFuture);
-
-	pin_utils::unsafe_unpinned!(record: Option<crate::Record>);
-}
-
 impl Future for RegisterRecord {
 	type Output = io::Result<crate::Record>;
 
-	fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-		futures_core::ready!(self.as_mut().future().poll(cx))?;
-		Poll::Ready(Ok(self.record().take().unwrap()))
+	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+		let this = self.get_mut();
+		futures_core::ready!(this.future.poll_unpin(cx))?;
+		Poll::Ready(Ok(this.record.take().unwrap()))
 	}
 }
 

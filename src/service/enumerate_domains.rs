@@ -1,3 +1,4 @@
+use futures_util::StreamExt;
 use std::{
 	io,
 	os::raw::{
@@ -68,15 +69,12 @@ pub struct EnumerateDomains {
 	stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>,
 }
 
-impl EnumerateDomains {
-	pin_utils::unsafe_pinned!(stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>);
-}
-
 impl futures_core::Stream for EnumerateDomains {
 	type Item = io::Result<EnumerateResult>;
 
 	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-		self.stream().poll_next(cx)
+		let this = self.get_mut();
+		this.stream.poll_next_unpin(cx)
 	}
 }
 

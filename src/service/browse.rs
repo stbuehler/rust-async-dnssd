@@ -1,3 +1,4 @@
+use futures_util::StreamExt;
 use std::{
 	io,
 	os::raw::{
@@ -46,15 +47,12 @@ pub struct Browse {
 	stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>,
 }
 
-impl Browse {
-	pin_utils::unsafe_pinned!(stream: crate::fused_err_stream::FusedErrorStream<CallbackStream>);
-}
-
 impl futures_core::Stream for Browse {
 	type Item = io::Result<BrowseResult>;
 
 	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-		self.stream().poll_next(cx)
+		let this = self.get_mut();
+		this.stream.poll_next_unpin(cx)
 	}
 }
 
