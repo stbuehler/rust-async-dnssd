@@ -103,20 +103,22 @@ unsafe extern "C" fn query_record_callback(
 	ttl: u32,
 	context: *mut c_void,
 ) {
-	CallbackStream::run_callback(context, error_code, || {
-		let fullname = cstr::from_cstr(fullname)?;
-		let rdata = ::std::slice::from_raw_parts(rdata, rd_len as usize);
+	unsafe {
+		CallbackStream::run_callback(context, error_code, || {
+			let fullname = cstr::from_cstr(fullname)?;
+			let rdata = ::std::slice::from_raw_parts(rdata, rd_len as usize);
 
-		Ok(QueryRecordResult {
-			flags: QueriedRecordFlags::from_bits_truncate(flags),
-			interface: Interface::from_raw(interface_index),
-			fullname: fullname.to_string(),
-			rr_type: Type(rr_type),
-			rr_class: Class(rr_class),
-			rdata: rdata.into(),
-			ttl,
-		})
-	});
+			Ok(QueryRecordResult {
+				flags: QueriedRecordFlags::from_bits_truncate(flags),
+				interface: Interface::from_raw(interface_index),
+				fullname: fullname.to_string(),
+				rr_type: Type(rr_type),
+				rr_class: Class(rr_class),
+				rdata: rdata.into(),
+				ttl,
+			})
+		});
+	}
 }
 
 /// Optional data when querying for a record; either use its default

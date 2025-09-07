@@ -85,7 +85,9 @@ unsafe extern "C" fn register_record_callback(
 	error_code: ffi::DNSServiceErrorType,
 	context: *mut c_void,
 ) {
-	CallbackFuture::run_callback(context, error_code, || Ok(RegisterRecordResult));
+	unsafe {
+		CallbackFuture::run_callback(context, error_code, || Ok(RegisterRecordResult));
+	}
 }
 
 /// Optional data when registering a record; either use its default

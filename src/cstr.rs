@@ -7,9 +7,7 @@ use std::{
 };
 
 pub unsafe fn from_cstr(s: *const c_char) -> io::Result<&'static str> {
-	ffi::CStr::from_ptr(s)
-		.to_str()
-		.map_err(io::Error::other)
+	unsafe { ffi::CStr::from_ptr(s).to_str().map_err(io::Error::other) }
 }
 
 #[derive(Clone, Debug)]

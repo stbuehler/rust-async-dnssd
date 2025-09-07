@@ -95,20 +95,22 @@ unsafe extern "C" fn resolve_callback(
 	txt_record: *const u8,
 	context: *mut c_void,
 ) {
-	CallbackStream::run_callback(context, error_code, || {
-		let fullname = cstr::from_cstr(fullname)?;
-		let host_target = cstr::from_cstr(host_target)?;
-		let txt = ::std::slice::from_raw_parts(txt_record, txt_len as usize);
+	unsafe {
+		CallbackStream::run_callback(context, error_code, || {
+			let fullname = cstr::from_cstr(fullname)?;
+			let host_target = cstr::from_cstr(host_target)?;
+			let txt = ::std::slice::from_raw_parts(txt_record, txt_len as usize);
 
-		Ok(ResolveResult {
-			flags: ResolvedFlags::from_bits_truncate(flags),
-			interface: Interface::from_raw(interface_index),
-			fullname: fullname.to_string(),
-			host_target: host_target.to_string(),
-			port: u16::from_be(port),
-			txt: txt.into(),
-		})
-	});
+			Ok(ResolveResult {
+				flags: ResolvedFlags::from_bits_truncate(flags),
+				interface: Interface::from_raw(interface_index),
+				fullname: fullname.to_string(),
+				host_target: host_target.to_string(),
+				port: u16::from_be(port),
+				txt: txt.into(),
+			})
+		});
+	}
 }
 
 fn _resolve(interface: Interface, name: &str, reg_type: &str, domain: &str) -> io::Result<Resolve> {

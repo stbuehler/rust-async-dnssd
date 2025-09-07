@@ -40,7 +40,7 @@ impl<S: EventedService, T> ServiceStream<S, T> {
 		T: ::std::fmt::Debug,
 	{
 		let sender = context as *mut CallbackContext<T>;
-		let sender: &mut CallbackContext<T> = &mut *sender;
+		let sender: &mut CallbackContext<T> = unsafe { &mut *sender };
 
 		let data = Error::from(error_code)
 			.map_err(io::Error::from)

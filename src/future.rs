@@ -43,7 +43,7 @@ impl<S: EventedService, T> ServiceFuture<S, T> {
 		T: ::std::fmt::Debug,
 	{
 		let sender = context as *mut CallbackContext<T>;
-		let sender: &mut CallbackContext<T> = &mut *sender;
+		let sender: &mut CallbackContext<T> = unsafe { &mut *sender };
 		let sender = sender.take().expect("callback must be run only once");
 
 		let data = Error::from(error_code)

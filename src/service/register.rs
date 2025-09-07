@@ -146,17 +146,19 @@ unsafe extern "C" fn register_callback(
 	domain: *const c_char,
 	context: *mut c_void,
 ) {
-	CallbackFuture::run_callback(context, error_code, || {
-		let name = cstr::from_cstr(name)?;
-		let reg_type = cstr::from_cstr(reg_type)?;
-		let domain = cstr::from_cstr(domain)?;
+	unsafe {
+		CallbackFuture::run_callback(context, error_code, || {
+			let name = cstr::from_cstr(name)?;
+			let reg_type = cstr::from_cstr(reg_type)?;
+			let domain = cstr::from_cstr(domain)?;
 
-		Ok(RegisterResult {
-			name: name.to_string(),
-			reg_type: reg_type.to_string(),
-			domain: domain.to_string(),
-		})
-	});
+			Ok(RegisterResult {
+				name: name.to_string(),
+				reg_type: reg_type.to_string(),
+				domain: domain.to_string(),
+			})
+		});
+	}
 }
 
 /// Optional data when registering a service; either use its default

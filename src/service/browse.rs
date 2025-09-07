@@ -99,19 +99,21 @@ unsafe extern "C" fn browse_callback(
 	reply_domain: *const c_char,
 	context: *mut c_void,
 ) {
-	CallbackStream::run_callback(context, error_code, || {
-		let service_name = cstr::from_cstr(service_name)?;
-		let reg_type = cstr::from_cstr(reg_type)?;
-		let reply_domain = cstr::from_cstr(reply_domain)?;
+	unsafe {
+		CallbackStream::run_callback(context, error_code, || {
+			let service_name = cstr::from_cstr(service_name)?;
+			let reg_type = cstr::from_cstr(reg_type)?;
+			let reply_domain = cstr::from_cstr(reply_domain)?;
 
-		Ok(BrowseResult {
-			flags: BrowsedFlags::from_bits_truncate(flags),
-			interface: Interface::from_raw(interface_index),
-			service_name: service_name.to_string(),
-			reg_type: reg_type.to_string(),
-			domain: reply_domain.to_string(),
-		})
-	});
+			Ok(BrowseResult {
+				flags: BrowsedFlags::from_bits_truncate(flags),
+				interface: Interface::from_raw(interface_index),
+				service_name: service_name.to_string(),
+				reg_type: reg_type.to_string(),
+				domain: reply_domain.to_string(),
+			})
+		});
+	}
 }
 
 /// Optional data when browsing for a service; either use its default

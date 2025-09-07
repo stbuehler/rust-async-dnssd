@@ -99,15 +99,17 @@ unsafe extern "C" fn enumerate_callback(
 	reply_domain: *const c_char,
 	context: *mut c_void,
 ) {
-	CallbackStream::run_callback(context, error_code, || {
-		let reply_domain = cstr::from_cstr(reply_domain)?;
+	unsafe {
+		CallbackStream::run_callback(context, error_code, || {
+			let reply_domain = cstr::from_cstr(reply_domain)?;
 
-		Ok(EnumerateResult {
-			flags: EnumeratedFlags::from_bits_truncate(flags),
-			interface: Interface::from_raw(interface_index),
-			domain: reply_domain.to_string(),
-		})
-	});
+			Ok(EnumerateResult {
+				flags: EnumeratedFlags::from_bits_truncate(flags),
+				interface: Interface::from_raw(interface_index),
+				domain: reply_domain.to_string(),
+			})
+		});
+	}
 }
 
 /// Enumerate domains that are recommended for registration or browsing

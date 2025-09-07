@@ -181,7 +181,7 @@ pub type DNSServiceQueryRecordReply = Option<
 	),
 >;
 
-extern "C" {
+unsafe extern "C" {
 	pub fn DNSServiceRefSockFD(sd_ref: DNSServiceRef) -> c_int;
 	pub fn DNSServiceProcessResult(sd_ref: DNSServiceRef) -> DNSServiceErrorType;
 	pub fn DNSServiceRefDeallocate(sd_ref: DNSServiceRef);
