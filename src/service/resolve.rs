@@ -18,9 +18,9 @@ use crate::{
 	inner,
 	interface::Interface,
 	service::{
-		resolve_host_extended,
 		ResolveHost,
 		ResolveHostData,
+		resolve_host_extended,
 	},
 };
 

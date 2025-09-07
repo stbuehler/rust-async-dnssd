@@ -31,8 +31,16 @@ fn find_windows_dns_sd() {
 		};
 
 		match var("BONJOUR_SDK_HOME") {
-			Ok(path) => println!("cargo:rustc-link-search=native={}{sep}Lib{sep}{}", path, platform, sep=std::path::MAIN_SEPARATOR),
-			Err(e) => panic!("Can't find Bonjour SDK (download from https://developer.apple.com/opensource/) at BONJOUR_SDK_HOME: {}", e),
+			Ok(path) => println!(
+				"cargo:rustc-link-search=native={}{sep}Lib{sep}{}",
+				path,
+				platform,
+				sep = std::path::MAIN_SEPARATOR
+			),
+			Err(e) => panic!(
+				"Can't find Bonjour SDK (download from https://developer.apple.com/opensource/) at BONJOUR_SDK_HOME: {}",
+				e
+			),
 		}
 		println!("cargo:rustc-link-lib=dnssd");
 	}

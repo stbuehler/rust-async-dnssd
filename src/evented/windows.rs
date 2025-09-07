@@ -24,8 +24,8 @@ use std::{
 	io,
 	os::raw::c_int,
 	sync::{
-		mpsc as std_mpsc,
 		Mutex,
+		mpsc as std_mpsc,
 	},
 	task::{
 		Context,
@@ -282,10 +282,10 @@ mod fd_set {
 		ptr,
 	};
 	use winapi::um::winsock2::{
-		fd_set,
-		u_int,
 		FD_SETSIZE,
 		SOCKET,
+		fd_set,
+		u_int,
 	};
 
 	/// Layout compatible struct of `fd_set`, but it holds maybe uninitialized `fd_array`.

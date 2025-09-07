@@ -28,10 +28,10 @@ use crate::{
 	ffi,
 	interface::Interface,
 	service::{
-		query_record_extended,
 		QueryRecordData,
 		QueryRecordFlags,
 		QueryRecordResult,
+		query_record_extended,
 	},
 };
 
