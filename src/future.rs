@@ -53,22 +53,6 @@ impl<S: EventedService, T> ServiceFuture<S, T> {
 		sender.send(data).expect("receiver must still be alive");
 	}
 
-	pub(crate) fn new<F>(f: F) -> io::Result<Self>
-	where
-		F: FnOnce(*mut c_void) -> Result<S, Error>,
-	{
-		let (sender, receiver) = oneshot::channel::<io::Result<T>>();
-		let mut sender = Box::new(Some(sender));
-
-		let service = f(box_raw(&mut sender))?;
-
-		Ok(Self(Some(Inner {
-			service,
-			_sender: sender,
-			receiver,
-		})))
-	}
-
 	pub(crate) fn new_with<R, F>(service: S, f: F) -> io::Result<(Self, R)>
 	where
 		F: FnOnce(*mut c_void) -> Result<R, Error>,
@@ -86,14 +70,6 @@ impl<S: EventedService, T> ServiceFuture<S, T> {
 			})),
 			res,
 		))
-	}
-
-	fn inner(&self) -> &Inner<S, T> {
-		self.0.as_ref().expect("can only get ready once")
-	}
-
-	pub(crate) fn service(&self) -> &S {
-		&self.inner().service
 	}
 }
 

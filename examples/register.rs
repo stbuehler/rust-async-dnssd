@@ -2,6 +2,7 @@
 async fn main() -> std::io::Result<()> {
 	// Use `cargo run --example register`
 
+	#[allow(deprecated)]
 	let (_registration, result) = async_dnssd::register("_ssh._tcp", 2022)?.await?;
 	println!("Registered: {:?}", result);
 

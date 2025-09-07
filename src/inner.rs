@@ -257,7 +257,7 @@ impl EventedService for OwnedService {
 	}
 }
 
-struct AbortHandle(tokio::task::JoinHandle<()>);
+pub(crate) struct AbortHandle(pub(crate) tokio::task::JoinHandle<()>);
 
 impl Drop for AbortHandle {
 	fn drop(&mut self) {

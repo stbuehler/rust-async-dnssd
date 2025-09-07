@@ -66,6 +66,10 @@ impl<S: EventedService, T> ServiceStream<S, T> {
 			receiver,
 		})
 	}
+
+	pub(crate) fn service(&self) -> &S {
+		&self.service
+	}
 }
 
 impl<S: EventedService, T> futures_core::Stream for ServiceStream<S, T> {

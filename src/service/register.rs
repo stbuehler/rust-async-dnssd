@@ -1,4 +1,4 @@
-use futures_util::FutureExt;
+use futures_util::StreamExt;
 use std::{
 	future::Future,
 	io,
@@ -21,7 +21,7 @@ use crate::{
 	interface::Interface,
 };
 
-type CallbackFuture = crate::future::ServiceFuture<inner::SharedService, RegisterResult>;
+type CallbackStream = crate::stream::ServiceStream<inner::SharedService, RegisterResult>;
 
 bitflags::bitflags! {
 	/// Flags used to register service
@@ -50,7 +50,10 @@ bitflags::bitflags! {
 /// Registered [`Record`](struct.Record.html)s from this `Registration`
 /// or the originating [`Register`](struct.Register.html) future will
 /// keep the `Registration` alive.
-pub struct Registration(inner::SharedService);
+pub struct Registration {
+	service: inner::SharedService,
+	_stream_consumer: inner::AbortHandle,
+}
 
 impl Registration {
 	/// Add a record to a registered service
@@ -59,7 +62,7 @@ impl Registration {
 	#[doc(alias = "DNSServiceAddRecord")]
 	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
 		Ok(self
-			.0
+			.service
 			.clone()
 			.add_record(0 /* no flags */, rr_type, rdata, ttl)?
 			.into())
@@ -71,7 +74,7 @@ impl Registration {
 	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
 	/// anything useful on that handle.
 	pub fn get_default_txt_record(&self) -> crate::Record {
-		self.0.clone().get_default_txt_record().into()
+		self.service.clone().get_default_txt_record().into()
 	}
 }
 
@@ -81,7 +84,8 @@ impl Registration {
 /// [`Registration`](struct.Registration.html) instead.
 #[must_use = "futures do nothing unless polled"]
 pub struct Register {
-	future: CallbackFuture,
+	stream: Option<CallbackStream>,
+	service: inner::SharedService,
 }
 
 impl Register {
@@ -91,8 +95,7 @@ impl Register {
 	#[doc(alias = "DNSServiceAddRecord")]
 	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
 		Ok(self
-			.future
-			.service()
+			.service
 			.clone()
 			.add_record(0 /* no flags */, rr_type, rdata, ttl)?
 			.into())
@@ -104,11 +107,7 @@ impl Register {
 	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
 	/// anything useful on that handle.
 	pub fn get_default_txt_record(&self) -> crate::Record {
-		self.future
-			.service()
-			.clone()
-			.get_default_txt_record()
-			.into()
+		self.service.clone().get_default_txt_record().into()
 	}
 }
 
@@ -117,8 +116,22 @@ impl Future for Register {
 
 	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
 		let this = self.get_mut();
-		let (service, item) = futures_core::ready!(this.future.poll_unpin(cx))?;
-		Poll::Ready(Ok((Registration(service), item)))
+		match &mut this.stream {
+			Some(stream) => {
+				let item = futures_core::ready!(stream.poll_next_unpin(cx)).expect("...")?;
+				let stream = this.stream.take().expect("stream can't be gone here");
+				let task = inner::AbortHandle(tokio::spawn(stream.for_each(|_| async {})));
+				let service = this.service.clone();
+				Poll::Ready(Ok((
+					Registration {
+						service,
+						_stream_consumer: task,
+					},
+					item,
+				)))
+			},
+			None => Poll::Pending,
+		}
 	}
 }
 
@@ -146,7 +159,7 @@ unsafe extern "C" fn register_callback(
 	domain: *const c_char,
 	context: *mut c_void,
 ) {
-	CallbackFuture::run_callback(context, error_code, || {
+	CallbackStream::run_callback(context, error_code, || {
 		let name = cstr::from_cstr(name)?;
 		let reg_type = cstr::from_cstr(reg_type)?;
 		let domain = cstr::from_cstr(domain)?;
@@ -223,6 +236,9 @@ impl<'a> Default for RegisterData<'a> {
 /// See [`DNSServiceRegister`].
 ///
 /// [`DNSServiceRegister`]: https://developer.apple.com/documentation/dnssd/1804733-dnsserviceregister
+#[deprecated(
+	note = "This interface is buggy, please upgrade to a newer version; see https://github.com/stbuehler/rust-async-dnssd/issues/22"
+)]
 #[doc(alias = "DNSServiceRegister")]
 #[allow(clippy::too_many_arguments)]
 pub fn register_extended(
@@ -237,7 +253,7 @@ pub fn register_extended(
 	let domain = cstr::NullableCStr::from(&data.domain)?;
 	let host = cstr::NullableCStr::from(&data.host)?;
 
-	let future = CallbackFuture::new(move |sender| {
+	let stream = CallbackStream::new(move |sender| {
 		inner::OwnedService::register(
 			data.flags.bits(),
 			data.interface.into_raw(),
@@ -252,8 +268,12 @@ pub fn register_extended(
 		)
 		.map(|s| s.share())
 	})?;
+	let service = stream.service().clone();
 
-	Ok(Register { future })
+	Ok(Register {
+		stream: Some(stream),
+		service,
+	})
 }
 
 /// Register a service
@@ -287,6 +307,10 @@ pub fn register_extended(
 /// ```
 #[doc(alias = "DNSServiceRegister")]
 #[allow(clippy::too_many_arguments)]
+#[deprecated(
+	note = "This interface is buggy, please upgrade to a newer version; see https://github.com/stbuehler/rust-async-dnssd/issues/22"
+)]
 pub fn register(reg_type: &str, port: u16) -> io::Result<Register> {
+	#[allow(deprecated)]
 	register_extended(reg_type, port, RegisterData::default())
 }
