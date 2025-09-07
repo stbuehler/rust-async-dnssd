@@ -117,17 +117,46 @@ mod stream;
 mod timeout_stream;
 mod txt_record;
 
-fn init() {
-	#[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
-	{
-		use std::sync::Once;
+#[allow(dead_code)]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+// SAFETY: Only call in single-threaded process.
+unsafe fn set_avahi_compat_nowarn() {
+	use std::sync::Once;
 
-		static INIT: Once = Once::new();
-		INIT.call_once(|| {
-			const AVAHI_COMPAT_NOWARN: &str = "AVAHI_COMPAT_NOWARN";
-			if std::env::var_os(AVAHI_COMPAT_NOWARN).is_none() {
-				std::env::set_var(AVAHI_COMPAT_NOWARN, "1");
-			}
-		});
+	static INIT: Once = Once::new();
+	INIT.call_once(|| {
+		const AVAHI_COMPAT_NOWARN: &str = "AVAHI_COMPAT_NOWARN";
+		if std::env::var_os(AVAHI_COMPAT_NOWARN).is_none() {
+			unsafe { std::env::set_var(AVAHI_COMPAT_NOWARN, "1") };
+		}
+	});
+}
+
+#[cfg(all(
+	unix,
+	not(any(target_os = "macos", target_os = "ios")),
+	target_env = "gnu"
+))]
+fn init_avahi_gnu() {
+	// https://sourceware.org/glibc/manual/2.42/html_node/Single_002dThreaded.html
+	unsafe extern "C" {
+		static __libc_single_threaded: libc::c_char;
+	}
+
+	if unsafe { __libc_single_threaded } != 0 {
+		unsafe {
+			set_avahi_compat_nowarn();
+		}
+	}
+}
+
+fn init() {
+	#[cfg(all(
+		unix,
+		not(any(target_os = "macos", target_os = "ios")),
+		target_env = "gnu"
+	))]
+	{
+		init_avahi_gnu();
 	}
 }
