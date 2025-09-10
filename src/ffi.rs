@@ -32,10 +32,8 @@ pub const FLAGS_REGISTRATION_DOMAINS: DNSServiceFlags = 0x80;
 pub const FLAGS_LONG_LIVED_QUERY: DNSServiceFlags = 0x100;
 #[cfg(not(unix))]
 pub const FLAGS_LONG_LIVED_QUERY: DNSServiceFlags = 0;
-// avahi only?
 // pub const FLAGS_ALLOW_REMOTE_QUERY: DNSServiceFlags = 0x200;
-// pub const FLAGS_FORCE_MULTICAS: DNSServiceFlags = 0x400;
-// pub const FLAGS_RETURN_CNAME: DNSServiceFlags = 0x800;
+// pub const FLAGS_FORCE_MULTICAST: DNSServiceFlags = 0x400;
 
 /// Maximum length of full name including trailing dot and terminating NULL
 ///
