@@ -46,9 +46,15 @@ impl<S: EventedService, T> ServiceStream<S, T> {
 			.map_err(io::Error::from)
 			.and_then(|()| f());
 
-		sender
-			.unbounded_send(data)
-			.expect("receiver must still be alive");
+		if let Err(send_err) = sender.unbounded_send(data) {
+			/* unbounded channel - can't be full, only disconnected (sender gone).
+			 * ignore; might just mean that the service keeps something alive, but the client
+			 * doesn't care about further notifications.
+			 * Public types should only offer where this makes sense (i.e. keeping service
+			 * alive without the stream).
+			 */
+			drop(send_err);
+		}
 	}
 
 	pub(crate) fn new<F>(f: F) -> io::Result<Self>
