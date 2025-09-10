@@ -262,10 +262,13 @@ pub fn register_extended(
 ///
 /// ```no_run
 /// # use async_dnssd::register;
+/// # use futures::StreamExt;
 /// # #[deny(unused_must_use)]
 /// # #[tokio::main(flavor = "current_thread")]
 /// # async fn main() -> std::io::Result<()> {
-/// let registration = register("_ssh._tcp", 22)?.await?;
+/// let mut registration = async_dnssd::register("_ssh._tcp", 22)?;
+/// let result = registration.next().await.expect("no stream end")?;
+/// # registration.for_each(|_| async {}).await;
 /// # Ok(())
 /// # }
 /// ```
