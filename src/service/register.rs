@@ -1,6 +1,5 @@
-use futures_util::FutureExt;
+use futures_util::StreamExt;
 use std::{
-	future::Future,
 	io,
 	os::raw::{
 		c_char,
@@ -21,7 +20,7 @@ use crate::{
 	interface::Interface,
 };
 
-type CallbackFuture = crate::future::ServiceFuture<inner::SharedService, RegisterResult>;
+type CallbackStream = crate::stream::ServiceStream<inner::SharedService, RegisterResult>;
 
 bitflags::bitflags! {
 	/// Flags used to register service
@@ -44,15 +43,15 @@ bitflags::bitflags! {
 	}
 }
 
-/// Successful registration
+/// Registration handle
 ///
-/// On dropping the registration the service will be unregistered.
-/// Registered [`Record`](struct.Record.html)s from this `Registration`
-/// or the originating [`Register`](struct.Register.html) future will
-/// keep the `Registration` alive.
-pub struct Registration(inner::SharedService);
+/// Can be used to add additional records to the registration.
+///
+/// Also keeps the registration alive (same as `Registration`).
+#[derive(Clone)]
+pub struct RegistrationHandle(inner::SharedService);
 
-impl Registration {
+impl RegistrationHandle {
 	/// Add a record to a registered service
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
@@ -75,50 +74,32 @@ impl Registration {
 	}
 }
 
-/// Pending registration
+/// Registration
 ///
-/// Becomes invalid when the future completes; use the returned
-/// [`Registration`](struct.Registration.html) instead.
-#[must_use = "futures do nothing unless polled"]
-pub struct Register {
-	future: CallbackFuture,
+/// A registration can become active and get deleted again; you need to
+/// poll the stream for updates.
+///
+/// Keeps the registration alive (same as `RegistrationHandle`).
+#[must_use = "streams do nothing unless polled"]
+pub struct Registration {
+	stream: CallbackStream,
+	handle: RegistrationHandle,
 }
 
-impl Register {
-	/// Add a record to a registered service
-	///
-	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
-	#[doc(alias = "DNSServiceAddRecord")]
-	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
-		Ok(self
-			.future
-			.service()
-			.clone()
-			.add_record(0 /* no flags */, rr_type, rdata, ttl)?
-			.into())
-	}
+impl std::ops::Deref for Registration {
+	type Target = RegistrationHandle;
 
-	/// Get [`Record`](struct.Record.html) handle for default TXT record
-	/// associated with the service registration (e.g. to update it).
-	///
-	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
-	/// anything useful on that handle.
-	pub fn get_default_txt_record(&self) -> crate::Record {
-		self.future
-			.service()
-			.clone()
-			.get_default_txt_record()
-			.into()
+	fn deref(&self) -> &Self::Target {
+		&self.handle
 	}
 }
 
-impl Future for Register {
-	type Output = io::Result<(Registration, RegisterResult)>;
+impl futures_core::Stream for Registration {
+	type Item = io::Result<RegisterResult>;
 
-	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+	fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
 		let this = self.get_mut();
-		let (service, item) = futures_core::ready!(this.future.poll_unpin(cx))?;
-		Poll::Ready(Ok((Registration(service), item)))
+		this.stream.poll_next_unpin(cx)
 	}
 }
 
@@ -147,7 +128,7 @@ unsafe extern "C" fn register_callback(
 	context: *mut c_void,
 ) {
 	unsafe {
-		CallbackFuture::run_callback(context, error_code, || {
+		CallbackStream::run_callback(context, error_code, || {
 			let name = cstr::from_cstr(name)?;
 			let reg_type = cstr::from_cstr(reg_type)?;
 			let domain = cstr::from_cstr(domain)?;
@@ -231,7 +212,7 @@ pub fn register_extended(
 	reg_type: &str,
 	port: u16,
 	data: RegisterData<'_>,
-) -> io::Result<Register> {
+) -> io::Result<Registration> {
 	crate::init();
 
 	let name = cstr::NullableCStr::from(&data.name)?;
@@ -239,7 +220,7 @@ pub fn register_extended(
 	let domain = cstr::NullableCStr::from(&data.domain)?;
 	let host = cstr::NullableCStr::from(&data.host)?;
 
-	let future = CallbackFuture::new(move |sender| {
+	let stream = CallbackStream::new(move |sender| {
 		inner::OwnedService::register(
 			data.flags.bits(),
 			data.interface.into_raw(),
@@ -255,7 +236,8 @@ pub fn register_extended(
 		.map(|s| s.share())
 	})?;
 
-	Ok(Register { future })
+	let handle = RegistrationHandle(stream.service().clone());
+	Ok(Registration { stream, handle })
 }
 
 /// Register a service
@@ -289,6 +271,6 @@ pub fn register_extended(
 /// ```
 #[doc(alias = "DNSServiceRegister")]
 #[allow(clippy::too_many_arguments)]
-pub fn register(reg_type: &str, port: u16) -> io::Result<Register> {
+pub fn register(reg_type: &str, port: u16) -> io::Result<Registration> {
 	register_extended(reg_type, port, RegisterData::default())
 }

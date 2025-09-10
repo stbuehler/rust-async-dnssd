@@ -8,13 +8,11 @@ use crate::{
 /// A successful record registration
 ///
 /// Releases the record when dropped (unless it is a
-/// [`Registration::get_default_txt_record`] or a
-/// [`Register::get_default_txt_record`])
+/// [`RegistrationHandle::get_default_txt_record`])
 ///
 /// Also keeps the underlying [`Registration`] or [`Connection`] alive.
 ///
-/// [`Registration::get_default_txt_record`]: struct.Registration.html#method.get_default_txt_record
-/// [`Register::get_default_txt_record`]: struct.Register.html#method.get_default_txt_record
+/// [`RegistrationHandle::get_default_txt_record`]: struct.RegistrationHandle.html#method.get_default_txt_record
 /// [`Registration`]: struct.Registration.html
 /// [`Connection`]: struct.Connection.html
 pub struct Record(inner::DNSRecord);

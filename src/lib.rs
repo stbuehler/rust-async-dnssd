@@ -24,7 +24,7 @@
 //!
 //! | C API                           | functionality in this crate                                  |
 //! |---------------------------------|--------------------------------------------------------------|
-//! | [`DNSServiceAddRecord`]         | [`Registration::add_record`], [`Register::add_record`]       |
+//! | [`DNSServiceAddRecord`]         | [`RegistrationHandle::add_record`]                           |
 //! | [`DNSServiceBrowse`]            | [`browse`]                                                   |
 //! | [`DNSServiceConstructFullName`] | [`FullName::construct`]                                      |
 //! | [`DNSServiceCreateConnection`]  | [`connect`]                                                  |
@@ -61,8 +61,7 @@
 //! [`DNSServiceRefDeallocate`]: https://developer.apple.com/documentation/dnssd/1804697-dnsservicerefdeallocate
 //! [`DNSServiceRefSockFD`]: https://developer.apple.com/documentation/dnssd/1804698-dnsservicerefsockfd
 //! [`DNSServiceRemoveRecord`]: https://developer.apple.com/documentation/dnssd/1804736-dnsserviceremoverecord
-//! [`Registration::add_record`]: struct.Registration.html#method.add_record
-//! [`Register::add_record`]: struct.Register.html#method.add_record
+//! [`RegistrationHandle::add_record`]: struct.RegistrationHandle.html#method.add_record
 //! [`browse`]: fn.browse.html
 //! [`FullName::construct`]: struct.FullName.html#method.construct
 //! [`connect`]: fn.connect.html

@@ -1,11 +1,14 @@
+use futures::StreamExt;
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> std::io::Result<()> {
 	// Use `cargo run --example register`
 
-	let (_registration, result) = async_dnssd::register("_ssh._tcp", 2022)?.await?;
+	let mut registration = async_dnssd::register("_ssh._tcp", 2022)?;
+	let result = registration.next().await.expect("no stream end")?;
 	println!("Registered: {:?}", result);
 
 	// wait until killed
-	futures::future::pending::<()>().await;
+	registration.for_each(|_| async {}).await;
 	Ok(())
 }
