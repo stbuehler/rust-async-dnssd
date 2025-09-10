@@ -12,6 +12,7 @@ readme = "README.md"
 keywords = ["dnssd", "dns-sd", "mdns", "network", "async"]
 license = "MIT"
 edition = "2024"
+# also bump in minflow build in workflow
 rust-version = "1.85"
 
 [build-dependencies]

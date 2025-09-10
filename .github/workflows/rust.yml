@@ -140,6 +140,33 @@ jobs:
       - name: Rustdoc
         run: cargo doc --all-features
 
+  # no cache for minver, run all steps in same job - if one fails, the others won't be tried
+  build-minver:
+    name: Build [minver]
+    runs-on: ubuntu-latest
+    needs: apt-warmup-cache
+    steps:
+      # --- install build dependencies
+      - name: Install libavahi-compat-libdnssd-dev
+        uses: stbuehler/action-apt@v1
+        with:
+          cache-key: apt-${{ runner.os }}-${{ github.run_id }}
+          packages: libavahi-compat-libdnssd-dev
+      # ---
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@1.85
+        with:
+          components: rustfmt
+      # minver build
+      - name: Build [minver]
+        run: cargo build --all-targets
+      # minver build all features
+      - name: Build with all features [minver]
+        run: cargo build --all-targets --all-features
+      # test
+      - name: Check [minver]
+        run: cargo test --all-features
+
   # no cache for nightly, run all steps in same job - if one fails, the others won't be tried
   build-nightly:
     name: Build [nightly]
