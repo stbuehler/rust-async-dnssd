@@ -27,7 +27,7 @@ use crate::{
 type CallbackStream = crate::stream::ServiceStream<inner::OwnedService, ResolveResult>;
 
 bitflags::bitflags! {
-	/// Flags for [`ResolveResult`](struct.ResolveResult.html)
+	/// Flags for [`ResolveResult`]
 	#[derive(Default)]
 	pub struct ResolvedFlags: ffi::DNSServiceFlags {
 		/// Indicates at least one more result is pending in the queue.  If
@@ -138,11 +138,9 @@ fn _resolve(interface: Interface, name: &str, reg_type: &str, domain: &str) -> i
 
 /// Find hostname and port (and more) for a service
 ///
-/// You probably want to use [`BrowseResult::resolve`] instead.
+/// You probably want to use [`BrowseResult::resolve`][crate::BrowseResult::resolve] instead.
 ///
 /// See [`DNSServiceResolve`](https://developer.apple.com/documentation/dnssd/1804744-dnsserviceresolve).
-///
-/// [`BrowseResult::resolve`]: struct.BrowseResult.html#method.resolve
 #[doc(alias = "DNSServiceResolve")]
 pub fn resolve(interface: Interface, name: &str, reg_type: &str, domain: &str) -> Resolve {
 	match _resolve(interface, name, reg_type, domain) {

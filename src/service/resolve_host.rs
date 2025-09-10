@@ -68,7 +68,7 @@ fn decode_aaaa(a: QueryRecordResult, port: u16) -> Option<ResolveHostResult> {
 }
 
 bitflags::bitflags! {
-	/// Flags for [`ResolveHostResult`](struct.ResolveHostResult.html)
+	/// Flags for [`ResolveHostResult`]
 	///
 	/// Doesn't include `MORE_COMING` as there are two underlying streams.
 	#[derive(Default)]

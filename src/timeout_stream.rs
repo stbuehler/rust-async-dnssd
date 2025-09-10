@@ -9,10 +9,9 @@ use std::{
 	time::Duration,
 };
 
-/// `Stream` extension to simplify building
-/// [`TimeoutStream`](struct.TimeoutStream.html)
+/// `Stream` extension to simplify building [`TimeoutStream`]
 pub trait StreamTimeoutExt: Stream + Sized {
-	/// Create new [`TimeoutStream`](struct.TimeoutStream.html)
+	/// Create new [`TimeoutStream`]
 	fn timeout(self, duration: Duration) -> TimeoutStream<Self>;
 }
 
@@ -38,9 +37,9 @@ impl<S: Stream> TimeoutStream<S> {
 
 	pin_utils::unsafe_pinned!(timeout: tokio::time::Sleep);
 
-	/// Create new `TimeoutStream`.
+	/// Create new [`TimeoutStream`].
 	///
-	/// Also see [`StreamTimeoutExt::timeout`](trait.StreamTimeoutExt.html#method.timeout).
+	/// Also see [`StreamTimeoutExt::timeout`].
 	pub fn new(stream: S, duration: Duration) -> Self {
 		Self {
 			stream,

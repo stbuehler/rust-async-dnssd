@@ -13,6 +13,7 @@ use std::{
 };
 
 use crate::{
+	Record,
 	cstr,
 	dns_consts::Type,
 	ffi,
@@ -44,7 +45,7 @@ bitflags::bitflags! {
 }
 
 bitflags::bitflags! {
-	/// Flags for [`QueryRecordResult`](struct.QueryRecordResult.html)
+	/// Flags for [`QueryRecordResult`]
 	#[derive(Default)]
 	pub struct RegisteredFlags: ffi::DNSServiceFlags {
 		/// WARNING: not supported by avahi! Indiciates whether registration was added or removed.
@@ -70,7 +71,7 @@ impl RegistrationHandle {
 	///
 	/// See [`DNSServiceAddRecord`](https://developer.apple.com/documentation/dnssd/1804730-dnsserviceaddrecord)
 	#[doc(alias = "DNSServiceAddRecord")]
-	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<crate::Record> {
+	pub fn add_record(&self, rr_type: Type, rdata: &[u8], ttl: u32) -> io::Result<Record> {
 		Ok(self
 			.0
 			.clone()
@@ -78,12 +79,11 @@ impl RegistrationHandle {
 			.into())
 	}
 
-	/// Get [`Record`](struct.Record.html) handle for default TXT record
+	/// Get [`Record`] handle for default TXT record
 	/// associated with the service registration (e.g. to update it).
 	///
-	/// [`Record::keep`](struct.Record.html#method.keep) doesn't do
-	/// anything useful on that handle.
-	pub fn get_default_txt_record(&self) -> crate::Record {
+	/// [`Record::keep`] doesn't do anything useful on that handle.
+	pub fn get_default_txt_record(&self) -> Record {
 		self.0.clone().get_default_txt_record().into()
 	}
 }
@@ -185,13 +185,9 @@ pub struct RegisterData<'a> {
 	/// The TXT record rdata. Empty RDATA is treated like `b"\0"`, i.e.
 	/// a TXT record with a single empty string.
 	///
-	/// You can use [`TxtRecord`] to create the value for this field
-	/// (both [`TxtRecord::data`] and [`TxtRecord::rdata`] produce
-	/// appropriate values).
-	///
-	/// [`TxtRecord`]: struct.TxtRecord.html
-	/// [`TxtRecord::data`]: struct.TxtRecord.html#method.data
-	/// [`TxtRecord::rdata`]: struct.TxtRecord.html#method.rdata
+	/// You can use [`TxtRecord`][crate::TxtRecord] to create the value for this field
+	/// (both [`TxtRecord::data`][crate::TxtRecord::data] and
+	/// [`TxtRecord::rdata`][crate::TxtRecord::rdata] produce appropriate values).
 	pub txt: &'a [u8],
 	#[doc(hidden)]
 	pub _non_exhaustive: crate::non_exhaustive_struct::NonExhaustiveMarker,
@@ -267,9 +263,6 @@ pub fn register_extended(
 /// * `handle`: the tokio event loop handle
 ///
 /// Uses [`register_extended`] with default [`RegisterData`].
-///
-/// [`register_extended`]: fn.register_extended.html
-/// [`RegisterData`]: struct.RegisterData.html
 ///
 /// See [`DNSServiceRegister`].
 ///

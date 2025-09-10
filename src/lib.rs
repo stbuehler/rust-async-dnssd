@@ -10,7 +10,7 @@
 //! * [Enumerate domains that are recommended for registration or browsing][`enumerate_domains`]
 //! * [Query for an arbitrary DNS record][`query_record`]
 //! * [Register a service][`register`]
-//! * [Add a record to a registered service][`Registration::add_record`]
+//! * [Add a record to a registered service][`RegistrationHandle::add_record`]
 //! * [Register record][`Connection::register_record`]
 //! * [Find hostname and port (and more) for a service][`resolve`]
 //!
@@ -40,7 +40,7 @@
 //! * [`DNSServiceProcessResult`] driving callbacks (event loop)
 //! * [`DNSServiceRefDeallocate`] called when dropping various resource handles
 //! * [`DNSServiceRefSockFD`] used for integration with tokio (event loop)
-//! * [`DNSServiceRemoveRecord`] called when dropping [`Record`](struct.Record.html)
+//! * [`DNSServiceRemoveRecord`] called when dropping [`Record`]
 //!
 //! The `TXTRecord*` "TXT Record Construction Functions" are not
 //! wrapped; [`TxtRecord`] provides a native rust implementation with
@@ -61,20 +61,6 @@
 //! [`DNSServiceRefDeallocate`]: https://developer.apple.com/documentation/dnssd/1804697-dnsservicerefdeallocate
 //! [`DNSServiceRefSockFD`]: https://developer.apple.com/documentation/dnssd/1804698-dnsservicerefsockfd
 //! [`DNSServiceRemoveRecord`]: https://developer.apple.com/documentation/dnssd/1804736-dnsserviceremoverecord
-//! [`RegistrationHandle::add_record`]: struct.RegistrationHandle.html#method.add_record
-//! [`browse`]: fn.browse.html
-//! [`FullName::construct`]: struct.FullName.html#method.construct
-//! [`connect`]: fn.connect.html
-//! [`enumerate_domains`]: fn.enumerate_domains.html
-//! [`query_record`]: fn.query_record.html
-//! [`reconfirm_record`]: fn.reconfirm_record.html
-//! [`register`]: fn.register.html
-//! [`Connection::register_record`]: struct.Connection.html#method.register_record
-//! [`resolve`]: fn.resolve.html
-//! [`Record::update_record`]: struct.Record.html#method.update_record
-//! [`RegisterRecord::update_record`]: struct.RegisterRecord.html#method.update_record
-//! [`TimeoutStream`]: struct.TimeoutStream.html
-//! [`TxtRecord`]: struct.TxtRecord.html
 
 pub use self::{
 	dns_consts::{

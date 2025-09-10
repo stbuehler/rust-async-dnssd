@@ -37,7 +37,7 @@ bitflags::bitflags! {
 }
 
 bitflags::bitflags! {
-	/// Flags for [`QueryRecordResult`](struct.QueryRecordResult.html)
+	/// Flags for [`QueryRecordResult`]
 	#[derive(Default)]
 	pub struct QueriedRecordFlags: ffi::DNSServiceFlags {
 		/// Indicates at least one more result is pending in the queue.  If
@@ -198,9 +198,6 @@ pub fn query_record_extended(fullname: &str, rr_type: Type, data: QueryRecordDat
 /// Uses [`query_record_extended`] with default [`QueryRecordData`].
 ///
 /// See [`DNSServiceQueryRecord`](https://developer.apple.com/documentation/dnssd/1804747-dnsservicequeryrecord).
-///
-/// [`query_record_extended`]: fn.query_record_extended.html
-/// [`QueryRecordData`]: struct.QueryRecordData.html
 #[doc(alias = "DNSServiceQueryRecord")]
 pub fn query_record(fullname: &str, rr_type: Type) -> QueryRecord {
 	query_record_extended(fullname, rr_type, QueryRecordData::default())

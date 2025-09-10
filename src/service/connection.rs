@@ -11,6 +11,7 @@ use std::{
 };
 
 use crate::{
+	Record,
 	cstr,
 	dns_consts::{
 		Class,
@@ -26,7 +27,7 @@ type CallbackFuture = crate::future::ServiceFuture<inner::SharedService, Registe
 /// Connection to register records with
 pub struct Connection(inner::SharedService);
 
-/// Create [`Connection`](struct.Connection.html) to register records
+/// Create [`Connection`] to register records
 /// with
 ///
 /// See [`DNSServiceCreateConnection`](https://developer.apple.com/documentation/dnssd/1804724-dnsservicecreateconnection).
@@ -56,17 +57,17 @@ bitflags::bitflags! {
 /// Pending record registration
 ///
 /// Becomes invalid when the future completes; use the returned
-/// [`Record`](struct.Record.html) instead.
+/// [`Record`] instead.
 // the future gets canceled by dropping the record; must
 // not drop the future without dropping the record.
 #[must_use = "futures do nothing unless polled"]
 pub struct RegisterRecord {
 	future: CallbackFuture,
-	record: Option<crate::Record>,
+	record: Option<Record>,
 }
 
 impl Future for RegisterRecord {
-	type Output = io::Result<crate::Record>;
+	type Output = io::Result<Record>;
 
 	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
 		let this = self.get_mut();
@@ -165,12 +166,9 @@ impl Connection {
 	/// Register record on interface with given name, type, class, rdata
 	/// and ttl
 	///
-	/// Uses [`register_record_extended`] with default [`RegisterRecordData`].
+	/// Uses [`register_record_extended`][Self::register_record_extended] with default [`RegisterRecordData`].
 	///
 	/// See [`DNSServiceRegisterRecord`](https://developer.apple.com/documentation/dnssd/1804727-dnsserviceregisterrecord).
-	///
-	/// [`register_record_extended`]: fn.register_record_extended.html
-	/// [`RegisterRecordData`]: struct.RegisterRecordData.html
 	#[doc(alias = "DNSServiceRegisterRecord")]
 	pub fn register_record(
 		&self,
@@ -183,7 +181,7 @@ impl Connection {
 }
 
 impl RegisterRecord {
-	fn inner_record(&self) -> &crate::Record {
+	fn inner_record(&self) -> &Record {
 		self.record.as_ref().expect("RegisterRecord future is done")
 	}
 
@@ -192,7 +190,7 @@ impl RegisterRecord {
 	/// # Panics
 	///
 	/// Panics after the future completed.  Use the returned
-	/// [`Record`](struct.Record.html) instead.
+	/// [`Record`] instead.
 	pub fn rr_type(&self) -> Type {
 		self.inner_record().rr_type()
 	}
@@ -204,7 +202,7 @@ impl RegisterRecord {
 	/// # Panics
 	///
 	/// Panics after the future completed.  Use the returned
-	/// [`Record`](struct.Record.html) instead.
+	/// [`Record`] instead.
 	///
 	/// See [`DNSServiceUpdateRecord`](https://developer.apple.com/documentation/dnssd/1804739-dnsserviceupdaterecord).
 	#[doc(alias = "DNSServiceUpdateRecord")]
@@ -215,7 +213,7 @@ impl RegisterRecord {
 	/// Keep record for as long as the underlying connection lives.
 	///
 	/// Keep the a handle to the underlying connection (either the
-	/// [`Connection`](struct.Connection.html) or some other record from
+	/// [`Connection`] or some other record from
 	/// the same `Connection`) alive.
 	///
 	/// Due to some implementation detail the underlying connection
@@ -224,7 +222,7 @@ impl RegisterRecord {
 	/// # Panics
 	///
 	/// Panics after the future completed.  Use the returned
-	/// [`Record`](struct.Record.html) instead.
+	/// [`Record`] instead.
 	// - implementation detail: this drives the future to continuation,
 	//   it is not possible to drop the (shared) underlying service
 	//   before. instead we could store the callback context with the

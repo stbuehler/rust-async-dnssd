@@ -41,7 +41,7 @@ impl From<Enumerate> for ffi::DNSServiceFlags {
 }
 
 bitflags::bitflags! {
-	/// Flags for [`EnumerateDomains`](struct.EnumerateDomains.html)
+	/// Flags for [`EnumerateDomains`]
 	#[derive(Default)]
 	pub struct EnumeratedFlags: ffi::DNSServiceFlags {
 		/// Indicates at least one more result is pending in the queue.  If

@@ -8,13 +8,10 @@ use crate::{
 /// A successful record registration
 ///
 /// Releases the record when dropped (unless it is a
-/// [`RegistrationHandle::get_default_txt_record`])
+/// [`RegistrationHandle::get_default_txt_record`][crate::RegistrationHandle::method.get_default_txt_record])
 ///
-/// Also keeps the underlying [`Registration`] or [`Connection`] alive.
-///
-/// [`RegistrationHandle::get_default_txt_record`]: struct.RegistrationHandle.html#method.get_default_txt_record
-/// [`Registration`]: struct.Registration.html
-/// [`Connection`]: struct.Connection.html
+/// Also keeps the underlying [`Registration`][crate::Registration] or
+/// [`Connection`][crate::Connection] alive.
 pub struct Record(inner::DNSRecord);
 
 impl Record {
@@ -35,8 +32,8 @@ impl Record {
 	}
 
 	/// Keep record alive for as long as the underlying
-	/// [`Registration`](struct.Registration.html) or
-	/// [`Connection`](struct.Connection.html) lives
+	/// [`Registration`][crate::Registration] or
+	/// [`Connection`][crate::Connection] lives
 	pub fn keep(self) {
 		self.0.keep()
 	}

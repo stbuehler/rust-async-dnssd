@@ -22,7 +22,7 @@ use crate::{
 type CallbackStream = crate::stream::ServiceStream<inner::OwnedService, BrowseResult>;
 
 bitflags::bitflags! {
-	/// Flags for [`BrowseResult`](struct.BrowseResult.html)
+	/// Flags for [`BrowseResult`]
 	#[derive(Default)]
 	pub struct BrowsedFlags: ffi::DNSServiceFlags {
 		/// Indicates at least one more result is pending in the queue.  If
@@ -189,9 +189,6 @@ pub fn browse_extended(reg_type: &str, data: BrowseData<'_>) -> Browse {
 /// Uses [`browse_extended`] with default [`BrowseData`].
 ///
 /// See [`DNSServiceBrowse`](https://developer.apple.com/documentation/dnssd/1804742-dnsservicebrowse).
-///
-/// [`browse_extended`]: fn.browse_extended.html
-/// [`BrowseData`]: struct.BrowseData.html
 #[doc(alias = "DNSServiceBrowse")]
 pub fn browse(reg_type: &str) -> Browse {
 	browse_extended(reg_type, BrowseData::default())
