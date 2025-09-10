@@ -43,6 +43,20 @@ bitflags::bitflags! {
 	}
 }
 
+bitflags::bitflags! {
+	/// Flags for [`QueryRecordResult`](struct.QueryRecordResult.html)
+	#[derive(Default)]
+	pub struct RegisteredFlags: ffi::DNSServiceFlags {
+		/// WARNING: not supported by avahi! Indiciates whether registration was added or removed.
+		///
+		/// Indicates the registration was succesful.  If not set indicates the
+		/// registration was removed.
+		///
+		/// See [`kDNSServiceFlagsAdd`](https://developer.apple.com/documentation/dnssd/1823436-anonymous/kdnsserviceflagsadd).
+		const ADD = ffi::FLAGS_ADD;
+	}
+}
+
 /// Registration handle
 ///
 /// Can be used to add additional records to the registration.
@@ -108,6 +122,8 @@ impl futures_core::Stream for Registration {
 /// See [`DNSServiceRegisterReply`](https://developer.apple.com/documentation/dnssd/dnsserviceregisterreply).
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct RegisterResult {
+	/// flags
+	pub flags: RegisteredFlags,
 	/// if [`NoAutoRename`](enum.RegisterFlag.html#variant.NoAutoRename)
 	/// was set this is the original name, otherwise it might be
 	/// different.
@@ -120,7 +136,7 @@ pub struct RegisterResult {
 
 unsafe extern "C" fn register_callback(
 	_sd_ref: ffi::DNSServiceRef,
-	_flags: ffi::DNSServiceFlags,
+	flags: ffi::DNSServiceFlags,
 	error_code: ffi::DNSServiceErrorType,
 	name: *const c_char,
 	reg_type: *const c_char,
@@ -134,6 +150,7 @@ unsafe extern "C" fn register_callback(
 			let domain = cstr::from_cstr(domain)?;
 
 			Ok(RegisterResult {
+				flags: RegisteredFlags::from_bits_truncate(flags),
 				name: name.to_string(),
 				reg_type: reg_type.to_string(),
 				domain: domain.to_string(),
