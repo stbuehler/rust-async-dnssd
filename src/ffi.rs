@@ -1,5 +1,8 @@
 // #![allow(dead_code)]
 
+// https://github.com/apple-oss-distributions/mDNSResponder/blob/main/mDNSShared/dns_sd.h
+// https://github.com/avahi/avahi/blob/master/avahi-compat-libdns_sd/dns_sd.h
+
 use std::os::raw::{
 	c_char,
 	c_int,
@@ -70,10 +73,13 @@ c_api_enum! {
 #[non_exhaustive]
 DNSServiceNoError: i32 =>
 	NoError               = 0,
+/* source unclear
 	// windows "TCP Connection Status"
+	// these 3 overlap with error codes below
 	ConnectionPending     = -65570,
 	ConnectionFailed      = -65571,
 	ConnectionEstablished = -65572,
+*/
 	// windows "Non-error values"
 	GrowCache             = -65790,
 	ConfigChanged         = -65791,
@@ -86,27 +92,42 @@ c_api_enum! {
 /// See [`DNSServiceErrorType`](https://developer.apple.com/documentation/dnssd/1823426-anonymous)
 #[non_exhaustive]
 DNSServiceError: i32 =>
-	Unknown               = -65537,
-	NoSuchName            = -65538,
-	NoMemory              = -65539,
-	BadParam              = -65540,
-	BadReference          = -65541,
-	BadState              = -65542,
-	BadFlags              = -65543,
-	Unsupported           = -65544,
-	NotInitialized        = -65545,
-	NoCache               = -65546,
-	AlreadyRegistered     = -65547,
-	NameConflict          = -65548,
-	Invalid               = -65549,
-	Incompatible          = -65551,
-	BadInterfaceIndex     = -65552,
-	Refused               = -65553,
-	NoSuchRecord          = -65554,
-	NoAuth                = -65555,
-	NoSuchKey             = -65556,
-	NoValue               = -65557,
-	BufferTooSmall        = -65558,
+	Unknown                   = -65537,
+	NoSuchName                = -65538,
+	NoMemory                  = -65539,
+	BadParam                  = -65540,
+	BadReference              = -65541,
+	BadState                  = -65542,
+	BadFlags                  = -65543,
+	Unsupported               = -65544,
+	NotInitialized            = -65545,
+	// NoCache                = -65546,
+	AlreadyRegistered         = -65547,
+	NameConflict              = -65548,
+	Invalid                   = -65549,
+	Firewall                  = -65550,
+	Incompatible              = -65551,
+	BadInterfaceIndex         = -65552,
+	Refused                   = -65553,
+	NoSuchRecord              = -65554,
+	NoAuth                    = -65555,
+	NoSuchKey                 = -65556,
+	NATTraversal              = -65557,
+	DoubleNAT                 = -65558,
+	BadTime                   = -65559,
+	BadSig                    = -65560,
+	BadKey                    = -65561,
+	Transient                 = -65562,
+	ServiceNotRunning         = -65563,
+	NATPortMappingUnsupported = -65564,
+	NATPortMappingDisabled    = -65565,
+	NoRouter                  = -65566,
+	PollingMode               = -65567,
+	Timeout                   = -65568,
+	DefunctConnection         = -65569,
+	PolicyDenied              = -65570,
+	NotPermitted              = -65571,
+	StaleData                 = -65572,
 }
 
 pub type DNSServiceDomainEnumReply = Option<
